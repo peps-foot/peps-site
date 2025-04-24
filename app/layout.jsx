@@ -3,7 +3,7 @@ export const metadata = {
   description: 'Site de pronostics de football entre amis',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }) {
   return (
     <html lang="fr">
       <body>{children}</body>
