@@ -115,7 +115,7 @@ export default async function HomePage({ params }: PageProps) {
     })
     throw errScores
   }
-  const totalPoints = (scoreRows as any[]).reduce(
+  const totalPoints = (scoreRows as { points?: number }[]).reduce(
     (sum, r) => sum + (r.points ?? 0),
     0
   )

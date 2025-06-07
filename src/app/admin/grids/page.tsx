@@ -1,7 +1,5 @@
 'use client';
-
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 type BonusDef = { id: string; code: string; name: string };
@@ -20,8 +18,6 @@ type Grid = {
 };
 
 export default function AdminGridsPage() {
-  const router = useRouter();
-
   // --- Onglets CRUD ---
   const [tab, setTab] = useState<'create' | 'list' | 'compet' | 'competList'>('create');
   // États pour création/édition compétition
@@ -63,7 +59,6 @@ export default function AdminGridsPage() {
   // Shared data
   const [competitions, setCompetitions] = useState<string[]>([]);
   const [bonusDefs, setBonusDefs] = useState<BonusDef[]>([]);
-  const [loadingDefs, setLoadingDefs] = useState(true);
 
   // Liste des grilles
   const [grids, setGrids] = useState<Grid[]>([]);
@@ -173,9 +168,10 @@ export default function AdminGridsPage() {
       const { data: gs2 } = await supabase.from<Grid>('grids').select('id,title,created_at,allowed_bonuses').order('created_at', { ascending: false });
       setGrids(gs2 || []);
       setGridId(null);setTitle('');setCompetitionFilter('');setDateFrom(new Date().toISOString().slice(0,10));setDateTo(new Date().toISOString().slice(0,10));setFixtures([]);setSelectedFixtures([]);setAllowedBonuses([]);setTab('list');
-    } catch (err:any) {
-      console.error(err); setMessage('❌ Erreur : '+err.message);
-    } finally { setSaving(false); }
+    } catch (err: unknown) {
+  console.error(err);
+  setMessage('❌ Erreur : ' + (err instanceof Error ? err.message : String(err)));
+} finally { setSaving(false); }
   };
 
   // Création / modification compétition
@@ -245,10 +241,10 @@ export default function AdminGridsPage() {
       setCompetName('');
       setSelCompetGrids([]);
       setEditingCompetId(null);
-    } catch (err: any) {
-      console.error('Erreur compétition :', err);
-      setMessageCompet('❌ ' + (err.message || 'Erreur'));
-    }
+    } catch (err: unknown) {
+  console.error('Erreur compétition :', err);
+  setMessageCompet('❌ ' + (err instanceof Error ? err.message : 'Erreur'));
+}
   };
 
   return (

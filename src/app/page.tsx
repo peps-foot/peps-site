@@ -1,5 +1,6 @@
 'use client';
-
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Déclarations de types pour HomePage
 interface Grid {
   id: string
@@ -25,7 +26,10 @@ interface BonusDef {
   id: string
   code: string
   description: string
-  parameters?: any
+  parameters?: {
+  match_win?: string;
+  match_zero?: string;
+}
 }
 
 import { NavBar } from '@/components/NavBar';
@@ -52,7 +56,14 @@ export default function HomePage() {
   // 👉 Définition complète des bonus disponibles (ex: KANTÉ, ZLATAN...)
   const [bonusDefs, setBonusDefs] = useState<BonusDef[]>([]);
   // 👉 Liste des bonus joués pour la grille active
-  const [gridBonuses, setGridBonuses] = useState< { bonus_definition: string; match_id: number; parameters: any }[] >([]);
+  const [gridBonuses, setGridBonuses] = useState<{
+    bonus_definition: string;
+    match_id: number;
+    parameters?: {
+      match_win?: string;
+      match_zero?: string;
+    };
+  }[]>([]);
   // 👉 Points affichés directement en base
   const [totalPoints, setTotalPoints] = useState<number>(0);
   // 👉 Bonus actuellement en cours d’édition
@@ -71,7 +82,6 @@ export default function HomePage() {
   const [currentIdx, setCurrentIdx] = useState(initialPage);
   // Pour la navigation générale
   const hasRun = useRef(false);
-  const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string|null>(null);
   const router        = useRouter();
   const pathname     = usePathname();
@@ -236,9 +246,6 @@ export default function HomePage() {
           .select('id, match_id, pick, points')
           .eq('grid_id', gridId);
         if (gmError) throw gmError;
-        const pickMap = new Map<string,string>(
-          (rawGridMatches || []).map(gm => [gm.match_id, gm.pick])
-        );
         console.log('🔍 rawGridMatches =', rawGridMatches);
 
         // 5) Fusionner tout pour construire le tableau final
@@ -283,9 +290,9 @@ export default function HomePage() {
         if (be) throw be;
         setBonusDefs(bd || []);
 
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error(e);
-        setError(e.message || String(e));
+        setError(e instanceof Error ? e.message : String(e));
       } finally {
         setLoadingGrid(false);
       }
@@ -378,7 +385,13 @@ export default function HomePage() {
       });
 
       // 2) Préparation du payload
-      const payload: any = {
+      const payload: {
+        user_id: string;
+        grid_id: string;
+        bonus_definition: string;
+        match_id: number;
+        parameters: Record<string, string>;
+      } = {
         user_id: user.id,
         grid_id: grid.id,
         bonus_definition: openedBonus.id,
@@ -447,9 +460,9 @@ export default function HomePage() {
       setPopupMatch1('');
       setPopupMatch0('');
     }
-    catch (e: any) {
+    catch (e: unknown) {
       console.error('🔥 handleBonusValidate error', e);
-      alert('Erreur Supabase : ' + (e.message || e));
+      alert('Erreur Supabase : ' + (e instanceof Error ? e.message : String(e)));
     }
   };
    
@@ -482,9 +495,9 @@ export default function HomePage() {
       setPopupMatch1('');
       setPopupMatch0('');
     }
-    catch (e: any) {
+    catch (e: unknown) {
       console.error('🔥 handleBonusDelete catch', e);
-      alert('Erreur suppression bonus : ' + (e.message || e));
+      alert('Erreur suppression bonus : ' + (e instanceof Error ? e.message : String(e)));
     }
   };
 
@@ -884,7 +897,7 @@ return (
                     <select
                       value={popupPick}
                       onChange={(e) =>
-                        setPopupPick(e.target.value as any)
+                        setPopupPick(e.target.value)
                       }
                       className="mt-1 block w-full border rounded p-2"
                     >
@@ -923,7 +936,7 @@ return (
                     <select
                       value={popupPair}
                       onChange={(e) =>
-                        setPopupPair(e.target.value as any)
+                        setPopupPair(e.target.value)
                       }
                       className="mt-1 block w-full border rounded p-2"
                     >

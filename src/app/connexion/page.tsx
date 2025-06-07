@@ -1,7 +1,6 @@
+'use client';
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-'use client';
-
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
@@ -50,7 +49,7 @@ export default function ConnexionPage() {
       return;
     }
 
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/connexion',
     });
 

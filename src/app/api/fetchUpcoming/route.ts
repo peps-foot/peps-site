@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/api/fetchUpcoming/route.ts
 
 import { NextResponse } from 'next/server'
@@ -15,7 +17,6 @@ const COMPETITIONS = [15, 10, 1186] // Coupe du monde, amicaux, qualifs
 export async function GET() {
   try {
     const season = 2024 // ⚠️ adapte si besoin
-    const allNewMatches: any[] = []
 
     for (const leagueId of COMPETITIONS) {
       const res = await fetch(`https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${season}&next=10`, {
@@ -71,7 +72,7 @@ export async function GET() {
 
         const oddsJson = await oddsRes.json()
         const bookmaker = oddsJson.response?.[0]?.bookmakers?.[0]
-        const bets = bookmaker?.bets?.find((b: any) => b.name === "Match Winner")
+        const bets = bookmaker?.bets?.find((b: { name: string }) => b.name === "Match Winner")
         const values = bets?.values
 
         if (!values) continue
