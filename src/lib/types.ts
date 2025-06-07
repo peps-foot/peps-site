@@ -1,4 +1,4 @@
-type Match = {
+export type Match = {
   id: number;
   home_team: string;
   away_team: string;
@@ -8,7 +8,7 @@ type Match = {
   status: string;
 };
 
-type GridBonus = {
+export type GridBonus = {
   id: string;
   grid_id: string;
   user_id: string;
@@ -17,7 +17,7 @@ type GridBonus = {
   parameters: { [key: string]: string };
 };
 
-type BonusDef = {
+export type BonusDef = {
   id: string;
   code: string;
   description: string;
