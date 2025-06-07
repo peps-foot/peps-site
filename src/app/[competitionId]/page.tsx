@@ -5,7 +5,7 @@ import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Match, GridBonus, BonusDef } from '@/lib/types'
 
-export default async function HomePage({ params }) {
+export default async function HomePage({ params, }:{  params: { competitionId: string };}) {
   const { competitionId } = params
   const supabase = createServerComponentClient({ cookies, headers })
 
