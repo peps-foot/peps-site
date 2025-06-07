@@ -5,8 +5,14 @@ import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Match, GridBonus, BonusDef } from '@/lib/types'
 
-export default async function HomePage({ params, }:{  params: { competitionId: string };}) {
-  const { competitionId } = params
+type Props = {
+  params: {
+    competitionId: string;
+  };
+};
+
+export default async function HomePage({ params }: Props) {
+  const { competitionId } = params;
   const supabase = createServerComponentClient({ cookies, headers })
 
   // 1) Récupère/force la session
