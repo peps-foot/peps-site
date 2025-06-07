@@ -1,6 +1,4 @@
 'use client';
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Déclarations de types pour HomePage
 interface Grid {
   id: string

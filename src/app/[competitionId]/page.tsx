@@ -3,8 +3,7 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import HomePageClient from '@/components/HomePageClient'
-import type { Grid, Match, GridBonus, BonusDef } from '@/lib/types'
+import type { Match, GridBonus, BonusDef } from '@/lib/types'
 
 interface PageProps {
   params: { competitionId: string }
