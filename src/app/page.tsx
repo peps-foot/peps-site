@@ -146,21 +146,7 @@ export default function HomePage() {
     const match = m as MatchWithOdds;
 
     groupedByGrid[gridId].matches.push({
-      id: match.match_id,
-      date: match.date,
-      home_team: match.home_team,
-      away_team: match.away_team,
-      score_home: match.score_home,
-      score_away: match.score_away,
-      status: match.status,
-      base_1_points: match.base_1_points,
-      base_n_points: match.base_n_points,
-      base_2_points: match.base_2_points,
-      odd_1: match.odd_1,
-      odd_X: match.odd_X,
-      odd_2: match.odd_2,
-      pick: match.pick,
-      points: match.points ?? 0,
+      ...(match as MatchWithOdds)
     });
     }
 
