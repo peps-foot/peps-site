@@ -39,7 +39,7 @@ export type BonusParameters =
 // 🟠 Bonus joué par un joueur sur une grille
 export type GridBonus = {
   id?: string;
-  grid_id?:tring;
+  grid_id?:string;
   user_id?: string;
   bonus_definition: string;
   match_id: string; // ou number si tu veux changer plus tard
