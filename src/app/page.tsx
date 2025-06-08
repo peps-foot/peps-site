@@ -221,7 +221,7 @@ export default function HomePage() {
 
         // 3) Fetch des matchs (côtes et scores)
         const { data: raws, error: re } = await supabase
-          .from<RawMatch>('matches')
+          .from('matches')
           .select(`
             id,
             date,
