@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsc -p tsconfig.build.json && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
@@ -12,6 +12,8 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/auth-helpers-react": "^0.5.0",
     "@supabase/supabase-js": "^2.49.4",
+    "@types/cookie": "^0.6.0",
+    "cookie": "^1.0.2",
     "date-fns": "^4.1.0",
     "next": "15.3.1",
     "react": "^19.0.0",
