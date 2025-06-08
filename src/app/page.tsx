@@ -129,7 +129,8 @@ export default function HomePage() {
     }
 
     const groupedByGrid: Record<string, { grid: Grid; matches: Match[] }> = {};
-    for (const m of matchData) {
+    const typedMatchData = matchData as MatchWithOdds[];
+    for (const m of typedMatchData) {
       const gridId = m.grid_id;
       if (!groupedByGrid[gridId]) {
         groupedByGrid[gridId] = {
