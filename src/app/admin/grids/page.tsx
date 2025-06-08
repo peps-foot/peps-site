@@ -75,7 +75,7 @@ export default function AdminGridsPage() {
         .single();
       if (cat?.id) {
         const { data: defs } = await supabase
-          .from<BonusDef>('bonus_definition')
+          .from('bonus_definition')
           .select('id,code,name')
           .eq('category_id', cat.id);
         setBonusDefs(defs || []);
