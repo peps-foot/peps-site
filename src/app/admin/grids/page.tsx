@@ -85,13 +85,13 @@ export default function AdminGridsPage() {
 
       // Distinct competitions
       const { data: comps2 } = await supabase
-        .from<{ competition: string }, { competition: string }>('matches')
+        .from('matches')
         .select('competition', { distinct: true });
       if (comps2) setCompetitions([...new Set(comps2.map(c => c.competition))]);
 
       // Grids
       const { data: gs } = await supabase
-        .from<Grid>('grids')
+        .from('grids')
         .select('id,title,description,created_at,allowed_bonuses')
         .order('created_at', { ascending: false });
       setGrids(gs || []);
@@ -106,7 +106,7 @@ export default function AdminGridsPage() {
     if (!competitionFilter) return;
 
     const { data: all } = await supabase
-      .from<Fixture>('matches')
+      .from('matches')
       .select('id,competition,date,home_team,away_team')
       .gte('date', dateFrom + 'T00:00:00Z')
       .lte('date', dateTo + 'T23:59:59Z');
@@ -133,13 +133,13 @@ export default function AdminGridsPage() {
     setTab('create');
     setMessage(null);
     setGridId(id);
-    const { data: g } = await supabase.from<Grid>('grids').select('title,allowed_bonuses').select('title,allowed_bonuses,description').eq('id', id).single();
+    const { data: g } = await supabase.from('grids').select('title,allowed_bonuses').select('title,allowed_bonuses,description').eq('id', id).single();
     if (g) { setTitle(g.title); setAllowedBonuses(g.allowed_bonuses); setDescription(g.description || '');}
     const { data: items } = await supabase.from<{ match_id: number }>('grid_items').select('match_id').eq('grid_id', id);
     const mids = items?.map(it => it.match_id) || [];
     setSelectedFixtures(mids);
     if (mids.length) {
-      const { data: det } = await supabase.from<Fixture>('matches').select('*').in('id', mids);
+      const { data: det } = await supabase.from('matches').select('*').in('id', mids);
       setFixtures(det || []);
     }
   };
@@ -166,7 +166,7 @@ export default function AdminGridsPage() {
       }
       setMessage('✅ Grille enregistrée');
       setDescription('');
-      const { data: gs2 } = await supabase.from<Grid>('grids').select('id,title,created_at,allowed_bonuses').order('created_at', { ascending: false });
+      const { data: gs2 } = await supabase.from('grids').select('id,title,created_at,allowed_bonuses').order('created_at', { ascending: false });
       setGrids(gs2 || []);
       setGridId(null);setTitle('');setCompetitionFilter('');setDateFrom(new Date().toISOString().slice(0,10));setDateTo(new Date().toISOString().slice(0,10));setFixtures([]);setSelectedFixtures([]);setAllowedBonuses([]);setTab('list');
     } catch (err: unknown) {
