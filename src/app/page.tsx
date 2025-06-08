@@ -396,7 +396,7 @@ export default function HomePage() {
         user_id: user.id,
         grid_id: grid.id,
         bonus_definition: openedBonus.id,
-        match_id: popupMatch1,
+        match_id: Number(popupMatch1),
         parameters: {}
       };
 
