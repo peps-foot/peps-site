@@ -417,6 +417,9 @@ export default function HomePage() {
       setGridBonuses(gbs => [
         ...gbs.filter(b => b.bonus_definition !== openedBonus.id),
         {
+          id: crypto.randomUUID(),       
+          grid_id: grid.id,               
+          user_id: user.id,     
           bonus_definition: openedBonus.id,
           match_id: payload.match_id,
           parameters: payload.parameters
