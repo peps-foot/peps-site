@@ -4,6 +4,11 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { Match, GridBonus, BonusDef } from '@/lib/types'
+import { type Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Grilles par compétition',
+}
 
 export default async function Page({ params }: { params: { competitionId: string } }) {
   const { competitionId } = params;
