@@ -1,9 +1,13 @@
 'use client';
 // Déclarations de types pour HomePage
 
+type BonusParameters =
+  | { picks: string[] }         // Kanté
+  | { match_win: string; match_zero: string } // Ribéry
+  | { pick: string };           // Zlatan
+
 import type { User } from '@supabase/supabase-js';
-import type * as types from '@/lib/types';
-console.log(types.BonusParameters);
+import type { Match, GridBonus, BonusDef } from '@/lib/types';
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
