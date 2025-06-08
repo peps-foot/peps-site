@@ -18,6 +18,9 @@ export type MatchWithOdds = Match & {
   odd_1: number | null;
   odd_X: number | null;
   odd_2: number | null;
+  odd_1_snapshot?: number;
+  odd_n_snapshot?: number;
+  odd_2_snapshot?: number;
   pick: string;
   points?: number;
   grids: {
