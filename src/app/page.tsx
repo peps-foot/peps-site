@@ -216,7 +216,7 @@ export default function HomePage() {
         console.log("📦 grille active chargée :", g);
 
         // 2) Préparer la liste des match_id à récupérer
-        const ids = (g.grid_items || []).map(x => x.match_id);
+        const ids = (g.grid_items || []).map((x: { match_id: number }) => x.match_id);
         console.log('🔍 match IDs to fetch =', ids);
 
         // 3) Fetch des matchs (côtes et scores)
