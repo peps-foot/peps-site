@@ -30,3 +30,10 @@ export type BonusDef = {
 };
 
 export { BonusParameters };
+
+export type Grid = {
+  id: string;
+  title: string;
+  description: string;
+  allowed_bonuses: string[]; // ou autre selon ta base
+};
