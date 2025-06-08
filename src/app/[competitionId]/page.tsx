@@ -1,3 +1,9 @@
+'use client'
+
+import dynamic from 'next/dynamic'
+
+const HomePageClient = dynamic(() => import('@/components/HomePageClient'), { ssr: false })
+
 type Props = {
   params: {
     competitionId: string;
@@ -5,5 +11,5 @@ type Props = {
 };
 
 export default function Page({ params }: Props) {
-  return <h1>Compétition : {params.competitionId}</h1>;
+  return <HomePageClient competitionId={params.competitionId} />
 }
