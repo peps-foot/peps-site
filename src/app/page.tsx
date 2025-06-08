@@ -66,15 +66,6 @@ export default function HomePage() {
   const nextGrid = () => {    if (currentIdx < grids.length - 1) goToPage(currentIdx + 1);  };
   const currentGrid = grids[currentIdx] || { title: '', description: '' };
 
-  const obj: MatchWithOdds = {
-  home_team: m.matches.home_team,
-  away_team: m.matches.away_team,
-  odd_1: m.matches.base_1_points,
-  odd_X: m.matches.base_n_points,
-  odd_2: m.matches.base_2_points,
-  pick: m.pick,
-};
-
   // 👉 Format FR pour la date
   const fmtDate = (d: string) =>
     new Date(d).toLocaleString('fr-FR',{
@@ -231,21 +222,22 @@ export default function HomePage() {
 
         // 5) Fusionner tout pour construire le tableau final
         const clean = (raws || []).map(m => {
+          const match = m as MatchWithOdds;
           // trouver l'enregistrement grid_match pour ce match
           const gm = rawGridMatches?.find(gm => gm.match_id === m.id);
           return {
-            id:         m.id,
-            date:       m.date,
-            home_team:  m.home_team,
-            away_team:  m.away_team,
-            score_home: m.score_home,
-            score_away: m.score_away,
-            odd_1:      m.odd_1_snapshot,
-            odd_X:      m.odd_n_snapshot,
-            odd_2:      m.odd_2_snapshot,
-            base_1_points: m.base_1_points,
-            base_n_points: m.base_n_points,
-            base_2_points: m.base_2_points,
+            id:         match.id,
+            date:       match.date,
+            home_team:  match.home_team,
+            away_team:  match.away_team,
+            score_home: match.score_home,
+            score_away: match.score_away,
+            odd_1:      match.odd_1_snapshot,
+            odd_X:      match.odd_n_snapshot,
+            odd_2:      match.odd_2_snapshot,
+            base_1_points: match.base_1_points,
+            base_n_points: match.base_n_points,
+            base_2_points: match.base_2_points,
 
             pick:       gm?.pick ?? null,
             points:     gm?. points ?? 0,
