@@ -142,18 +142,19 @@ export default function HomePage() {
           matches: [],
         };
       }
-      const match = m as MatchWithOdds;
-      groupedByGrid[gridId].matches.push({
-        id: match.match_id,
-        date: match.matches.date,
-        home_team: match.matches.home_team,
-        away_team: match.matches.away_team,
-        odd_1: match.matches.base_1_points,
-        odd_X: match.matches.base_n_points,
-        odd_2: match.matches.base_2_points,
-        pick: match.pick,
-        points: match.points ?? 0, // <- on ajoute les points calculés pour plus tard
-      });
+    const match = m as MatchWithOdds;
+
+    groupedByGrid[gridId].matches.push({
+      id: match.match_id,
+      date: match.matches.date,
+      home_team: match.matches.home_team,
+      away_team: match.matches.away_team,
+      odd_1: match.matches.base_1_points,
+      odd_X: match.matches.base_n_points,
+      odd_2: match.matches.base_2_points,
+      pick: match.pick,
+      points: match.points ?? 0,
+    });
     }
 
     const gridsList = Object.values(groupedByGrid).map((g) => g.grid);
