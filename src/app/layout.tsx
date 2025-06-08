@@ -1,3 +1,4 @@
+
 console.log("💡 layout.tsx chargé");
 import './globals.css';
 import React from 'react';
