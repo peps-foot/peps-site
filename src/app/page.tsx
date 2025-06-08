@@ -1,48 +1,8 @@
 'use client';
 // Déclarations de types pour HomePage
 
-interface Grid {
-  id: string
-  title: string
-  description: string
-}
-
-interface Match {
-  id: string
-  date: string
-  home_team: string
-  away_team: string
-  odd_1: number
-  odd_X: number
-  odd_2: number
-  pick?: string
-  score_home?: number
-  score_away?: number
-  points?: number
-}
-
-interface BonusDef {
-  id: string
-  code: string
-  description: string
-  parameters?: {
-  match_win?: string;
-  match_zero?: string;
-}
-}
-
-export type BonusParameters =
-  | { picks: string[] } // pour Kanté
-  | { match_win: string; match_zero: string } // pour Ribéry
-  | { pick: string }; // pour Zlatan
-
-type GridBonus = {
-  bonus_definition: string;
-  match_id: number;
-  parameters?: BonusParameters;
-};
-
 import type { User } from '@supabase/supabase-js';
+import type { Match, GridBonus, BonusDef, BonusParameters } from '@/lib/types';
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
