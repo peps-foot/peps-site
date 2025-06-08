@@ -422,7 +422,7 @@ export default function HomePage() {
             return alert('Sélectionnez 2 matchs différents pour Ribéry');
           if (popupMatch1 === popupMatch0)
             return alert('Les 2 matchs doivent être différents');
-          payload.match_id = popupMatch1;
+          payload.match_id = Number(popupMatch1) || 0;
           payload.parameters = {
             match_win: popupMatch1,
             match_zero: popupMatch0
