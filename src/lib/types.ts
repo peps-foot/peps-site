@@ -7,6 +7,9 @@ export type Match = {
   score_home: number | null;
   score_away: number | null;
   status: string;
+  base_1_points: number | null;
+  base_n_points: number | null;
+  base_2_points: number | null;
 };
 
 // 🟠 Paramètres personnalisés pour les différents types de bonus
