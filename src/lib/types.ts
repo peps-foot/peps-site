@@ -19,6 +19,11 @@ export type MatchWithOdds = Match & {
   odd_X: number | null;
   odd_2: number | null;
   pick: string;
+  grids: {
+    title: string;
+    description: string;
+    allowed_bonuses: string[];
+  };
 };
 
 // 🟠 Paramètres personnalisés pour les différents types de bonus
