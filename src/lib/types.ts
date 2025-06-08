@@ -19,6 +19,7 @@ export type MatchWithOdds = Match & {
   odd_X: number | null;
   odd_2: number | null;
   pick: string;
+  points?: number;
   grids: {
     title: string;
     description: string;
