@@ -86,8 +86,12 @@ export default function AdminGridsPage() {
       // Distinct competitions
       const { data: comps2 } = await supabase
         .from('matches')
-        .select('competition', { distinct: true });
-      if (comps2) setCompetitions([...new Set(comps2.map(c => c.competition))]);
+        .select('competition');
+
+      if (comps2) {
+        const unique = [...new Set(comps2.map(c => c.competition))];
+        setCompetitions(unique);
+      }
 
       // Grids
       const { data: gs } = await supabase
