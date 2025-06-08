@@ -1,6 +1,6 @@
 // 🟠 Match récupéré depuis Supabase (via api-football)
 export type Match = {
-  id: number;
+  id: string;
   home_team: string;
   away_team: string;
   date: string;
