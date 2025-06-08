@@ -143,7 +143,11 @@ export default function AdminGridsPage() {
     .eq('id', id)
     .single();
     if (g) { setTitle(g.title); setAllowedBonuses(g.allowed_bonuses); setDescription(g.description || '');}
-    const { data: items } = await supabase.from<{ match_id: number }>('grid_items').select('match_id').eq('grid_id', id);
+    const { data: items } = await supabase
+    .from('grid_items')
+    .select('match_id')
+    .eq('grid_id', id);
+
     const mids = items?.map(it => it.match_id) || [];
     setSelectedFixtures(mids);
     if (mids.length) {
