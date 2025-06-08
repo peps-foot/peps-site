@@ -7,7 +7,7 @@ type BonusParameters =
   | { pick: string };           // Zlatan
 
 import type { User } from '@supabase/supabase-js';
-import type { Grid, Match, GridBonus, BonusDef } from '@/lib/types';
+import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '@/lib/types';
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
@@ -65,6 +65,16 @@ export default function HomePage() {
   const prevGrid = () => {    if (currentIdx > 0) goToPage(currentIdx - 1);  };
   const nextGrid = () => {    if (currentIdx < grids.length - 1) goToPage(currentIdx + 1);  };
   const currentGrid = grids[currentIdx] || { title: '', description: '' };
+
+  const obj: MatchWithOdds = {
+  home_team: m.matches.home_team,
+  away_team: m.matches.away_team,
+  odd_1: m.matches.base_1_points,
+  odd_X: m.matches.base_n_points,
+  odd_2: m.matches.base_2_points,
+  pick: m.pick,
+};
+
   // 👉 Format FR pour la date
   const fmtDate = (d: string) =>
     new Date(d).toLocaleString('fr-FR',{
