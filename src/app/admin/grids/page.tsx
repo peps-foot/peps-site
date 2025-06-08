@@ -63,6 +63,7 @@ export default function AdminGridsPage() {
   // Liste des grilles
   const [grids, setGrids] = useState<Grid[]>([]);
   const [loadingGrids, setLoadingGrids] = useState(true);
+  const [loadingDefs, setLoadingDefs] = useState(false);
 
   // Initial load
   useEffect(() => {
