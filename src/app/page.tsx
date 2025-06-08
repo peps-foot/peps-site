@@ -35,6 +35,7 @@ interface BonusDef {
 }
 }
 
+import type { User } from '@supabase/supabase-js';
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
