@@ -137,7 +137,11 @@ export default function AdminGridsPage() {
     setTab('create');
     setMessage(null);
     setGridId(id);
-    const { data: g } = await supabase.from('grids').select('title,allowed_bonuses').select('title,allowed_bonuses,description').eq('id', id).single();
+    const { data: g } = await supabase
+    .from('grids')
+    .select('title,allowed_bonuses,description')
+    .eq('id', id)
+    .single();
     if (g) { setTitle(g.title); setAllowedBonuses(g.allowed_bonuses); setDescription(g.description || '');}
     const { data: items } = await supabase.from<{ match_id: number }>('grid_items').select('match_id').eq('grid_id', id);
     const mids = items?.map(it => it.match_id) || [];
