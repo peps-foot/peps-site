@@ -13,6 +13,7 @@ export type Match = {
 };
 
 export type MatchWithOdds = Match & {
+  grid_id: string;
   match_id: string;
   odd_1: number | null;
   odd_X: number | null;
