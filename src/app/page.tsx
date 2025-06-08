@@ -286,7 +286,7 @@ export default function HomePage() {
 
         // 7) Fetch des définitions de bonus
         const { data: bd, error: be } = await supabase
-          .from<BonusDef>('bonus_definition')
+          .from('bonus_definition')
           .select('id, code, description');
         if (be) throw be;
         setBonusDefs(bd || []);
