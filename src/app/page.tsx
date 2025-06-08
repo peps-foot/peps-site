@@ -31,6 +31,11 @@ interface BonusDef {
 }
 }
 
+export type BonusParameters =
+  | { picks: string[] } // pour Kanté
+  | { match_win: string; match_zero: string } // pour Ribéry
+  | { pick: string }; // pour Zlatan
+
 import type { User } from '@supabase/supabase-js';
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
@@ -391,13 +396,13 @@ export default function HomePage() {
         grid_id: string;
         bonus_definition: string;
         match_id: number;
-        parameters: Record<string, string>;
+        parameters: BonusParameters;
       } = {
         user_id: user.id,
         grid_id: grid.id,
         bonus_definition: openedBonus.id,
         match_id: Number(popupMatch1),
-        parameters: {}
+        parameters: { picks: [] },
       };
 
       // 3) Logique spécifique à chaque bonus
