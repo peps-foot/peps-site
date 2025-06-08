@@ -94,7 +94,7 @@ export default function HomePage() {
     // Reconstruit les params en conservant les autres éventuels
     const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
     params.set('page', String(i));
-    router.replace(`${pathname}?${params.toString()}`, undefined, { shallow: true });  };
+    router.replace(`${pathname}?${params.toString()}`);
   // 👉 Fonctions de navigation
   const prevGrid = () => {    if (currentIdx > 0) goToPage(currentIdx - 1);  };
   const nextGrid = () => {    if (currentIdx < grids.length - 1) goToPage(currentIdx + 1);  };
