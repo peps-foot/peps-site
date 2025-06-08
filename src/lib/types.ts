@@ -8,21 +8,25 @@ export type Match = {
   status: string;
 };
 
+export type BonusParameters =
+  | { picks: string[] }
+  | { match_win: string; match_zero: string }
+  | { pick: string };
+
 export type GridBonus = {
   id: string;
   grid_id: string;
   user_id: string;
   bonus_definition: string;
-  match_id: string;
-  parameters: { [key: string]: string };
+  match_id: string; // ou number si c'est l'ID du match
+  parameters?: BonusParameters;
 };
 
 export type BonusDef = {
   id: string;
   code: string;
   description: string;
-  parameters?: {
-    match_win?: string;
-    match_zero?: string;
-  };
+  parameters?: BonusParameters;
 };
+
+export { BonusParameters };

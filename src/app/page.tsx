@@ -2,7 +2,8 @@
 // Déclarations de types pour HomePage
 
 import type { User } from '@supabase/supabase-js';
-import type { Match, GridBonus, BonusDef, BonusParameters } from '@/lib/types';
+import type * as types from '@/lib/types';
+console.log(types.BonusParameters);
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
