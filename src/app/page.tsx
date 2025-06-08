@@ -92,7 +92,7 @@ export default function HomePage() {
   // 👉 Change l’index ET met à jour l’URL en shallow routing
   const goToPage = (i: number) => {    setCurrentIdx(i);
     // Reconstruit les params en conservant les autres éventuels
-    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
     params.set('page', String(i));
     router.replace(`${pathname}?${params.toString()}`, undefined, { shallow: true });  };
   // 👉 Fonctions de navigation
