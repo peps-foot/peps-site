@@ -12,6 +12,15 @@ export type Match = {
   base_2_points: number | null;
 };
 
+export type MatchWithOdds = {
+  home_team: string;
+  away_team: string;
+  odd_1: number | null;
+  odd_X: number | null;
+  odd_2: number | null;
+  pick: string;
+};
+
 // 🟠 Paramètres personnalisés pour les différents types de bonus
 export type BonusParameters =
   | { picks: string[] }                            // Bonus Kanté
