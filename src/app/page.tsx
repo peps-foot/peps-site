@@ -136,6 +136,7 @@ export default function HomePage() {
             id: gridId,
             title: m.grids.title,
             description: m.grids.description,
+            allowed_bonuses: m.grids.allowed_bonuses ?? [],
           },
           matches: [],
         };
