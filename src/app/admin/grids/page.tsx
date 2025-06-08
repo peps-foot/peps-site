@@ -69,7 +69,7 @@ export default function AdminGridsPage() {
     (async () => {
       // Bonus defs
       const { data: cat } = await supabase
-        .from<{ id: string }>('bonus_categories')
+        .from<BonusCategory>('bonus_categories')
         .select('id')
         .eq('name', 'MATCH')
         .single();
