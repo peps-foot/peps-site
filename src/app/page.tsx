@@ -81,7 +81,8 @@ export default function HomePage() {
   const [popupPick, setPopupPick] = useState<'1' | 'N' | '2'>('1');
   // 👉 Gestion de navigation entre les grilles
   const searchParams  = useSearchParams();
-  const initialPage   = Number(searchParams.get('page')) || 0;
+  const pageParam = searchParams.get('page');
+  const initialPage = pageParam ? Number(pageParam) : 0;
   const [currentIdx, setCurrentIdx] = useState(initialPage);
   // Pour la navigation générale
   const hasRun = useRef(false);
