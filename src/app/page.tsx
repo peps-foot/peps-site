@@ -36,6 +36,12 @@ export type BonusParameters =
   | { match_win: string; match_zero: string } // pour Ribéry
   | { pick: string }; // pour Zlatan
 
+type GridBonus = {
+  bonus_definition: string;
+  match_id: number;
+  parameters?: BonusParameters;
+};
+
 import type { User } from '@supabase/supabase-js';
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
@@ -61,14 +67,7 @@ export default function HomePage() {
   // 👉 Définition complète des bonus disponibles (ex: KANTÉ, ZLATAN...)
   const [bonusDefs, setBonusDefs] = useState<BonusDef[]>([]);
   // 👉 Liste des bonus joués pour la grille active
-  const [gridBonuses, setGridBonuses] = useState<{
-    bonus_definition: string;
-    match_id: number;
-    parameters?: {
-      match_win?: string;
-      match_zero?: string;
-    };
-  }[]>([]);
+  const [gridBonuses, setGridBonuses] = useState<GridBonus[]>([]);
   // 👉 Points affichés directement en base
   const [totalPoints, setTotalPoints] = useState<number>(0);
   // 👉 Bonus actuellement en cours d’édition
