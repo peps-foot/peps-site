@@ -148,11 +148,11 @@ export default function HomePage() {
     groupedByGrid[gridId].matches.push({
       id: match.match_id,
       date: match.date,
-      home_team: match.matches.home_team,
-      away_team: match.matches.away_team,
-      odd_1: match.matches.base_1_points,
-      odd_X: match.matches.base_n_points,
-      odd_2: match.matches.base_2_points,
+      home_team: match.home_team,
+      away_team: match.away_team,
+      odd_1: match.base_1_points,
+      odd_X: match.base_n_points,
+      odd_2: match.base_2_points,
       pick: match.pick,
       points: match.points ?? 0,
     });
