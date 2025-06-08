@@ -1,5 +1,10 @@
 'use client';
 // Déclarations de types pour HomePage
+type User = {
+  id: string;
+  email: string;
+};
+
 interface Grid {
   id: string
   title: string
