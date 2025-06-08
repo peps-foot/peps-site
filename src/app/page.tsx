@@ -444,7 +444,7 @@ export default function HomePage() {
       const { data, error: be } = await supabase
         .from('grid_bonus')
         .upsert([payload], {
-          onConflict: ['user_id', 'grid_id'],
+          onConflict: 'user_id,grid_id'
         });
         await loadUserGrids(user.id); // Recharge les grilles après validation bonus
 
