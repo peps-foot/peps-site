@@ -207,7 +207,7 @@ export default function HomePage() {
 
         // 1) Fetch de la grille active
         const { data: g, error: ge } = await supabase
-          .from<Grid>('grids')
+          .from('grids')
           .select(`id, title, grid_items(match_id), allowed_bonuses`)
           .eq('id', gridId)
           .single();
