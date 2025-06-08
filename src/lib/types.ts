@@ -1,3 +1,4 @@
+// 🟠 Match récupéré depuis Supabase (via api-football)
 export type Match = {
   id: number;
   home_team: string;
@@ -8,20 +9,23 @@ export type Match = {
   status: string;
 };
 
+// 🟠 Paramètres personnalisés pour les différents types de bonus
 export type BonusParameters =
-  | { picks: string[] }
-  | { match_win: string; match_zero: string }
-  | { pick: string };
+  | { picks: string[] }                            // Bonus Kanté
+  | { match_win: string; match_zero: string }     // Bonus Ribéry
+  | { pick: string };                             // Bonus Zlatan
 
+// 🟠 Bonus joué par un joueur sur une grille
 export type GridBonus = {
   id: string;
   grid_id: string;
   user_id: string;
   bonus_definition: string;
-  match_id: string; // ou number si c'est l'ID du match
+  match_id: string; // ou number si tu veux changer plus tard
   parameters?: BonusParameters;
 };
 
+// 🟠 Bonus défini dans la table `bonus_definition`
 export type BonusDef = {
   id: string;
   code: string;
@@ -29,11 +33,10 @@ export type BonusDef = {
   parameters?: BonusParameters;
 };
 
-export { BonusParameters };
-
+// 🟠 Grille créée par l'admin ou récupérée par un joueur
 export type Grid = {
   id: string;
   title: string;
   description: string;
-  allowed_bonuses: string[]; // ou autre selon ta base
+  allowed_bonuses: string[]; // Ex: ['KANTE', 'ZLATAN']
 };

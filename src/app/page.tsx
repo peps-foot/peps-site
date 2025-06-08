@@ -7,7 +7,7 @@ type BonusParameters =
   | { pick: string };           // Zlatan
 
 import type { User } from '@supabase/supabase-js';
-import type { Match, GridBonus, BonusDef, Grid } from '@/lib/types';
+import type { Grid, Match, GridBonus, BonusDef } from '@/lib/types';
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
