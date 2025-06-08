@@ -356,14 +356,14 @@ export default function HomePage() {
 
     const { error } = await supabase
       .from('grid_matches')
-      .upsert({
+      .upsert([{
         user_id: user.id,
         grid_id: grid.id,
         match_id,
         pick
       }, {
         onConflict: ['user_id', 'grid_id', 'match_id']
-      });
+      }]);
 
     if (error) {
       console.error("Erreur enregistrement pick :", error);
