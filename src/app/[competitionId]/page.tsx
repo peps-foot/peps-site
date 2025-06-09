@@ -51,7 +51,7 @@ export default function CompetitionPage() {
       setUser(session.user)
 
       const { data: cgRows, error: errCg } = await supabase
-        .from<CompetitionGridRow>('competition_grids')
+        .from<CompetitionGridRow, CompetitionGridRow>('competition_grids')
         .select(`
           grids (
             id,
