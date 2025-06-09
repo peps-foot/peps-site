@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
 import { NavBar } from '@/components/NavBar'
 import { User } from '@supabase/auth-helpers-nextjs'
 
@@ -37,6 +36,8 @@ export default function ClassementPage() {
 
   useEffect(() => {
     const initAndLoad = async () => {
+      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
+      const supabase = createBrowserSupabaseClient()
       const { data: { user }, error } = await supabase.auth.getUser()
       if (!user || error) {
         console.warn('❌ Utilisateur non connecté', error)
@@ -84,6 +85,8 @@ export default function ClassementPage() {
     setLeaderboard([])
     setMyRank(null)
 
+    const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
+    const supabase = createBrowserSupabaseClient()
     const { data } = await supabase.rpc('get_leaderboard_general', {
       p_competition_id: compId,
     })
@@ -102,6 +105,8 @@ export default function ClassementPage() {
     setLeaderboard([])
     setMyRank(null)
 
+    const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
+    const supabase = createBrowserSupabaseClient()
     const { data } = await supabase.rpc('get_leaderboard_by_grid', {
       p_grid_id: gridId,
     })
