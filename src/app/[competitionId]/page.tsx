@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabaseClient'
 import { NavBar } from '@/components/NavBar'
 import Image from 'next/image'
 
+type CompetitionGridRow = { grids: Grid }
+
 const bonusLogos: Record<string, string> = {
   KANTE: '/images/kante.png',
   RIBERY: '/images/ribery.png',
@@ -50,9 +52,17 @@ export default function CompetitionPage() {
 
       const { data: cgRows, error: errCg } = await supabase
         .from('competition_grids')
-        .select(`grids ( id, title, description, allowed_bonuses )`)
+        .select(`
+          grids (
+            id,
+            title,
+            description,
+            allowed_bonuses
+          )
+        `)
         .eq('competition_id', competitionId)
-        .order('created_at', { ascending: true, foreignTable: 'grids' })
+        .order('created_at', { ascending: true, foreignTable: 'grids' }) as
+        Promise<{ data: CompetitionGridRow[] | null; error: any }>
 
       if (errCg || !cgRows?.length) return
 
