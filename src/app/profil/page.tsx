@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { NavBar } from '@/components/NavBar'
+import { supabase } from '@/lib/supabaseClient';
 
 export default function ProfilPage() {
   const [userEmail, setUserEmail] = useState('')
@@ -12,9 +13,6 @@ export default function ProfilPage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createBrowserSupabaseClient()
-
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserEmail(user.email || '')
@@ -34,9 +32,6 @@ export default function ProfilPage() {
   }, [])
 
   const handleSave = async () => {
-    const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-    const supabase = createBrowserSupabaseClient()
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -80,9 +75,6 @@ export default function ProfilPage() {
   }
 
   const handleDelete = async () => {
-    const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-    const supabase = createBrowserSupabaseClient()
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 

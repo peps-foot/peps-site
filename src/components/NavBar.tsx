@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient';
 
 type Tab = {
   label: string
@@ -18,9 +19,6 @@ export function NavBar() {
 
   useEffect(() => {
     async function loadCompetition() {
-      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createBrowserSupabaseClient()
-
       const { data, error } = await supabase
         .from('competitions')
         .select('name')
@@ -39,9 +37,6 @@ export function NavBar() {
   }, [])
 
   const handleSignOut = async () => {
-    const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-    const supabase = createBrowserSupabaseClient()
-
     await supabase.auth.signOut()
     router.push('/connexion')
   }
