@@ -182,7 +182,7 @@ export default function HomePage() {
         console.log("📦 grille active chargée :", g);
 
         // 2) Préparer la liste des match_id à récupérer
-        const ids = (g.grid_items || []).map((x: { match_id: number }) => x.match_id);
+        const ids = (g.grid_items || []).map((x: { match_id: string }) => x.match_id);
         console.log('🔍 match IDs to fetch =', ids);
 
         // 3) Fetch des matchs (côtes et scores)
@@ -357,13 +357,13 @@ export default function HomePage() {
         user_id: string;
         grid_id: string;
         bonus_definition: string;
-        match_id: number;
+        match_id: string;
         parameters: BonusParameters;
       } = {
         user_id: user.id,
         grid_id: grid.id,
         bonus_definition: openedBonus.id,
-        match_id: Number(popupMatch1),
+        match_id: popupMatch1,
         parameters: { picks: [] },
       };
 
@@ -384,7 +384,7 @@ export default function HomePage() {
             return alert('Sélectionnez 2 matchs différents pour Ribéry');
           if (popupMatch1 === popupMatch0)
             return alert('Les 2 matchs doivent être différents');
-          payload.match_id = Number(popupMatch1) || 0;
+          payload.match_id = popupMatch1 || 0;
           payload.parameters = {
             match_win: popupMatch1,
             match_zero: popupMatch0
