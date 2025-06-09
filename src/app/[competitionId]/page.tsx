@@ -56,7 +56,7 @@ export default function CompetitionPage() {
 
       if (errCg || !cgRows?.length) return
 
-      const current = cgRows[0].grids
+      const current = cgRows[0].grids as Grid
       setGrids([current])
       setGrid(current)
 
