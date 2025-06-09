@@ -1,8 +1,9 @@
-// src/app/layout.tsx
 import './globals.css'
 import type { Metadata } from 'next'
 import { Oswald, Poppins } from 'next/font/google'
-import SupabaseProvider from '@/components/SupabaseProvider'
+import dynamic from 'next/dynamic'
+
+const ClientLayout = dynamic(() => import('@/components/ClientLayout'), { ssr: false })
 
 const oswald = Oswald({
   subsets: ['latin'],
@@ -21,17 +22,13 @@ export const metadata: Metadata = {
   description: 'Site de jeu de pronostics de football entre amis',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${oswald.variable} ${poppins.variable}`}>
       <body>
-        <SupabaseProvider>
+        <ClientLayout>
           {children}
-        </SupabaseProvider>
+        </ClientLayout>
       </body>
     </html>
   )
