@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 type BonusDef = { id: string; code: string; name: string };
 type Fixture = {
@@ -18,6 +18,7 @@ type Grid = {
 };
 
 export default function AdminGridsPage() {
+  const supabase = useSupabase()
   // --- Onglets CRUD ---
   const [tab, setTab] = useState<'create' | 'list' | 'compet' | 'competList'>('create');
   // États pour création/édition compétition
