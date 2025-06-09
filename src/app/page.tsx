@@ -572,9 +572,9 @@ return (
                     (d) => d.id === bonusEntry?.bonus_definition
                   )
                   const bonusCode = bonusDef?.code
-                  const params = bonusEntry?.parameters ?? {} as Partial<{ match_win: string; match_zero: string }>;
-                  const matchWin = params.match_win ?? '';
-                  const matchZero = params.match_zero ?? '';
+                  const params = bonusEntry?.parameters ?? {};
+                  const matchWin = 'match_win' in params ? params.match_win : '';
+                  const matchZero = 'match_zero' in params ? params.match_zero : '';
 
                   // 2) Prépare picks et disabled
                   let picksForThisMatch: string[] = []
