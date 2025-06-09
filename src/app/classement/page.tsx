@@ -1,5 +1,8 @@
 'use client'
 
+console.log('📄 classement/page.tsx chargé')
+console.log('✅ process.env URL :', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
 import { useEffect, useState } from 'react'
 import { NavBar } from '@/components/NavBar'
 import { User } from '@supabase/auth-helpers-nextjs'
