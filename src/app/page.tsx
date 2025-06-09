@@ -636,16 +636,7 @@ return (
                           <div
                             key={opt}
                             onClick={() =>
-                              !isDisabled &&
-                              handlePick(
-                                m.id,
-                                opt,
-                                opt === '1'
-                                  ? m.odd_1
-                                  : opt === 'N'
-                                  ? m.odd_X
-                                  : m.odd_2
-                              )
+                              !isDisabled && handlePick(m.id, opt)
                             }
                             className={`w-8 h-8 mx-auto border rounded flex items-center justify-center text-sm 
                               ${isMatchLocked ? 'opacity-50' : 'cursor-pointer'
