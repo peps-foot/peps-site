@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { NavBar } from '@/components/NavBar'
 import Image from 'next/image'
 
-//type CompetitionGridRow = { grids: Grid }
+type CompetitionGridRow = { grids: Grid }
 
 const bonusLogos: Record<string, string> = {
   KANTE: '/images/kante.png',
@@ -51,7 +51,7 @@ export default function CompetitionPage() {
       setUser(session.user)
 
       const { data: cgRows, error: errCg } = await supabase
-        .from('competition_grids')
+        .from<CompetitionGridRow>('competition_grids')
         .select(`
           grids (
             id,
