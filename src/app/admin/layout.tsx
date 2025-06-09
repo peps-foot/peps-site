@@ -1,10 +1,11 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const supabase = useSupabase()
 
   useEffect(() => {
     (async () => {

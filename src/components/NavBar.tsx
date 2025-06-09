@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 type Tab = {
   label: string
@@ -12,6 +12,7 @@ type Tab = {
 }
 
 export function NavBar() {
+  const supabase = useSupabase()
   const pathname = usePathname()
   const router = useRouter()
 

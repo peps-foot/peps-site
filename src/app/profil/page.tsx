@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { NavBar } from '@/components/NavBar'
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 export default function ProfilPage() {
+  const supabase = useSupabase()
   const [userEmail, setUserEmail] = useState('')
   const [pseudo, setPseudo] = useState('')
   const [newPassword, setNewPassword] = useState('')

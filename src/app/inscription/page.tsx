@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 import { useRouter } from 'next/navigation';
 
 export default function Inscription() {
+  const supabase = useSupabase()
   const [email, setEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');

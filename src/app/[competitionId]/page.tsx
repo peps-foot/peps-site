@@ -6,7 +6,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { NavBar } from '@/components/NavBar'
 import Image from 'next/image'
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 type CompetitionGridRow = { grids: Grid }
 
@@ -36,8 +36,7 @@ export default function CompetitionPage() {
     hasRun.current = true
 
     const fetchAll = async () => {
-    //  const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-    //  const supabase = createBrowserSupabaseClient()
+    const supabase = useSupabase()
 
       const {
         data: { session },

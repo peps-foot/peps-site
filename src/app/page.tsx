@@ -11,7 +11,7 @@ import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '@/lib/type
 import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 const bonusLogos: Record<string,string> = {
@@ -21,6 +21,7 @@ const bonusLogos: Record<string,string> = {
 };
 
 export default function HomePage() {
+  const supabase = useSupabase()
   // 👉 État principal de l'utilisateur connecté (renseigné au chargement)
   const [user, setUser] = useState<User | null>(null);
   // 👉 Liste complète des grilles du joueur

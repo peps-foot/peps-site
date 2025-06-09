@@ -1,16 +1,38 @@
-
-console.log("💡 layout.tsx chargé");
-import './globals.css';
-import React from 'react';
+// src/app/layout.tsx
+import './globals.css'
+import type { Metadata } from 'next'
+import { Oswald, Poppins } from 'next/font/google'
 import SupabaseProvider from '@/components/SupabaseProvider'
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const oswald = Oswald({
+  subsets: ['latin'],
+  weight: ['400', '600', '700'],
+  variable: '--font-title',
+})
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-body',
+})
+
+export const metadata: Metadata = {
+  title: 'PEPS - Pronos entre Potes',
+  description: 'Site de jeu de pronostics de football entre amis',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="fr">
-      <head />
-      <body className="font-sans antialiased bg-gray-50 text-gray-900 min-h-screen">
-        {children}
+    <html lang="fr" className={`${oswald.variable} ${poppins.variable}`}>
+      <body>
+        <SupabaseProvider>
+          {children}
+        </SupabaseProvider>
       </body>
     </html>
-  );
+  )
 }

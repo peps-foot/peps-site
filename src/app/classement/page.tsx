@@ -6,7 +6,7 @@ console.log('✅ process.env URL :', process.env.NEXT_PUBLIC_SUPABASE_URL)
 import { useEffect, useState } from 'react'
 import { NavBar } from '@/components/NavBar'
 import { User } from '@supabase/auth-helpers-nextjs'
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 type LeaderboardRow = {
   user_id: string
@@ -28,6 +28,7 @@ type RawGridRow = {
 }
 
 export default function ClassementPage() {
+  const supabase = useSupabase()
   const [user, setUser] = useState<User | null>(null)
   const [competitionId, setCompetitionId] = useState<string | null>(null)
   const [grids, setGrids] = useState<Grid[]>([])

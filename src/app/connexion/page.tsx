@@ -2,9 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 export default function ConnexionPage() {
+  const supabase = useSupabase()
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

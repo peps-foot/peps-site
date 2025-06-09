@@ -2,10 +2,11 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { useSupabase } from '@/components/SupabaseProvider'
 
 export default function Deconnexion() {
   const router = useRouter();
+  const supabase = useSupabase()
 
   useEffect(() => {
     const deconnecter = async () => {
