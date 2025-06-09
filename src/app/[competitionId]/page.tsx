@@ -7,7 +7,6 @@ import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigat
 import { supabase } from '@/lib/supabaseClient'
 import { NavBar } from '@/components/NavBar'
 import Image from 'next/image'
-import type { Grid } from '@/lib/types'
 
 type CompetitionGridRow = { grids: Grid }
 
