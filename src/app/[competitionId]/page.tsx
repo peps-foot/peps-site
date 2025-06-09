@@ -1,110 +1,132 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { headers, cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import type { Match, GridBonus, BonusDef } from '@/lib/types'
-import { Metadata } from 'next'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'Grilles par compétition',
+import type { User } from '@supabase/supabase-js'
+import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '@/lib/types'
+import { useEffect, useState, useRef } from 'react'
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
+import { NavBar } from '@/components/NavBar'
+import Image from 'next/image'
+
+const bonusLogos: Record<string, string> = {
+  KANTE: '/images/kante.png',
+  RIBERY: '/images/ribery.png',
+  ZLATAN: '/images/zlatan.png',
 }
 
-export default async function Page({ params }: { params: { competitionId: string } }) {
-  const { competitionId } = params
-  const supabase = createServerComponentClient({ cookies, headers })
+export default function CompetitionPage() {
+  const { competitionId } = useParams<{ competitionId: string }>()
+  const [user, setUser] = useState<User | null>(null)
+  const [grids, setGrids] = useState<Grid[]>([])
+  const [grid, setGrid] = useState<Grid | null>(null)
+  const [matches, setMatches] = useState<Match[]>([])
+  const [bonusDefs, setBonusDefs] = useState<BonusDef[]>([])
+  const [gridBonuses, setGridBonuses] = useState<GridBonus[]>([])
+  const [totalPoints, setTotalPoints] = useState<number>(0)
+  const [loading, setLoading] = useState<boolean>(true)
 
-  const {
-    data: { session },
-    error: errSession,
-  } = await supabase.auth.getSession()
-  if (errSession) throw errSession
-  if (!session) return redirect('/connexion')
-  const userId = session.user.id
+  const hasRun = useRef(false)
 
-  const { data: cgRows, error: errCg } = await supabase
-    .from('competition_grids')
-    .select(`
-      grids (
-        id,
-        title,
-        description,
-        allowed_bonuses
-      )
-    `)
-    .eq('competition_id', competitionId)
-    .order('created_at', { ascending: true, foreignTable: 'grids' })
-  if (errCg) throw errCg
+  useEffect(() => {
+    if (!competitionId || hasRun.current) return
+    hasRun.current = true
 
-  const grids = cgRows?.map((r) => r.grids) || []
-  if (grids.length === 0) {
-    return <main className="p-6 text-center">Aucune grille pour cette compétition.</main>
+    const fetchAll = async () => {
+      const {
+        data: { session },
+        error: errSession,
+      } = await supabase.auth.getSession()
+      if (errSession || !session) {
+        window.location.href = '/connexion'
+        return
+      }
+
+      setUser(session.user)
+
+      const { data: cgRows, error: errCg } = await supabase
+        .from('competition_grids')
+        .select(`grids ( id, title, description, allowed_bonuses )`)
+        .eq('competition_id', competitionId)
+        .order('created_at', { ascending: true, foreignTable: 'grids' })
+
+      if (errCg || !cgRows?.length) return
+
+      const current = cgRows[0].grids
+      setGrids([current])
+      setGrid(current)
+
+      const { data: picks } = await supabase
+        .from('grid_matches')
+        .select('match_id, pick, points, matches(*)')
+        .eq('grid_id', current.id)
+        .eq('user_id', session.user.id)
+
+      const matchList = picks?.map((m: any) => ({
+        ...m.matches,
+        match_id: m.match_id,
+        pick: m.pick,
+        points: m.points,
+      })) ?? []
+
+      setMatches(matchList)
+
+      const { data: gbs } = await supabase
+        .from('grid_bonus')
+        .select('bonus_definition, match_id, parameters')
+        .eq('grid_id', current.id)
+        .eq('user_id', session.user.id)
+
+      const { data: defs } = await supabase
+        .from('bonus_definition')
+        .select('id, code, description')
+
+      const { data: scores } = await supabase.rpc('compute_scores', { p_grid_id: current.id })
+
+      const total = (scores ?? []).reduce((sum: number, r: any) => sum + (r.points ?? 0), 0)
+
+      setGridBonuses(gbs ?? [])
+      setBonusDefs(defs ?? [])
+      setTotalPoints(total)
+      setLoading(false)
+    }
+
+    fetchAll()
+  }, [competitionId])
+
+  if (loading) {
+    return <main className="p-6">Chargement des données de la compétition...</main>
   }
 
-  const currentGrid = grids[0]
-
-  const { data: picks, error: errPicks } = await supabase
-    .from<Match>('grid_matches')
-    .select('match_id,pick')
-    .eq('grid_id', currentGrid.id)
-    .eq('user_id', userId)
-  if (errPicks) throw errPicks
-
-  const { data: playerBonuses, error: errPb } = await supabase
-    .from<GridBonus>('grid_bonus')
-    .select('bonus_definition(name,code),parameters')
-    .eq('grid_id', currentGrid.id)
-    .eq('user_id', userId)
-  if (errPb) throw errPb
-
-  const { data: bonusDefs, error: errBd } = await supabase
-    .from<BonusDef>('bonus_definition')
-    .select('id,code,description')
-  if (errBd) throw errBd
-
-  const { data: scoreRows, error: errScores } = await supabase.rpc('compute_scores', {
-    p_grid_id: currentGrid.id,
-  })
-  if (errScores) throw errScores
-
-  const totalPoints = (scoreRows as { points?: number }[]).reduce(
-    (sum, r) => sum + (r.points ?? 0),
-    0
-  )
-
   return (
-    <main className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">{currentGrid.title}</h1>
-      <p className="mb-4 text-gray-600">{currentGrid.description}</p>
+    <>
+      <NavBar />
+      <main className="p-6 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-2">{grid?.title}</h1>
+        <p className="mb-4 text-gray-600">{grid?.description}</p>
+        <p className="mb-4 font-semibold">Total de points : {totalPoints}</p>
 
-      <div className="mb-6">
-        <h2 className="font-semibold text-lg mb-2">Points obtenus : {totalPoints}</h2>
-        <ul className="list-disc list-inside text-sm">
-          {scoreRows?.map((s, i) => (
-            <li key={i}>{s.points} pts</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mb-6">
-        <h2 className="font-semibold text-lg mb-2">Pronostics joués</h2>
-        <ul className="list-disc list-inside text-sm">
-          {picks?.map((p) => (
-            <li key={p.match_id}>
-              Match {p.match_id} → <strong>{p.pick}</strong>
+        <h2 className="text-lg font-bold mb-2">Pronostics</h2>
+        <ul className="space-y-1 text-sm">
+          {matches.map((m) => (
+            <li key={m.id}>
+              {m.home_team} vs {m.away_team} — <strong>{m.pick || '-'}</strong>{' '}
+              {m.points != null && `(${m.points} pts)`}
             </li>
           ))}
         </ul>
-      </div>
 
-      <div>
-        <h2 className="font-semibold text-lg mb-2">Bonus utilisés</h2>
-        <ul className="list-disc list-inside text-sm">
-          {playerBonuses?.map((b, i) => (
-            <li key={i}>
-              {b.bonus_definition.code} — {JSON.stringify(b.parameters)}
-            </li>
-          ))}
+        <h2 className="text-lg font-bold mt-6 mb-2">Bonus</h2>
+        <ul className="space-y-1 text-sm">
+          {gridBonuses.map((b, i) => {
+            const def = bonusDefs.find((d) => d.id === b.bonus_definition)
+            return (
+              <li key={i}>
+                {def?.code ?? 'BONUS'} : {JSON.stringify(b.parameters)}
+              </li>
+            )
+          })}
         </ul>
-      </div>
-    </main>
+      </main>
+    </>
   )
 }
