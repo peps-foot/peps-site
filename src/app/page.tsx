@@ -239,7 +239,7 @@ export default function HomePage() {
             base_1_points: match.base_1_points,
             base_n_points: match.base_n_points,
             base_2_points: match.base_2_points,
-            
+
             points: gm?.points ?? 0,
           };
 
@@ -572,9 +572,9 @@ return (
                     (d) => d.id === bonusEntry?.bonus_definition
                   )
                   const bonusCode = bonusDef?.code
-                  const params = bonusEntry?.parameters || {}
-                  const matchWin  = params.match_win as string
-                  const matchZero = params.match_zero as string
+                  const params = bonusEntry?.parameters ?? {} as Partial<{ match_win: string; match_zero: string }>;
+                  const matchWin = params.match_win ?? '';
+                  const matchZero = params.match_zero ?? '';
 
                   // 2) Prépare picks et disabled
                   let picksForThisMatch: string[] = []
