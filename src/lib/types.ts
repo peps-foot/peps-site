@@ -10,6 +10,7 @@ export type Match = {
   base_1_points: number | null;
   base_n_points: number | null;
   base_2_points: number | null;
+  is_locked: boolean;
 };
 
 export type MatchWithOdds = Match & {
