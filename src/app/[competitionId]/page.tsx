@@ -15,7 +15,12 @@ const bonusLogos: Record<string, string> = {
 }
 
 export default function CompetitionPage() {
-  const { competitionId } = useParams<{ competitionId: string }>()
+  const params = useParams()
+  const competitionId = params?.competitionId as string | undefined
+
+  if (!competitionId) {
+    return <main className="p-6">Compétition introuvable dans l’URL.</main>
+  }
   const [user, setUser] = useState<User | null>(null)
   const [grids, setGrids] = useState<Grid[]>([])
   const [grid, setGrid] = useState<Grid | null>(null)
