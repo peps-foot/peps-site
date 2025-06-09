@@ -8,6 +8,7 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY!
 const API_KEY = process.env.API_FOOTBALL_KEY!
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+console.log('Vercel rebuild')
 
 // Liste des compétitions à surveiller
 const COMPETITIONS = [15, 10, 1186] // Coupe du monde, amicaux, qualifs
