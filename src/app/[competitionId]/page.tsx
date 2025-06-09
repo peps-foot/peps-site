@@ -3,8 +3,7 @@
 import type { User } from '@supabase/supabase-js'
 import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '@/lib/types'
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation'
-//import { supabase } from '@/lib/supabaseClient'
+import { useParams } from 'next/navigation'
 import { NavBar } from '@/components/NavBar'
 import Image from 'next/image'
 
@@ -20,9 +19,6 @@ export default function CompetitionPage() {
   const params = useParams()
   const competitionId = params?.competitionId as string | undefined
 
-  if (!competitionId) {
-    return <main className="p-6">Compétition introuvable dans l’URL.</main>
-  }
   const [user, setUser] = useState<User | null>(null)
   const [grids, setGrids] = useState<Grid[]>([])
   const [grid, setGrid] = useState<Grid | null>(null)
@@ -41,18 +37,19 @@ export default function CompetitionPage() {
     const fetchAll = async () => {
       const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
       const supabase = createBrowserSupabaseClient()
+
       const {
         data: { session },
         error: errSession,
       } = await supabase.auth.getSession()
+
       if (errSession || !session) {
         window.location.href = '/connexion'
         return
       }
 
       setUser(session.user)
-      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createBrowserSupabaseClient()
+
       const { data, error: errCg } = await supabase
         .from('competition_grids')
         .select(`
@@ -74,8 +71,6 @@ export default function CompetitionPage() {
       setGrids([current])
       setGrid(current)
 
-      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createBrowserSupabaseClient()
       const { data: picks } = await supabase
         .from('grid_matches')
         .select('match_id, pick, points, matches(*)')
@@ -91,16 +86,12 @@ export default function CompetitionPage() {
 
       setMatches(matchList)
 
-      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createBrowserSupabaseClient()
       const { data: gbs } = await supabase
         .from('grid_bonus')
         .select('bonus_definition, match_id, parameters')
         .eq('grid_id', current.id)
         .eq('user_id', session.user.id)
 
-      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
-      const supabase = createBrowserSupabaseClient()
       const { data: defs } = await supabase
         .from('bonus_definition')
         .select('id, code, description')
@@ -117,6 +108,10 @@ export default function CompetitionPage() {
 
     fetchAll()
   }, [competitionId])
+
+  if (!competitionId) {
+    return <main className="p-6">Compétition introuvable dans l’URL.</main>
+  }
 
   if (loading) {
     return <main className="p-6">Chargement des données de la compétition...</main>
