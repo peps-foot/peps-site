@@ -39,10 +39,7 @@ export default function ClassementPage() {
       const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
       const supabase = createBrowserSupabaseClient()
       const { data: { user }, error } = await supabase.auth.getUser()
-      if (!user || error) {
-        console.warn('❌ Utilisateur non connecté', error)
-        return
-      }
+      if (!user || error) return
       setUser(user)
 
       const { data: comp } = await supabase
@@ -67,7 +64,6 @@ export default function ClassementPage() {
 
       setGrids(parsed)
 
-      // ⬇️ Charge automatiquement le classement général dès le départ
       fetchGeneralLeaderboard(user, comp.id)
     }
 
@@ -204,21 +200,19 @@ export default function ClassementPage() {
               </tr>
             </thead>
             <tbody>
-                {leaderboard.map((row) => {
+              {leaderboard.map((row) => {
                 const isCurrentUser = row.user_id === user?.id;
                 return (
-                    <tr
+                  <tr
                     key={row.user_id}
-                    className={`border-t transition ${
-                        isCurrentUser ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'
-                    }`}
-                    >
+                    className={`border-t transition ${isCurrentUser ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}
+                  >
                     <td className="px-4 py-2">{row.rank}</td>
                     <td className="px-4 py-2">{row.username}</td>
                     <td className="px-4 py-2">{row.total_points}</td>
-                    </tr>
-                );
-                })}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
