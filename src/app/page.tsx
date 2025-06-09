@@ -239,6 +239,8 @@ export default function HomePage() {
             base_1_points: match.base_1_points,
             base_n_points: match.base_n_points,
             base_2_points: match.base_2_points,
+            
+            points: gm?.points ?? 0,
           };
 
         });
