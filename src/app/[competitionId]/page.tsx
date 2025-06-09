@@ -63,8 +63,7 @@ export default function CompetitionPage() {
         .eq('competition_id', competitionId)
         .order('created_at', { ascending: true, foreignTable: 'grids' })
 
-      const cgRows = data as CompetitionGridRow[]
-
+      const cgRows = (data as unknown as CompetitionGridRow[])
 
       if (errCg || !cgRows?.length) return
 
