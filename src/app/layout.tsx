@@ -2,6 +2,7 @@
 console.log("💡 layout.tsx chargé");
 import './globals.css';
 import React from 'react';
+import SupabaseProvider from '@/components/SupabaseProvider'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
