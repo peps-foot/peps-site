@@ -572,7 +572,7 @@ return (
                     (d) => d.id === bonusEntry?.bonus_definition
                   )
                   const bonusCode = bonusDef?.code
-                  const params = bonusEntry?.parameters ?? {};
+                  const params = (bonusEntry?.parameters || {}) as Partial<BonusParameters>;
                   const matchWin = 'match_win' in params ? params.match_win : '';
                   const matchZero = 'match_zero' in params ? params.match_zero : '';
 
