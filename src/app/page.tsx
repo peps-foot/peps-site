@@ -129,26 +129,38 @@ export default function HomePage() {
     }
 
     const groupedByGrid: Record<string, { grid: Grid; matches: MatchWithOdds[] }> = {};
-    const typedMatchData = matchData as MatchWithOdds[];
-    for (const m of typedMatchData) {
+    type GridRow = {
+    id: string
+    title: string
+    description: string
+    allowed_bonuses?: string[]
+    }
+    for (const m of matchData ?? []) {
       const gridId = m.grid_id;
+      const gridInfo = m.grids?.[0] as GridRow;
+
       if (!groupedByGrid[gridId]) {
         groupedByGrid[gridId] = {
-          grid: {
-            id: gridId,
-            title: m.grids.title,
-            description: m.grids.description,
-            allowed_bonuses: m.grids.allowed_bonuses ?? [],
-          },
+        grid: {
+          id: gridId,
+          title: gridInfo?.title ?? '',
+          description: gridInfo?.description ?? '',
+          allowed_bonuses: gridInfo?.allowed_bonuses ?? [],
+        },
           matches: [],
         };
       }
-    const match = m as MatchWithOdds;
 
-    groupedByGrid[gridId].matches.push({
-      ...(match as MatchWithOdds)
-    });
+      const match = m.matches as unknown as MatchWithOdds;
+
+      groupedByGrid[gridId].matches.push({
+        ...match,
+        id: m.match_id,
+        pick: m.pick,
+        points: m.points,
+      });
     }
+
 
     const gridsList = Object.values(groupedByGrid).map((g) => g.grid);
     const gridIds = Object.keys(groupedByGrid);
@@ -174,7 +186,7 @@ export default function HomePage() {
         // 1) Fetch de la grille active
         const { data: g, error: ge } = await supabase
           .from('grids')
-          .select(`id, title, grid_items(match_id), allowed_bonuses`)
+          .select(`id, title, description, grid_items(match_id), allowed_bonuses`)
           .eq('id', gridId)
           .single();
         if (ge) throw ge;
@@ -251,7 +263,7 @@ export default function HomePage() {
         // 6) Fetch des bonus déjà joués pour cette grille
         const { data: gbs, error: gbe } = await supabase
           .from('grid_bonus')
-          .select('bonus_definition, match_id, parameters')
+          .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
           .eq('grid_id', gridId);
         if (gbe) throw gbe;
         console.log('🔍 gridBonuses =', gbs);
