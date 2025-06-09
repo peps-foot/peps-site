@@ -221,22 +221,26 @@ export default function HomePage() {
           // trouver l'enregistrement grid_match pour ce match
           const gm = rawGridMatches?.find(gm => gm.match_id === m.id);
           return {
-            id:         match.id,
-            date:       match.date,
-            home_team:  match.home_team,
-            away_team:  match.away_team,
+            id: match.id,
+            fixture_id: match.fixture_id,
+            league_id: match.league_id,
+            date: match.date,
+            home_team: match.home_team,
+            away_team: match.away_team,
             score_home: match.score_home,
             score_away: match.score_away,
-            odd_1:      match.odd_1_snapshot,
-            odd_X:      match.odd_n_snapshot,
-            odd_2:      match.odd_2_snapshot,
+            status: match.status,
+            is_locked: match.is_locked,
+
+            odd_1_snapshot: match.odd_1_snapshot,
+            odd_n_snapshot: match.odd_n_snapshot,
+            odd_2_snapshot: match.odd_2_snapshot,
+
             base_1_points: match.base_1_points,
             base_n_points: match.base_n_points,
             base_2_points: match.base_2_points,
-            status: match.status,
-            pick:       gm?.pick ?? null,
-            points:     gm?. points ?? 0,
           };
+
         });
         setMatches(clean);
         const totalPoints = clean.reduce((acc, m) => acc + (m.points || 0), 0);
