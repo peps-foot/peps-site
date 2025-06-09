@@ -17,6 +17,13 @@ type Grid = {
   title: string
 }
 
+type RawGridRow = {
+  grid_id: string
+  grids: {
+    title: string
+  } | null
+}
+
 export default function ClassementPage() {
   const [user, setUser] = useState<User | null>(null)
   const [competitionId, setCompetitionId] = useState<string | null>(null)
@@ -52,7 +59,7 @@ export default function ClassementPage() {
         .select('grid_id, grids(title)')
         .eq('competition_id', comp.id)
 
-      const parsed = gridsData?.map((g) => ({
+      const parsed = (gridsData as RawGridRow[] | null)?.map((g) => ({
         id: g.grid_id,
         title: g.grids?.title ?? 'Grille',
       })) || []
