@@ -25,7 +25,8 @@ export async function GET() {
 
     const fixtureIds = liveMatches.map((m) => m.fixture_id)
     const groups = groupIntoChunks(fixtureIds, 20) // 20 max par appel API
-
+    const API_KEY = process.env.API_FOOTBALL_KEY!;
+    
     for (const batch of groups) {
       const idList = batch.join(',')
       const res = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${idList}`, {
