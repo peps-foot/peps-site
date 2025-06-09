@@ -38,6 +38,7 @@ export default function ClassementPage() {
     const initAndLoad = async () => {
       const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
       const supabase = createBrowserSupabaseClient()
+      console.log('✅ ENV_URL', process.env.NEXT_PUBLIC_SUPABASE_URL)
       const { data: { user }, error } = await supabase.auth.getUser()
       if (!user || error) return
       setUser(user)
