@@ -867,9 +867,7 @@ return (
                     Pronostic
                     <select
                       value={popupPick}
-                      onChange={(e) =>
-                        setPopupPick(e.target.value)
-                      }
+                      onChange={(e) => setPopupPick(e.target.value as '1' | 'N' | '2')}                     }
                       className="mt-1 block w-full border rounded p-2"
                     >
                       <option value="1">1</option>
@@ -906,14 +904,12 @@ return (
                     Paire de croix
                     <select
                       value={popupPair}
-                      onChange={(e) =>
-                        setPopupPair(e.target.value)
-                      }
+                      onChange={(e) => setPopupPair(e.target.value as '1N' | 'N2' | '21')}
                       className="mt-1 block w-full border rounded p-2"
                     >
-                      <option value="1–N">1 – N</option>
-                      <option value="N–2">N – 2</option>
-                      <option value="1–2">1 – 2</option>
+                      <option value="1N">1 N</option>
+                      <option value="N2">N 2</option>
+                      <option value="21">2 1</option>
                     </select>
                   </label>
                 </>
