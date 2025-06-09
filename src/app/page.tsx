@@ -43,7 +43,7 @@ export default function HomePage() {
   // 👉 Gestion du popup pour les bonus Ribéry/Kanté/Zlatan
   const [popupMatch1, setPopupMatch1] = useState<string>('');
   const [popupMatch0, setPopupMatch0] = useState<string>('');
-  const [popupPair, setPopupPair] = useState<'1–N' | 'N–2' | '1–2'>('1–N');
+  const [popupPair, setPopupPair] = useState<'1-N' | 'N-2' | '1-2'>('1-N');
   const [popupPick, setPopupPick] = useState<'1' | 'N' | '2'>('1');
   // 👉 Gestion de navigation entre les grilles
   const searchParams  = useSearchParams();
@@ -379,8 +379,8 @@ export default function HomePage() {
           if (!popupMatch1) return alert('Match requis pour Kanté');
           payload.parameters = {
             picks:
-              popupPair === '1–N' ? ['1', 'N']
-            : popupPair === 'N–2' ? ['N', '2']
+              popupPair === '1-N' ? ['1', 'N']
+            : popupPair === 'N-2' ? ['N', '2']
             : ['1', '2']
           };
           break;
