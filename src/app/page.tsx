@@ -571,6 +571,8 @@ return (
                   const bonusDef = bonusDefs.find(d => d.id === bonusEntry?.bonus_definition);
                   const bonusCode = bonusDef?.code || '';
                   const params = bonusEntry?.parameters || {};
+                  const matchWin = 'match_win' in params ? (params as any).match_win ?? '' : '';
+                  const matchZero = 'match_zero' in params ? (params as any).match_zero ?? '' : '';
 
                   // 2) Prépare picks et disabled
                   let picksForThisMatch: string[] = [];
