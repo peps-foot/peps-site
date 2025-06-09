@@ -100,7 +100,7 @@ export default function CompetitionPage() {
 
       const total = (scores ?? []).reduce((sum: number, r: any) => sum + (r.points ?? 0), 0)
 
-      setGridBonuses(gbs ?? [])
+      setGridBonuses(gbs as unknown as GridBonus[])
       setBonusDefs(defs ?? [])
       setTotalPoints(total)
       setLoading(false)
