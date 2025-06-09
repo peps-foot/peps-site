@@ -50,8 +50,8 @@ export default function CompetitionPage() {
 
       setUser(session.user)
 
-      const { data: cgRows, error: errCg } = await supabase
-        .from<CompetitionGridRow, CompetitionGridRow>('competition_grids')
+      const { data, error: errCg } = await supabase
+        .from('competition_grids')
         .select(`
           grids (
             id,
@@ -63,10 +63,12 @@ export default function CompetitionPage() {
         .eq('competition_id', competitionId)
         .order('created_at', { ascending: true, foreignTable: 'grids' })
 
+      const cgRows = data as CompetitionGridRow[]
+
 
       if (errCg || !cgRows?.length) return
 
-      const current = cgRows?.[0]?.grids as Grid
+      const current = cgRows[0].grids
       setGrids([current])
       setGrid(current)
 
