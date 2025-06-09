@@ -1,4 +1,3 @@
-// pages/api/profile/delete.ts
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesServerClient } from '@supabase/auth-helpers-nextjs'
 
@@ -10,27 +9,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const supabase = createPagesServerClient({ req, res })
 
-  // Récupère la session
+  // Récupère la session utilisateur
   const {
     data: { session },
   } = await supabase.auth.getSession()
-  if (!session) return res.status(401).json({ error: 'Non connecté' })
+
+  if (!session) {
+    return res.status(401).json({ error: 'Non connecté' })
+  }
 
   const uid = session.user.id
 
-  // 1) Supprime toutes les lignes métiers
+  // 🔥 Étape 1 : Supprimer toutes les lignes liées à l'utilisateur
   const tables = ['grid_matches', 'grid_bonus', 'grid_items', 'grids']
   for (const table of tables) {
     await supabase.from(table).delete().eq('user_id', uid)
   }
 
-  // 2) Supprime le profil
+  // 🔥 Étape 2 : Supprimer le profil
   await supabase.from('profiles').delete().eq('user_id', uid)
 
-  // 3) Supprime l’utilisateur dans Auth
+  // 🔥 Étape 3 : Supprimer l'utilisateur dans Supabase Auth
   const { error } = await supabase.auth.admin.deleteUser(uid)
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    return res.status(500).json({ error: error.message })
+  }
 
-  // Tout est clean
   return res.status(200).json({ ok: true })
 }
