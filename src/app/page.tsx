@@ -567,58 +567,59 @@ return (
                   const isMatchLocked = m.status !== 'NS' || m.is_locked;
 
                   // 1) Bonus actif
-                  const bonusEntry = gridBonuses[0]
-                  const bonusDef = bonusDefs.find(
-                    (d) => d.id === bonusEntry?.bonus_definition
-                  )
-                  const bonusCode = bonusDef?.code
-                  const params = (bonusEntry?.parameters || {}) as Partial<BonusParameters>;
-                  const matchWin = 'match_win' in params ? params.match_win : '';
-                  const matchZero = 'match_zero' in params ? params.match_zero : '';
+                  const bonusEntry = gridBonuses[0];
+                  const bonusDef = bonusDefs.find(d => d.id === bonusEntry?.bonus_definition);
+                  const bonusCode = bonusDef?.code || '';
+                  const params = bonusEntry?.parameters || {};
 
                   // 2) Prépare picks et disabled
-                  let picksForThisMatch: string[] = []
-                  let isDisabled = !upcoming
+                  let picksForThisMatch: string[] = [];
+                  let isDisabled = !upcoming;
 
                   if (bonusEntry && bonusCode) {
                     switch (bonusCode) {
                       case 'RIBERY': {
-                        if (m.id === matchWin) {
-                          picksForThisMatch = ['1','N','2'];
-                          isDisabled = true
-                        } else if (m.id === matchZero) {
-                          picksForThisMatch = []
-                          isDisabled = true
-                        } else {
-                          picksForThisMatch = m.pick ? [m.pick] : []
+                        if ('match_win' in params && 'match_zero' in params) {
+                          if (m.id === params.match_win) {
+                            picksForThisMatch = ['1', 'N', '2'];
+                            isDisabled = true;
+                          } else if (m.id === params.match_zero) {
+                            picksForThisMatch = [];
+                            isDisabled = true;
+                          } else {
+                            picksForThisMatch = m.pick ? [m.pick] : [];
+                          }
                         }
-                        break
+                        break;
                       }
+
                       case 'KANTE': {
-                        const matchK = bonusEntry.match_id
-                        if (m.id === matchK) {
-                          picksForThisMatch = params.picks || []
-                          isDisabled = true
+                        const matchK = bonusEntry.match_id;
+                        if (m.id === matchK && 'picks' in params && Array.isArray(params.picks)) {
+                          picksForThisMatch = params.picks;
+                          isDisabled = true;
                         } else {
-                          picksForThisMatch = m.pick ? [m.pick] : []
+                          picksForThisMatch = m.pick ? [m.pick] : [];
                         }
-                        break
+                        break;
                       }
+
                       case 'ZLATAN': {
-                        const matchZ = bonusEntry.match_id
-                        if (m.id === matchZ) {
-                          picksForThisMatch = params.pick ? [params.pick] : []
-                          isDisabled = true
+                        const matchZ = bonusEntry.match_id;
+                        if (m.id === matchZ && 'pick' in params && typeof params.pick === 'string') {
+                          picksForThisMatch = [params.pick];
+                          isDisabled = true;
                         } else {
-                          picksForThisMatch = m.pick ? [m.pick] : []
+                          picksForThisMatch = m.pick ? [m.pick] : [];
                         }
-                        break
+                        break;
                       }
-                      default:
-                        picksForThisMatch = m.pick ? [m.pick] : []
+
+                      default: {
+                        picksForThisMatch = m.pick ? [m.pick] : [];
+                        break;
+                      }
                     }
-                  } else {
-                    picksForThisMatch = m.pick ? [m.pick] : []
                   }
 
                   return (
