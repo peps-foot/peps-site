@@ -6,11 +6,17 @@ import { redirect } from 'next/navigation'
 import type { Match, GridBonus, BonusDef } from '@/lib/types'
 import { type Metadata } from 'next'
 
+type PageProps = {
+  params: {
+    competitionId: string
+  }
+}
+
 export const metadata: Metadata = {
   title: 'Grilles par compétition',
 }
 
-export default async function Page({ params }: { params: { competitionId: string } }) {
+export default async function Page({ params }: PageProps) {
   const { competitionId } = params;
   const supabase = createServerComponentClient({ cookies, headers })
 
