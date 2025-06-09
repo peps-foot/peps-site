@@ -904,7 +904,7 @@ return (
                     Paire de croix
                     <select
                       value={popupPair}
-                      onChange={(e) => setPopupPair(e.target.value as '1N' | 'N2' | '21')}
+                      onChange={(e) => setPopupPair(e.target.value as '1-N' | 'N-2' | '2-1')}
                       className="mt-1 block w-full border rounded p-2"
                     >
                       <option value="1-N">1 N</option>
