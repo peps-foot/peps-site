@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
 import { NavBar } from '@/components/NavBar'
 
 export default function ProfilPage() {
@@ -13,6 +12,9 @@ export default function ProfilPage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
+      const supabase = createBrowserSupabaseClient()
+
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserEmail(user.email || '')
@@ -32,6 +34,9 @@ export default function ProfilPage() {
   }, [])
 
   const handleSave = async () => {
+    const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
+    const supabase = createBrowserSupabaseClient()
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -75,18 +80,19 @@ export default function ProfilPage() {
   }
 
   const handleDelete = async () => {
+    const { createBrowserSupabaseClient } = await import('@supabase/auth-helpers-nextjs')
+    const supabase = createBrowserSupabaseClient()
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    // Supprimer d'abord les données associées si nécessaire (ex: grid_matches, grid_bonus)
-    // Ici, on supprime uniquement l'utilisateur
     const { error } = await supabase.rpc('delete_user', { uid: user.id })
     if (error) {
       alert('Erreur lors de la suppression.')
     } else {
       alert('Compte supprimé. À bientôt !')
       await supabase.auth.signOut()
-      window.location.href = '/' // Redirige vers la page d’accueil
+      window.location.href = '/'
     }
   }
 
@@ -104,7 +110,7 @@ export default function ProfilPage() {
             value={userEmail}
             onChange={(e) => setUserEmail(e.target.value)}
             className="w-full border px-3 py-2 rounded"
-            disabled // Pour MVP : email non modifiable
+            disabled
           />
         </div>
 
@@ -159,7 +165,6 @@ export default function ProfilPage() {
           SUPPRIMER
         </button>
 
-        {/* POPUP de confirmation */}
         {showConfirmPopup && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded shadow-lg text-center relative max-w-sm w-full">
