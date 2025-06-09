@@ -60,7 +60,7 @@ export default function HomePage() {
     // Reconstruit les params en conservant les autres éventuels
     const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
     params.set('page', String(i));
-    router.replace(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`);}
   // 👉 Fonctions de navigation
   const prevGrid = () => {    if (currentIdx > 0) goToPage(currentIdx - 1);  };
   const nextGrid = () => {    if (currentIdx < grids.length - 1) goToPage(currentIdx + 1);  };
@@ -867,7 +867,7 @@ return (
                     Pronostic
                     <select
                       value={popupPick}
-                      onChange={(e) => setPopupPick(e.target.value as '1' | 'N' | '2')}                     }
+                      onChange={(e) => setPopupPick(e.target.value as '1' | 'N' | '2')}
                       className="mt-1 block w-full border rounded p-2"
                     >
                       <option value="1">1</option>
@@ -939,5 +939,4 @@ return (
     </main>
     </>
   );
-};
 }
