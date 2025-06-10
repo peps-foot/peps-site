@@ -19,6 +19,7 @@ export function NavBar() {
   const [compName, setCompName] = useState<string>('ACCUEIL')
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
     async function loadCompetition() {
       const { data, error } = await supabase
         .from('competitions')
