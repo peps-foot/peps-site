@@ -1,7 +1,8 @@
+// src/app/layout.tsx
 import './globals.css'
 import type { Metadata } from 'next'
 import { Oswald, Poppins } from 'next/font/google'
-import ClientLayout from '@/components/ClientLayout'
+import SupabaseProvider from '@/components/SupabaseProvider'
 
 const oswald = Oswald({
   subsets: ['latin'],
@@ -20,13 +21,17 @@ export const metadata: Metadata = {
   description: 'Site de jeu de pronostics de football entre amis',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="fr" className={`${oswald.variable} ${poppins.variable}`}>
       <body>
-        <ClientLayout>
+        <SupabaseProvider>
           {children}
-        </ClientLayout>
+        </SupabaseProvider>
       </body>
     </html>
   )
