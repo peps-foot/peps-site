@@ -5,7 +5,7 @@ console.log('✅ process.env URL :', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
 import { useEffect, useState } from 'react'
 import { NavBar } from '@/components/NavBar'
-import { User } from '@supabase/auth-helpers-nextjs'
+import type { User } from '@supabase/supabase-js'
 import { useSupabase } from '@/components/SupabaseProvider'
 
 type LeaderboardRow = {

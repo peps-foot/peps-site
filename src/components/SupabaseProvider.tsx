@@ -3,14 +3,21 @@
 import { createContext, useContext, useMemo } from 'react'
 import { createClient } from '@/lib/supabaseBrowser'
 
-const SupabaseContext = createContext(createClient())
+import type { SupabaseClient } from '@supabase/supabase-js'
+//import type { Database } from '@/types/supabase' // tu peux retirer ça si tu n’as pas typé ta DB
 
-export const useSupabase = () => useContext(SupabaseContext)
+const SupabaseContext = createContext<SupabaseClient<Database> | null>(null)
+
+export const useSupabase = () => {
+  const context = useContext(SupabaseContext)
+  if (!context) throw new Error('useSupabase must be used inside SupabaseProvider')
+  return context
+}
 
 export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const client = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createClient(), [])
   return (
-    <SupabaseContext.Provider value={client}>
+    <SupabaseContext.Provider value={supabase}>
       {children}
     </SupabaseContext.Provider>
   )
