@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabaseBrowser'
 import type { SupabaseClient } from '@supabase/supabase-js'
 //import type { Database } from '@/types/supabase' // tu peux retirer ça si tu n’as pas typé ta DB
 
-const SupabaseContext = createContext<SupabaseClient<Database> | null>(null)
+const SupabaseContext = createContext<SupabaseClient | null>(null)
 
 export const useSupabase = () => {
   const context = useContext(SupabaseContext)
