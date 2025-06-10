@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSupabase } from '@/components/SupabaseProvider'
 
 export default function ConnexionPage() {
@@ -11,6 +11,14 @@ export default function ConnexionPage() {
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false)
+
+  // 👇 fix hydration error
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  if (!isClient) return null
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -30,14 +38,13 @@ export default function ConnexionPage() {
     console.log("✅ Connexion réussie, session :", data.session);
     const userEmail = data.user?.email;
 
-    // ✅ Laisser le temps à Supabase de stabiliser la session (important !)
     setTimeout(() => {
       if (userEmail === 'admin@peps.foot') {
         router.push('/admin/grids');
       } else {
         router.push('/home');
       }
-    }, 200); // ← suffisant pour éviter les effets de course
+    }, 200);
   }
 
   async function handleForgotPassword() {
