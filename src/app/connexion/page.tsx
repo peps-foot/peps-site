@@ -35,7 +35,7 @@ export default function ConnexionPage() {
       if (userEmail === 'admin@peps.foot') {
         router.push('/admin/grids');
       } else {
-        router.push('/');
+        router.push('/home');
       }
     }, 200); // ← suffisant pour éviter les effets de course
   }
