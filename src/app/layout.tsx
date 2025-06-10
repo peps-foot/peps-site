@@ -1,8 +1,9 @@
-// src/app/layout.tsx
 import './globals.css'
 import type { Metadata } from 'next'
 import { Oswald, Poppins } from 'next/font/google'
 import SupabaseProvider from '@/components/SupabaseProvider'
+import { NavBar } from '@/components/NavBar'
+import OnlyClient from '@/components/OnlyClient'
 
 const oswald = Oswald({
   subsets: ['latin'],
@@ -29,9 +30,12 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${oswald.variable} ${poppins.variable}`}>
       <body>
-        <SupabaseProvider>
-          {children}
-        </SupabaseProvider>
+        <OnlyClient>
+          <SupabaseProvider>
+            <NavBar />
+            {children}
+          </SupabaseProvider>
+        </OnlyClient>
       </body>
     </html>
   )
