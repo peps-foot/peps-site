@@ -2,17 +2,26 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 
-console.log('🔍 ENV CHECK - URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-console.log('🔍 ENV CHECK - KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+let client: ReturnType<typeof createBrowserClient> | null = null
 
 export const createClient = () => {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase env vars are missing!')
+  if (typeof window === 'undefined') {
+    // Ne crée pas Supabase côté serveur
+    console.warn('🛑 createClient appelé côté serveur — annulé.')
+    return null
   }
 
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
-}
+  if (!client) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+    if (!url || !key) {
+      console.error('❌ Supabase env vars missing')
+      return null
+    }
+
+    client = createBrowserClient(url, key)
+  }
+
+  return client
+}
