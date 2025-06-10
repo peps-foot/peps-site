@@ -1,9 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Oswald, Poppins } from 'next/font/google'
-import dynamic from 'next/dynamic'
-
-const ClientLayout = dynamic(() => import('@/components/ClientLayout'), { ssr: false })
+import ClientLayout from '@/components/ClientLayout'
 
 const oswald = Oswald({
   subsets: ['latin'],
