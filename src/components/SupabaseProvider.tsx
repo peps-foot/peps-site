@@ -15,7 +15,14 @@ export const useSupabase = () => {
 }
 
 export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => {
+  try {
+    return createClient()
+  } catch (e) {
+    console.error('❌ Supabase init failed:', e)
+    return null
+  }
+  }, [])
   return (
     <SupabaseContext.Provider value={supabase}>
       {children}
