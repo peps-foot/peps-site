@@ -1,27 +1,10 @@
-'use client'
+'use client';
 
-import { createBrowserClient } from '@supabase/ssr'
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/constants/supabaseClientEnv'
+import { createBrowserClient } from '@supabase/ssr';
 
-let client: ReturnType<typeof createBrowserClient> | null = null
+const url = 'https://rvswrzxdzfdtenxqtbci.supabase.co'; // ta vraie URL ici
+const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4Njg0MjAsImV4cCI6MjA2MTQ0NDQyMH0.cdvoEv3jHuYdPHnR9Xf_mkVyKgupSRJFLi25KMtqaNk';     // ta vraie ANON_KEY ici
 
 export const createClient = () => {
-  if (typeof window === 'undefined') {
-    console.warn('🔴 createClient appelé côté serveur — annulé.')
-    return null
-  }
-
-  if (!client) {
-    console.log('🌐 SUPABASE_URL', SUPABASE_URL)
-    console.log('🗝️ SUPABASE_ANON_KEY', SUPABASE_ANON_KEY?.substring(0, 6))
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.error('❌ Supabase env vars still missing')
-      return null
-    }
-
-    client = createBrowserClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  }
-
-  return client
-}
+  return createBrowserClient(url, key);
+};
