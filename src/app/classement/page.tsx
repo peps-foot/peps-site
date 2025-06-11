@@ -4,7 +4,6 @@ console.log('📄 classement/page.tsx chargé')
 console.log('✅ process.env URL :', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
 import { useEffect, useState } from 'react'
-import { NavBar } from '@/components/NavBar'
 import type { User } from '@supabase/supabase-js'
 import { useSupabase } from '@/components/SupabaseProvider'
 
@@ -126,7 +125,6 @@ export default function ClassementPage() {
 
   return (
     <div className="min-h-screen bg-white px-4">
-      <NavBar />
 
       <div className="flex justify-center mt-6 gap-4">
         <button

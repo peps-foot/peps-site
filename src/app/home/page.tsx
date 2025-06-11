@@ -7,7 +7,6 @@ type BonusParameters =
 
 import type { User } from '@supabase/supabase-js';
 import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '@/lib/types';
-import { NavBar } from '@/components/NavBar';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useSupabase } from '@/components/SupabaseProvider'
@@ -496,7 +495,6 @@ export default function HomePage() {
 
 return (
       <>
-      <NavBar />
     <main className="container mx-auto px-4 py-8">
       {/* 1) ZONE D’INFORMATION PLEIN LARGEUR */}
   {/* ── ZONE INFO ── */}

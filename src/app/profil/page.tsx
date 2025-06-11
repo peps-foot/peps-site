@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { NavBar } from '@/components/NavBar'
 import { useSupabase } from '@/components/SupabaseProvider'
 
 export default function ProfilPage() {
@@ -91,7 +90,6 @@ export default function ProfilPage() {
 
   return (
     <div className="min-h-screen bg-white px-4 py-6">
-      <NavBar />
 
       <div className="max-w-xl mx-auto space-y-6">
         <h2 className="text-xl font-bold border-b pb-2">Infos personnelles :</h2>

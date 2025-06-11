@@ -1,12 +1,10 @@
 'use client'
 
 import Image from 'next/image'
-import { NavBar } from '@/components/NavBar'
 
 export default function ReglesPage() {
   return (
     <div className="min-h-screen bg-white">
-      <NavBar />
 
       <main className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         <div className="w-full h-auto">

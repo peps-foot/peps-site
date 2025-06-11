@@ -4,7 +4,6 @@ import type { User } from '@supabase/supabase-js'
 import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '@/lib/types'
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { NavBar } from '@/components/NavBar'
 import Image from 'next/image'
 import { useSupabase } from '@/components/SupabaseProvider'
 
@@ -119,7 +118,6 @@ export default function CompetitionPage() {
 
   return (
     <>
-      <NavBar />
       <main className="p-6 max-w-4xl mx-auto">
         <h1 className="text-2xl font-bold mb-2">{grid?.title}</h1>
         <p className="mb-4 text-gray-600">{grid?.description}</p>
