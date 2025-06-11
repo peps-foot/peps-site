@@ -14,6 +14,8 @@ export const createClient = () => {
   if (!client) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    console.log('🌐 SUPABASE_URL', url)
+    console.log('🗝️ SUPABASE_ANON_KEY', key?.substring(0, 6)) // pour ne pas tout afficher
 
     if (!url || !key) {
       console.error('❌ Supabase env vars missing')
