@@ -2,34 +2,26 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import OnlyClient from './OnlyClient'
-import SupabaseProvider from './SupabaseProvider'
 import { NavBar } from './NavBar'
+import SupabaseProvider from './SupabaseProvider'
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [hasMounted, setHasMounted] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setHasMounted(true)
+    setIsMounted(true)
   }, [])
 
-  // 🔒 Ne rien afficher côté serveur ou avant montage
-  if (!hasMounted) return null
+  if (!isMounted) return null
 
-  const hideNavbarRoutes = ['/connexion', '/inscription', '/admin/grids']
-  const showNavbar = !hideNavbarRoutes.includes(pathname)
+  const hideNavBarRoutes = ['/connexion', '/inscription', '/admin/grids']
+  const showNavbar = pathname ? !hideNavBarRoutes.includes(pathname) : false
 
   return (
-    <OnlyClient>
-      <SupabaseProvider>
-        {showNavbar && <NavBar />}
-        {children}
-      </SupabaseProvider>
-    </OnlyClient>
+    <SupabaseProvider>
+      {showNavbar && <NavBar />}
+      {children}
+    </SupabaseProvider>
   )
 }
