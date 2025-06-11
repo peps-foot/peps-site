@@ -26,6 +26,7 @@ export async function GET() {
       })
 
       const json = await res.json()
+      console.log('📦 Données API-Football:', JSON.stringify(json.response, null, 2));
       if (!json.response) continue
 
       for (const fixture of json.response) {
@@ -35,11 +36,12 @@ export async function GET() {
         const fid = f.id
 
         // Vérifie si déjà présent
-        const { data: existing } = await supabase
+        const { data : existing } = await supabase
           .from('matches')
           .select('id')
           .eq('fixture_id', fid)
           .single()
+        console.log('📦 Données brutes récupérées :', existing)
 
         if (existing) continue // Match déjà connu
 
@@ -54,13 +56,11 @@ export async function GET() {
           is_locked: false,
         }
 
-        const { error: insertError } = await supabase
-          .from('matches')
-          .insert(newMatch)
-
-        if (insertError) {
-          console.error('Erreur insertion match', insertError)
-          continue
+        const { error } = await supabase.from('matches').upsert([newMatch], { onConflict: 'fixture_id' })
+        if (error) {
+          console.error('❌ Erreur lors de l\'upsert :', error)
+        } else {
+          console.log('✅ Upsert réussi !')
         }
 
         // Appel aux cotes pour figer les odds
