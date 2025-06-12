@@ -1,7 +1,8 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Oswald, Poppins } from 'next/font/google'
-import ClientLayout from '@/components/ClientLayout'
+import SupabaseProvider from '../components/SupabaseProvider'
+import { NavBar } from '../components/NavBar'
 
 const oswald = Oswald({
   subsets: ['latin'],
@@ -24,9 +25,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`${oswald.variable} ${poppins.variable}`}>
       <body>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <SupabaseProvider>
+          <NavBar />
+          <main>{children}</main>
+        </SupabaseProvider>
       </body>
     </html>
   )

@@ -87,10 +87,10 @@ export default function AdminGridsPage() {
       // Distinct competitions
       const { data: comps2 } = await supabase
         .from('matches')
-        .select('league_id');
+        .select('league_name');
 
       if (comps2) {
-        const unique = [...new Set(comps2.map(c => c.league_id))];
+        const unique = [...new Set(comps2.map(c => c.league_name))];
         setCompetitions(unique);
       }
 
@@ -112,13 +112,13 @@ export default function AdminGridsPage() {
 
     const { data: all } = await supabase
       .from('matches')
-      .select('id,competition,date,home_team,away_team')
+      .select('id,league_name,date,home_team,away_team')
       .gte('date', dateFrom + 'T00:00:00Z')
       .lte('date', dateTo + 'T23:59:59Z');
 
     if (!all) return;
 
-    const newMatches = all.filter(f => f.competition === competitionFilter);
+    const newMatches = all.filter(f => f.league_name === competitionFilter);
 
     // Ajouter les nouveaux au pool global si absents
     setFixtures(prev => {

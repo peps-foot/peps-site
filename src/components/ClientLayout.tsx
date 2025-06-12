@@ -16,7 +16,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   if (!isMounted) return null
 
   const hideNavBarRoutes = ['/connexion', '/inscription', '/admin/grids']
-  const showNavbar = pathname ? !hideNavBarRoutes.includes(pathname) : false
+  const showNavbar = pathname ? !hideNavBarRoutes.some(route => pathname.startsWith(route)) : false
 
   return (
     <SupabaseProvider>

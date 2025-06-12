@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useSupabase } from '@/components/SupabaseProvider'
+import Link from 'next/link'
+import { useSupabase } from './SupabaseProvider'
 
 type Tab = {
   label: string
@@ -16,27 +15,7 @@ export function NavBar() {
   const pathname = usePathname()
   const router = useRouter()
 
-  const [compName, setCompName] = useState<string>('ACCUEIL')
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    async function loadCompetition() {
-      const { data, error } = await supabase
-        .from('competitions')
-        .select('name')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
-
-      if (!error && data) {
-        setCompName(data.name)
-      } else {
-        console.warn('Impossible de charger le nom de la compèt', error)
-      }
-    }
-
-    loadCompetition()
-  }, [])
+  const compName = 'PEPS TEST' // Figer le nom ici pour stabilité MVP
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -55,24 +34,30 @@ export function NavBar() {
     <nav className="flex h-12">
       {tabs.map((tab) => {
         const active = tab.href === pathname
-        const base = 'flex-1 flex items-center justify-center font-medium'
-        const style = active
-          ? 'bg-[#212121] text-white'
-          : 'bg-[#FF6D00] text-[#212121] hover:bg-orange-500'
+        const base = 'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all'
+        const color = active ? 'bg-white text-black' : 'bg-orange-500 text-white'
 
         if (tab.href) {
           return (
-            <Link key={tab.label} href={tab.href} className={`${base} ${style}`}>
+            <Link
+              key={tab.label}
+              href={tab.href}
+              className={`${base} ${color}`}
+            >
               {tab.label}
             </Link>
           )
-        } else {
-          return (
-            <button key={tab.label} onClick={tab.onClick} className={`${base} ${style}`}>
-              {tab.label}
-            </button>
-          )
         }
+
+        return (
+          <button
+            key={tab.label}
+            onClick={tab.onClick}
+            className={`${base} ${color}`}
+          >
+            {tab.label}
+          </button>
+        )
       })}
     </nav>
   )

@@ -29,6 +29,13 @@ export default function CompetitionPage() {
   const [loading, setLoading] = useState<boolean>(true)
 
   const hasRun = useRef(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  if (!isMounted) return null
 
   useEffect(() => {
     if (!competitionId || hasRun.current) return
