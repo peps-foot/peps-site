@@ -7,11 +7,11 @@ export async function GET() {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
   const API_KEY = '112a112da460820962f5e9fc0b261d2a'
-  const today = '2025-06-12'
+  //const today = '2025-06-12'
 
   try {
-    const res = await fetch(
-      `https://v3.football.api-sports.io/fixtures?date=${today}`,
+      const res = await fetch(
+      `https://v3.football.api-sports.io/fixtures?league=15&season=2025`,
       {
         headers: {
           'x-apisports-key': API_KEY

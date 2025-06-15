@@ -6,10 +6,10 @@ type BonusParameters =
   | { pick: string };           // Zlatan
 
 import type { User } from '@supabase/supabase-js';
-import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '@/lib/types';
+import type { Grid, Match, GridBonus, BonusDef, MatchWithOdds } from '../../lib/types';
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { useSupabase } from '@/components/SupabaseProvider'
+import { useSupabase } from '../../components/SupabaseProvider'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 const bonusLogos: Record<string,string> = {
@@ -19,6 +19,7 @@ const bonusLogos: Record<string,string> = {
 };
 
 export default function HomePage() {
+  console.log('[home] rendu');
   const supabase = useSupabase()
   // 👉 État principal de l'utilisateur connecté (renseigné au chargement)
   const [user, setUser] = useState<User | null>(null);
@@ -70,7 +71,7 @@ export default function HomePage() {
     new Date(d).toLocaleString('fr-FR',{
       day:'2-digit', month:'2-digit',
       hour:'2-digit', minute:'2-digit'
-    }).replace(/\u202F/g,' ');  
+    }).replace(/\u202F/g,' '); 
 
   // 🔁 Au premier chargement : on récupère l'utilisateur connecté et ses grilles
   useEffect(() => {
@@ -284,31 +285,37 @@ export default function HomePage() {
     })();
   }, [currentIdx, grids]);
 
-  // ✅ Mise à jour automatique des points
+  // ✅ Mise à jour automatique des points (toutes les minutes)
   useEffect(() => {
     if (!grid?.id || matches.length === 0) return;
 
     const interval = setInterval(async () => {
       const now = new Date();
 
-      const ongoing = matches.some(m =>
-        m.date && new Date(m.date) <= now && m.score_home === null
-      );
+    const ongoing = matches.some(
+      (m) => ['1H', '2H'].includes(m.status) && m.score_home === null
+    );
+    console.log('[ONGOING] matches détectés =', matches.filter(  (m) => ['1H', '2H'].includes(m.status)));
 
       if (!ongoing) return;
 
-      console.log("🌀 Match en cours détecté, mise à jour des points...");
-      const { error } = await supabase.rpc("update_grid_points", { p_grid_id: grid.id });
+      console.log("🔄 Match en cours détecté, mise à jour des points...");
+
+      const { error } = await supabase.rpc("update_grid_points", {
+        p_grid_id: grid.id,
+      });
+
       if (error) {
         console.error("❌ Erreur update_grid_points :", error);
       } else {
         console.log("✅ update_grid_points exécuté !");
         if (user?.id) await loadUserGrids(user.id);
       }
-    }, 60_000);
+    }, 60_000); // 1 minute
 
     return () => clearInterval(interval);
   }, [grid?.id, matches, user?.id]);
+
 
   if (loadingGrids) {
     return (
@@ -571,9 +578,6 @@ return (
                 <div className="p-6 text-center">🔄 Chargement de la grille…</div>
               ) : (
                 matches.map((m) => {
-                  const now = new Date()
-                  const dt = new Date(m.date)
-                  const upcoming = dt > now
                   const isMatchLocked = m.status !== 'NS' || m.is_locked;
 
                   // 1) Bonus actif
@@ -586,7 +590,7 @@ return (
 
                   // 2) Prépare picks et disabled
                   let picksForThisMatch: string[] = [];
-                  let isDisabled = !upcoming;
+                  let isDisabled = m.status !== 'NS' || m.is_locked;
 
                   if (bonusEntry && bonusCode) {
                     switch (bonusCode) {

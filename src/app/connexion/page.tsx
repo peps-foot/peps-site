@@ -1,24 +1,24 @@
-'use client'
+'use client';
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useSupabase } from '@/components/SupabaseProvider'
+import { useSupabase } from '../../components/SupabaseProvider';
 
 export default function ConnexionPage() {
-  const supabase = useSupabase()
+  const supabase = useSupabase();
   const router = useRouter();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false)
+  const [isClient, setIsClient] = useState(false);
 
-  // 👇 fix hydration error
   useEffect(() => {
-    setIsClient(true)
-  }, [])
+    setIsClient(true);
+  }, []);
 
-  if (!isClient) return null
+  if (!isClient) return null;
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -42,7 +42,7 @@ export default function ConnexionPage() {
       if (userEmail === 'admin@peps.foot') {
         router.push('/admin/grids');
       } else {
-        router.push('/home');
+        router.push('/a033d6cf-7108-4f92-8f71-1d2b428d11f2');
       }
     }, 200);
   }
@@ -56,10 +56,7 @@ export default function ConnexionPage() {
       return;
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/connexion',
-    });
-
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) {
       setErrorMsg(error.message);
     } else {

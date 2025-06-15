@@ -1,26 +1,34 @@
-'use client'
+'use client';
 
-import { usePathname, useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { useSupabase } from './SupabaseProvider'
+import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useSupabase } from './SupabaseProvider';
+import { useEffect, useState } from 'react';
+
+console.log('[NavBar] rendu');
 
 type Tab = {
-  label: string
-  href?: string
-  onClick?: () => void
-}
+  label: string;
+  href?: string;
+  onClick?: () => void;
+};
 
 export function NavBar() {
-  const supabase = useSupabase()
-  const pathname = usePathname()
-  const router = useRouter()
+  const supabase = useSupabase();
+  const pathname = usePathname();
+  const router = useRouter();
 
-  const compName = 'PEPS TEST' // Figer le nom ici pour stabilité MVP
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const compName = 'PEPS TEST';
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/connexion')
-  }
+    await supabase.auth.signOut();
+    router.push('/connexion');
+  };
 
   const tabs: Tab[] = [
     { label: compName, href: '/' },
@@ -28,14 +36,22 @@ export function NavBar() {
     { label: 'RÈGLES', href: '/regles' },
     { label: 'PROFIL', href: '/profil' },
     { label: 'DÉCONNEXION', onClick: handleSignOut },
-  ]
+  ];
+
+  if (!isClient) return null;
 
   return (
     <nav className="flex h-12">
       {tabs.map((tab) => {
-        const active = tab.href === pathname
-        const base = 'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all'
-        const color = active ? 'bg-white text-black' : 'bg-orange-500 text-white'
+        const active =
+        tab.href === '/'
+        ? pathname === '/' || pathname.match(/^\/[0-9a-fA-F-]{36}$/)
+        : tab.href === pathname;
+        const base =
+          'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all';
+        const color = active
+        ? 'bg-black text-white'
+        : 'bg-orange-500 text-white';
 
         if (tab.href) {
           return (
@@ -46,7 +62,7 @@ export function NavBar() {
             >
               {tab.label}
             </Link>
-          )
+          );
         }
 
         return (
@@ -57,8 +73,8 @@ export function NavBar() {
           >
             {tab.label}
           </button>
-        )
+        );
       })}
     </nav>
-  )
+  );
 }

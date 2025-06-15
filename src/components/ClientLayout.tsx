@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { NavBar } from './NavBar'
 import SupabaseProvider from './SupabaseProvider'
 
+console.log('[ClientLayout] rendu');
+
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [isMounted, setIsMounted] = useState(false)
@@ -17,6 +19,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const hideNavBarRoutes = ['/connexion', '/inscription', '/admin/grids']
   const showNavbar = pathname ? !hideNavBarRoutes.some(route => pathname.startsWith(route)) : false
+  console.log('[ClientLayout] pathname =', pathname);
+  console.log('[ClientLayout] showNavbar =', showNavbar);
 
   return (
     <SupabaseProvider>

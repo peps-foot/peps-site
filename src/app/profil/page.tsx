@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSupabase } from '@/components/SupabaseProvider'
+import { useSupabase } from '../../components/SupabaseProvider'
 
 export default function ProfilPage() {
   const supabase = useSupabase()
@@ -84,7 +84,11 @@ export default function ProfilPage() {
     } else {
       alert('Compte supprimé. À bientôt !')
       await supabase.auth.signOut()
-      window.location.href = '/'
+      useEffect(() => {
+        if (typeof window !== 'undefined') {
+          window.location.href = '/connexion';
+        }
+      }, []);
     }
   }
 
