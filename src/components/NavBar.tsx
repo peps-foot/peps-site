@@ -41,41 +41,37 @@ export function NavBar() {
   if (!isClient) return null;
 
   return (
-    <nav className="flex h-12">
-      {tabs.map((tab) => {
-      const active =
-        tab.href === '/' ||
-        (pathname && (pathname === '/' || pathname.match(/\/[0-9a-fA-F-]{36}$/)))
-          ? true
-          : false;
-        const base =
-          'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all';
-        const color = active
+  <nav className="flex h-12">
+    {tabs.map((tab) => {
+      const active = tab.href && pathname?.startsWith(tab.href);
+      const base =
+        'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all';
+      const color = active
         ? 'bg-black text-white'
         : 'bg-orange-500 text-white';
 
-        if (tab.href) {
-          return (
-            <Link
-              key={tab.label}
-              href={tab.href}
-              className={`${base} ${color}`}
-            >
-              {tab.label}
-            </Link>
-          );
-        }
-
+      if (tab.href) {
         return (
-          <button
+          <Link
             key={tab.label}
-            onClick={tab.onClick}
+            href={tab.href}
             className={`${base} ${color}`}
           >
             {tab.label}
-          </button>
+          </Link>
         );
-      })}
-    </nav>
-  );
+      }
+
+      return (
+        <button
+          key={tab.label}
+          onClick={tab.onClick}
+          className={`${base} ${color}`}
+        >
+          {tab.label}
+        </button>
+      );
+    })}
+  </nav>
+);
 }
