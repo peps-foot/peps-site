@@ -43,10 +43,11 @@ export function NavBar() {
   return (
     <nav className="flex h-12">
       {tabs.map((tab) => {
-        const active =
-        tab.href === '/'
-        ? pathname === '/' || pathname.match(/^\/[0-9a-fA-F-]{36}$/)
-        : tab.href === pathname;
+      const active =
+        tab.href === '/' ||
+        (pathname && (pathname === '/' || pathname.match(/\/[0-9a-fA-F-]{36}$/)))
+          ? true
+          : false;
         const base =
           'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all';
         const color = active

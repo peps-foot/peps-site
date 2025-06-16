@@ -51,7 +51,7 @@ export async function GET() {
 
     const { error: matchInsertError } = await supabase
       .from('matches')
-      .upsert(matchRows, { onConflict: ['fixture_id'] })
+      .upsert(matchRows, { onConflict: 'fixture_id' })
 
     if (matchInsertError) {
       console.error('Erreur Supabase (matches) :', matchInsertError)
@@ -68,7 +68,7 @@ export async function GET() {
         )
         const oddsJson = await oddsRes.json()
         const bookmakers = oddsJson.response?.[0]?.bookmakers || []
-        const matchWinner = bookmakers?.[0]?.bets?.find(b => b.name === 'Match Winner')
+        const matchWinner = bookmakers?.[0]?.bets?.find((b: { name: string }) => b.name === 'Match Winner');
 
         if (matchWinner) {
           let odd_1 = null, odd_X = null, odd_2 = null
