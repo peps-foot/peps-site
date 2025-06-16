@@ -42,46 +42,46 @@ export function NavBar() {
 
 return (
   <nav className="flex h-12">
-    {tabs.map((tab) => {
-      const safePath = pathname ?? '';
-      const href = tab.href ?? '';
+  {tabs.map((tab) => {
+    const safePath = pathname ?? '';
+    const href = tab.href ?? '';
 
-      // Ignorer l'onglet déconnexion (jamais actif)
-      if (href === '/deconnexion') {
-        return (
-          <Link
-            key={tab.label}
-            href={href}
-            className="flex-1 flex items-center justify-center font-medium text-sm h-full transition-all bg-black text-white"
-          >
-            {tab.label}
-          </Link>
-        );
-      }
-
-      // Cas UUID : la homepage = /[competitionId]
-      const isUUID = /^[0-9a-fA-F-]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
-        safePath.replace('/', '')
-      );
-
-      const active =
-        (href === '/' && isUUID) ||
-        (href !== '/' && safePath.startsWith(href));
-
-      const base =
-        'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all';
-      const color = active ? 'bg-black text-white' : 'bg-orange-500 text-white';
-
+    // Cas particulier : bouton DÉCONNEXION
+    if (tab.onClick) {
       return (
-        <Link
+        <button
           key={tab.label}
-          href={href}
-          className={`${base} ${color}`}
+          onClick={tab.onClick}
+          className="flex-1 flex items-center justify-center font-medium text-sm h-full transition-all bg-orange-500 text-white hover:bg-orange-600"
         >
           {tab.label}
-        </Link>
+        </button>
       );
-    })}
-  </nav>
+    }
+
+    // Cas UUID : la homepage = /[competitionId]
+    const isUUID = /^[0-9a-fA-F-]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+      safePath.replace('/', '')
+    );
+
+    const active =
+      (href === '/' && isUUID) ||
+      (href !== '/' && safePath.startsWith(href));
+
+    const base =
+      'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all';
+    const color = active ? 'bg-black text-white' : 'bg-orange-500 text-white';
+
+    return (
+      <Link
+        key={tab.label}
+        href={href}
+        className={`${base} ${color}`}
+      >
+        {tab.label}
+      </Link>
+    );
+  })}
+</nav>
 );
 }
