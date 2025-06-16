@@ -1,11 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useSupabase } from '@/components/SupabaseProvider'
+import { useSupabase } from '../../../components/SupabaseProvider'
 
 type BonusDef = { id: string; code: string; name: string };
 type Fixture = {
   id: number;
-  competition: string;
+  league_name: string;
   date: string;
   home_team: string;
   away_team: string;
