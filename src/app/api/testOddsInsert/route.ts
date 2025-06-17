@@ -13,7 +13,7 @@ export async function GET() {
 
   logs.push('🟠 Lancement de fetchUpcoming');
 
-  const fixturesUrl = `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&status=NS`;
+  const fixturesUrl = `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&status=FT`;
 
   logs.push(`🔵 Appel API fixtures : ${fixturesUrl}`);
 

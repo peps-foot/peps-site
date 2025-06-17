@@ -1,72 +1,67 @@
 // app/api/updateLive/route.ts
 
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4Njg0MjAsImV4cCI6MjA2MTQ0NDQyMH0.cdvoEv3jHuYdPHnR9Xf_mkVyKgupSRJFLi25KMtqaNk';
+const API_KEY = '112a112da460820962f5e9fc0b261d2a';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export async function GET() {
-  const SUPABASE_URL = process.env.SUPABASE_URL || ''
-  if (!SUPABASE_URL) {
-    throw new Error('SUPABASE_URL is missing (updateLive)')
+  const now = new Date().toISOString();
+
+  // 1. Récupère les matchs "en retard" ou "en cours"
+  const { data: matches, error } = await supabase
+    .from("matches")
+    .select("id, fixture_id")
+    .or(`and(status.eq.NS,date.lt.${now}),status.eq.1H,status.eq.2H`)
+
+  if (error) {
+    console.error("Erreur Supabase matches:", error);
+    return NextResponse.json({ status: "error", message: "Erreur Supabase" });
   }
-  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY!
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-  try {
-    // 🔍 On récupère tous les matches non terminés et déjà verrouillés
-    const { data: liveMatches, error } = await supabase
-      .from('matches')
-      .select('fixture_id')
-      .neq('status', 'FT')
-      .eq('is_locked', true)
+  if (!matches || matches.length === 0) {
+    return NextResponse.json({ status: "ok", message: "Aucun match à mettre à jour" });
+  }
 
-    if (error || !liveMatches || liveMatches.length === 0) {
-      return NextResponse.json({ message: 'Aucun match à mettre à jour' })
-    }
+  const fixtureIds = matches.map((m) => m.fixture_id).join("-");
 
-    const fixtureIds = liveMatches.map((m) => m.fixture_id)
-    const groups = groupIntoChunks(fixtureIds, 20) // 20 max par appel API
-    const API_KEY = process.env.API_FOOTBALL_KEY!;
-    
-    for (const batch of groups) {
-      const idList = batch.join(',')
-      const res = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${idList}`, {
-        headers: {
-          'x-apisports-key': API_KEY
-        }
+  // 2. Appel API-Football pour ces matchs
+  const apiResponse = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${fixtureIds}`, {
+    headers: {
+      "x-apisports-key": API_KEY,
+    },
+  });
+
+  const apiData = await apiResponse.json();
+
+  if (!apiData.response || apiData.response.length === 0) {
+    return NextResponse.json({ status: "ok", message: "Aucune donnée API" });
+  }
+
+  // 3. Prépare et applique la mise à jour
+  const updates = apiData.response.map((match: any) => {
+    return {
+      fixture_id: match.fixture.id,
+      status: match.fixture.status.short,
+      score_home: match.goals.home,
+      score_away: match.goals.away,
+    };
+  });
+
+  for (const update of updates) {
+    await supabase
+      .from("matches")
+      .update({
+        status: update.status,
+        score_home: update.score_home,
+        score_away: update.score_away,
       })
-      const json = await res.json()
-      const fixtures = json.response
-
-      for (const fixture of fixtures) {
-        const fid = fixture.fixture.id
-        const status = fixture.fixture.status.short
-        const scoreHome = fixture.goals.home
-        const scoreAway = fixture.goals.away
-
-        await supabase
-          .from('matches')
-          .update({
-            status,
-            score_home: scoreHome,
-            score_away: scoreAway,
-            is_locked: ['FT', 'AET', 'PEN'].includes(status)
-          })
-          .eq('fixture_id', fid)
-      }
-    }
-
-    return NextResponse.json({ ok: true, message: 'Scores mis à jour' })
-  } catch (e) {
-    console.error('Erreur updateLive', e)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+      .eq("fixture_id", update.fixture_id);
   }
-}
 
-// 🔁 Regroupe un tableau en sous-tableaux de 20 max
-function groupIntoChunks<T>(arr: T[], chunkSize: number): T[][] {
-  const result: T[][] = []
-  for (let i = 0; i < arr.length; i += chunkSize) {
-    result.push(arr.slice(i, i + chunkSize))
-  }
-  return result
+  return NextResponse.json({ status: "ok", message: `Mise à jour de ${updates.length} match(s)` });
 }
