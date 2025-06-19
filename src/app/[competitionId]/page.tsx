@@ -124,7 +124,8 @@ export default function HomePage() {
   }, []);
 
   // 📦 Charge toutes les grilles et les matchs d’un joueur, avec ses picks et ses points
-  async function loadUserGrids(userId: string) {
+  async function loadUserGrids(userId: string, initialIdx?: number) {
+    let finalGrids: { grid: GridWithItems; matches: MatchWithState[] }[] = [];
     try {
       setLoadingGrids(true);
 
@@ -199,7 +200,7 @@ export default function HomePage() {
       }
 
       // 3. Créer la liste finale triée
-      const finalGrids = Object.values(groupedByGrid)
+      finalGrids = Object.values(groupedByGrid)
         .map((entry) => ({
           grid: entry.grid as GridWithItems,
           matches: entry.matches,
@@ -222,6 +223,23 @@ export default function HomePage() {
       console.error("🔥 Erreur loadUserGrids", e);
       setError("Erreur lors du chargement des grilles");
     } finally {
+      // 🎯 Sélection grille : soit forcer un index, soit logique normale
+      if (typeof initialIdx === 'number') {
+        goToPage(initialIdx);
+      } else {
+        const now = new Date();
+        let chosenIdx = finalGrids.findIndex(({ matches }) =>
+          matches.some(m => m.status === 'NS' && new Date(m.date) > now)
+        );
+
+        if (chosenIdx === -1) {
+          chosenIdx = finalGrids.length - 1;
+        }
+
+        goToPage(chosenIdx);
+      }
+
+      // ✅ Termine le chargement
       setLoadingGrids(false);
     }
   }
@@ -520,7 +538,16 @@ if (activeGrid && activeGrid.grid_items) {
         .upsert([payload], {
           onConflict: 'user_id,grid_id'
         });
-        await loadUserGrids(user.id); // Recharge les grilles après validation bonus
+
+      // 🔁 Recharge les bonus pour la grille actuelle
+      const { data: gbs, error: gbe } = await supabase
+        .from('grid_bonus')
+        .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
+        .eq('grid_id', grid.id);
+
+      if (gbe) throw gbe;
+
+      setGridBonuses(gbs || []);
 
       if (be) throw be;
       console.log('✅ Supabase upsert OK', data);
@@ -570,8 +597,15 @@ if (activeGrid && activeGrid.grid_items) {
         gbs.filter(x => x.bonus_definition !== openedBonus.id)
       );
 
-      // 3) Recharge propre de la grille
-      await loadUserGrids(user.id);
+      // 3) Recharge les bonus pour la grille actuelle
+      const { data: gbs, error: gbe } = await supabase
+        .from('grid_bonus')
+        .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
+        .eq('grid_id', grid.id);
+
+      if (gbe) throw gbe;
+
+      setGridBonuses(gbs || []);
 
       // 4) Reset popup
       setOpenedBonus(null);
@@ -803,8 +837,20 @@ return (
                       </div>
 
                       {/* LIGNE 2 */}
-                      <div className="text-center text-xs text-gray-600">
-                        {m.score_home != null ? 'Terminé' : 'À venir'}
+                      <div
+                        className={`text-center text-xs ${
+                          ['1H', '2H'].includes(m.status?.toUpperCase?.() ?? '')
+                            ? 'text-orange-500'
+                            : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
+                            ? 'text-gray-600'
+                            : 'text-blue-600'
+                        }`}
+                      >
+                        {['1H', '2H'].includes(m.status?.toUpperCase?.() ?? '')
+                          ? 'En cours'
+                          : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
+                          ? 'Terminé'
+                          : 'À venir'}
                       </div>
                       <div className="text-center font-semibold">
                         {m.score_home != null ? m.score_home : '–'}
