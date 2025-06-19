@@ -839,14 +839,14 @@ return (
                       {/* LIGNE 2 */}
                       <div
                         className={`text-center text-xs ${
-                          ['1H', '2H'].includes(m.status?.toUpperCase?.() ?? '')
+                          ['1H', '2H', 'HT'].includes(m.status?.toUpperCase?.() ?? '')
                             ? 'text-orange-500'
                             : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
                             ? 'text-gray-600'
                             : 'text-blue-600'
                         }`}
                       >
-                        {['1H', '2H'].includes(m.status?.toUpperCase?.() ?? '')
+                        {['1H', '2H', 'HT'].includes(m.status?.toUpperCase?.() ?? '')
                           ? 'En cours'
                           : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
                           ? 'Terminé'
