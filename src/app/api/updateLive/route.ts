@@ -1,76 +1,74 @@
-// app/api/updateLive/route.ts
-
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
-const API_KEY = '112a112da460820962f5e9fc0b261d2a';
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient('https://rvswrzxdzfdtenxqtbci.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ'
+);
 
 export async function GET() {
   const now = new Date().toISOString();
 
-  // 1. Récupère les matchs "en retard" ou "en cours"
+  // 1. Sélectionne les matchs à mettre à jour
   const { data: matches, error } = await supabase
     .from("matches")
     .select("id, fixture_id")
-    .in("status", ["NS", "1H", "HT", "2H"])
+    .or(`and(date.lt.${now},status.eq.NS),status.eq.1H,status.eq.HT,status.eq.2H`)
 
   if (error) {
-    console.error("Erreur Supabase matches:", error);
+    console.error("❌ Erreur Supabase :", error);
     return NextResponse.json({ status: "error", message: "Erreur Supabase" });
   }
 
   if (!matches || matches.length === 0) {
-    return NextResponse.json({ status: "ok", message: "Aucun match à mettre à jour" });
+    console.log("✅ Aucun match à mettre à jour");
+    return NextResponse.json({ status: "ok", message: "Aucun match à suivre" });
   }
 
-  const fixtureIds = matches.map((m) => m.fixture_id).join("-");
-
-  // 2. Appel API-Football pour ces matchs
-  const apiResponse = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${fixtureIds}`, {
-    headers: {
-      "x-apisports-key": API_KEY,
-    },
-  });
-
-  const apiData = await apiResponse.json();
-
-  if (!apiData.response || apiData.response.length === 0) {
-    return NextResponse.json({ status: "ok", message: "Aucune donnée API" });
+  // 2. Regroupe les fixture_id par lots de 20 max
+  const fixtureIds = matches.map((m) => m.fixture_id);
+  const batches = [];
+  for (let i = 0; i < fixtureIds.length; i += 20) {
+    batches.push(fixtureIds.slice(i, i + 20));
   }
 
-  // 3. Prépare et applique la mise à jour
-  const updates = apiData.response.map((match: any) => {
-    return {
-      fixture_id: match.fixture.id,
-      status: match.fixture.status.short,
-      score_home: match.goals.home,
-      score_away: match.goals.away,
-    };
-  });
+  const allFixtures: any[] = [];
 
-    for (const update of updates) {
-      const { error: updateError, count } = await supabase
-        .from("matches")
-        .update({
-          status: update.status,
-          score_home: update.score_home,
-          score_away: update.score_away,
-        })
-        .eq("fixture_id", update.fixture_id)
-        .select("*"); // pour avoir le count (ou utilise `.returns('minimal')` avec v2)
+  // 3. Récupère les infos de l'API pour chaque batch
+  for (const batch of batches) {
+    const url = `https://v3.football.api-sports.io/fixtures?ids=${batch.join("-")}`;
+    const res = await fetch(url, {
+      headers: {
+        "x-apisports-key": '112a112da460820962f5e9fc0b261d2a',
+      },
+    });
 
-      if (updateError) {
-        console.error(`❌ Erreur update match ${update.fixture_id} :`, updateError.message);
-      } else if (count === 0) {
-        console.warn(`⚠️ Aucun match mis à jour pour fixture_id ${update.fixture_id}`);
-      } else {
-        console.log(`✅ Match ${update.fixture_id} mis à jour avec ${update.score_home}-${update.score_away} (${update.status})`);
-      }
+    const json = await res.json();
+    if (json.response && Array.isArray(json.response)) {
+      allFixtures.push(...json.response);
     }
+  }
 
-  return NextResponse.json({ status: "ok", message: `Mise à jour de ${updates.length} match(s)` });
+  if (allFixtures.length === 0) {
+    console.log("⚠️ Aucune donnée reçue de l’API");
+    return NextResponse.json({ status: "ok", message: "Pas de mise à jour" });
+  }
+
+  // 4. Prépare les données à upsert
+  const updates = allFixtures.map((match: any) => ({
+    fixture_id: match.fixture.id,
+    status: match.fixture.status.short,
+    score_home: match.goals.home,
+    score_away: match.goals.away,
+  }));
+
+  const { error: upsertError } = await supabase
+    .from("matches")
+    .upsert(updates, { onConflict: "fixture_id" });
+
+  if (upsertError) {
+    console.error("❌ Erreur upsert :", upsertError);
+    return NextResponse.json({ status: "error", message: "Erreur mise à jour Supabase" });
+  }
+
+  console.log("✅ Mises à jour effectuées :", updates.length);
+  return NextResponse.json({ status: "ok", updated: updates.length });
 }

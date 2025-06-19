@@ -225,7 +225,7 @@ export default function HomePage() {
     } finally {
       // 🎯 Sélection grille : soit forcer un index, soit logique normale
       if (typeof initialIdx === 'number') {
-        goToPage(initialIdx);
+        if (initialIdx !== currentIdx) goToPage(initialIdx);
       } else {
         const now = new Date();
         let chosenIdx = finalGrids.findIndex(({ matches }) =>
@@ -236,7 +236,7 @@ export default function HomePage() {
           chosenIdx = finalGrids.length - 1;
         }
 
-        goToPage(chosenIdx);
+        if (chosenIdx !== currentIdx) goToPage(chosenIdx);
       }
 
       // ✅ Termine le chargement
