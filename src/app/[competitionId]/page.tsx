@@ -927,14 +927,29 @@ return (
                         JOUER
                       </button>
                     )}
-                    {isPlayed && (
-                      <button
-                        onClick={() => setOpenedBonus(b)}
-                        className="px-3 py-1 border rounded hover:bg-gray-100"
-                      >
-                        MODIFIER
-                      </button>
-                    )}
+                    {isPlayed && (() => {
+                      const bonusEntry = gridBonuses.find(gb => gb.bonus_definition === b.id);
+                      const bonusMatch = matches.find(m => m.id === bonusEntry?.match_id);
+                      const bonusIsLocked = bonusEntry && bonusMatch?.status?.toUpperCase?.() !== 'NS';
+
+                      if (bonusIsLocked) {
+                        return (
+                          <div className="px-3 py-1 border rounded text-gray-500 flex items-center gap-2 cursor-not-allowed">
+                            <span>🔒</span>
+                            <span>EN JEU</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          onClick={() => setOpenedBonus(b)}
+                          className="px-3 py-1 border rounded hover:bg-gray-100"
+                        >
+                          MODIFIER
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               )
