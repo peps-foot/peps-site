@@ -16,7 +16,7 @@ export async function GET() {
   const { data: matches, error } = await supabase
     .from("matches")
     .select("id, fixture_id")
-    .or(`and(status.eq.NS,date.lt.${now}),status.eq.1H,status.eq.2H`)
+    .in("status", ["NS", "1H", "HT", "2H"])
 
   if (error) {
     console.error("Erreur Supabase matches:", error);
