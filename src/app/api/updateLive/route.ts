@@ -11,7 +11,7 @@ export async function GET() {
   const { data: matches, error } = await supabase
     .from("matches")
     .select("id, fixture_id")
-    .or(`and(date.lt.${now},status.eq.NS),status.eq.1H,status.eq.HT,status.eq.2H`)
+    .or(`and(date.lt.${now},status.eq.NS),status.eq.1H,status.eq.HT,status.eq.2H,status.eq.SUSP,status.eq.INT`)
 
   if (error) {
     console.error("❌ Erreur Supabase :", error);

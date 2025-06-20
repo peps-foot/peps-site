@@ -843,6 +843,8 @@ return (
                             ? 'text-orange-500'
                             : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
                             ? 'text-gray-600'
+                            : ['SUSP', 'INT'].includes(m.status?.toUpperCase?.() ?? '')
+                            ? 'text-red-600'
                             : 'text-blue-600'
                         }`}
                       >
@@ -850,6 +852,8 @@ return (
                           ? 'En cours'
                           : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
                           ? 'Terminé'
+                          : ['SUSP', 'INT'].includes(m.status?.toUpperCase?.() ?? '')
+                          ? 'Suspendu'
                           : 'À venir'}
                       </div>
                       <div className="text-center font-semibold">
