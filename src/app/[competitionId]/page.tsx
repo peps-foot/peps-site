@@ -81,6 +81,18 @@ export default function HomePage() {
       hour:'2-digit', minute:'2-digit'
     }).replace(/\u202F/g,' ');
 
+  // 👉 Format FR pour le status des matchs
+  const getMatchLabelAndColor = (status: string) => {
+  const s = status.toUpperCase();
+  if (s === 'NS') return { label: 'À venir', color: 'text-blue-600' };
+  if (s === '1H') return { label: '1re mi-temps', color: 'text-orange-500' };
+  if (s === 'HT') return { label: 'Mi-temps', color: 'text-orange-500' };
+  if (s === '2H') return { label: '2e mi-temps', color: 'text-orange-500' };
+  if (['SUSP', 'INT'].includes(s)) return { label: 'Suspendu', color: 'text-red-600' };
+  if (s === 'FT') return { label: 'Terminé', color: 'text-gray-700' };
+  return { label: s, color: 'text-gray-400' }; // fallback
+};
+
   // 🍀 Initialise la grille avec des matchs à venir (ou la dernière)
   useEffect(() => {
     if (grids.length > 0 && matches.length === 0) {
@@ -387,7 +399,6 @@ export default function HomePage() {
         console.error("❌ Erreur update_grid_points :", error);
       } else {
         console.log("✅ update_grid_points exécuté !");
-        if (user?.id) await loadUserGrids(user.id);
       }
     }, 60_000); // toutes les 60 secondes
 
@@ -705,14 +716,7 @@ return (
                 <div className="p-6 text-center">🔄 Chargement de la grille…</div>
               ) : (
                 matches.map((m) => {
-                    //console.log("🔒 état match", {
-                    //id: m.id,
-                    //status: m.status,
-                    //is_locked: m.is_locked,
-                    //lock_reason: m.status?.toUpperCase?.() !== 'NS' ? 'status' : (m.is_locked ? 'manual' : 'none')
-                  //});
-                  const isMatchLocked = false;
-                  (m.status?.toUpperCase?.() !== 'NS') || m.is_locked;
+                  const upperStatus = m.status?.toUpperCase?.() ?? '';
 
                   // 1) Bonus actif
                   const bonusEntry = gridBonuses[0];
@@ -729,7 +733,7 @@ return (
                       : m.pick ? [m.pick] : [];
 
                   let isDisabled = false;
-                  if (m.status?.toUpperCase?.() !== 'NS' || m.is_locked) {
+                  if (upperStatus !== 'NS' || ['SUSP', 'INT'].includes(upperStatus) || m.is_locked) {
                     isDisabled = true;
                   }
 
@@ -837,25 +841,14 @@ return (
                       </div>
 
                       {/* LIGNE 2 */}
-                      <div
-                        className={`text-center text-xs ${
-                          ['1H', '2H', 'HT'].includes(m.status?.toUpperCase?.() ?? '')
-                            ? 'text-orange-500'
-                            : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
-                            ? 'text-gray-600'
-                            : ['SUSP', 'INT'].includes(m.status?.toUpperCase?.() ?? '')
-                            ? 'text-red-600'
-                            : 'text-blue-600'
-                        }`}
-                      >
-                        {['1H', '2H', 'HT'].includes(m.status?.toUpperCase?.() ?? '')
-                          ? 'En cours'
-                          : ['FT', 'ET', 'P', 'AET'].includes(m.status?.toUpperCase?.() ?? '')
-                          ? 'Terminé'
-                          : ['SUSP', 'INT'].includes(m.status?.toUpperCase?.() ?? '')
-                          ? 'Suspendu'
-                          : 'À venir'}
-                      </div>
+                      {(() => {
+                        const { label, color } = getMatchLabelAndColor(m.status ?? '');
+                        return (
+                          <div className={`text-center text-xs ${color}`}>
+                            {label}
+                          </div>
+                        );
+                      })()}
                       <div className="text-center font-semibold">
                         {m.score_home != null ? m.score_home : '–'}
                       </div>
