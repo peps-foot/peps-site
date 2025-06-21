@@ -25,9 +25,21 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${oswald.variable} ${poppins.variable}`}>
+      <head>
+        {/* Manifest et icône pour PWA */}
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/peps-icon.png" type="image/png" />
+
+        {/* Métadonnées PWA / mobile */}
+        <meta name="theme-color" content="#FF6600" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/peps-icon.png" />
+      </head>
       <body>
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   );
 }
+

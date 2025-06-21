@@ -1,0 +1,16 @@
+{
+  "name": "PEPS - Pronos entre Potes",
+  "short_name": "PEPS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FF6600",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/peps-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

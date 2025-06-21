@@ -93,6 +93,25 @@ export default function HomePage() {
   return { label: s, color: 'text-gray-400' }; // fallback
 };
 
+  // ✅ Mise à jour unique des points au premier affichage
+  useEffect(() => {
+    if (!grid?.id || !user?.id) return;
+
+    const updateOnce = async () => {
+      const { error } = await supabase.rpc("update_grid_points", {
+        p_grid_id: grid.id,
+      });
+
+      if (error) {
+        console.error("❌ Erreur update_grid_points (init) :", error);
+      } else {
+        console.log("✅ update_grid_points exécuté au chargement !");
+      }
+    };
+
+    updateOnce();
+  }, [grid?.id, user?.id]);
+
   // 🍀 Initialise la grille avec des matchs à venir (ou la dernière)
   useEffect(() => {
     if (grids.length > 0 && matches.length === 0) {
