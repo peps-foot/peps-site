@@ -811,8 +811,6 @@ return (
                       <div className="text-center text-sm">{fmtDate(m.date)}</div>
                       <div className="text-center font-medium">{m.home_team}</div>
                       {(['1', 'N', '2'] as const).map((opt) => {
-                        //console.log("🔎 m.pick =", m.pick, "| picksForThisMatch =", picksForThisMatch, "| opt =", opt)
-                        //console.log("m.id =", m.id, "| m.pick =", m.pick);
                         const isX = picksForThisMatch.includes(opt)
                         return (
                           <div
