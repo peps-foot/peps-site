@@ -328,7 +328,9 @@ export default function HomePage() {
             odd_2_snapshot,
             base_1_points,
             base_n_points,
-            base_2_points
+            base_2_points,
+            short_name_home,
+            short_name_away
           `)
           .in('id', ids)
           .order('date', { ascending: true });
