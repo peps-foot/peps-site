@@ -28,6 +28,8 @@ export type Match = {
   odd_1_snapshot: number | null;
   odd_n_snapshot: number | null;
   odd_2_snapshot: number | null;
+  short_name_home?: string | null;
+  short_name_away?: string | null;
 };
 
 // Grille

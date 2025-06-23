@@ -184,7 +184,9 @@ export default function HomePage() {
             is_locked,
             odd_1_snapshot,
             odd_n_snapshot,
-            odd_2_snapshot
+            odd_2_snapshot,
+            short_name_home,
+            short_name_away
           ),
           grids (
             id,
@@ -810,6 +812,8 @@ return (
                       {/* LIGNE 1 */}
                       <div className="text-center text-sm">{fmtDate(m.date)}</div>
                       <div className="text-center font-medium">{m.home_team}</div>
+                          <span className="inline sm:hidden">{m.short_name_home}</span>
+                          <span className="hidden sm:inline">{m.home_team}</span>
                       {(['1', 'N', '2'] as const).map((opt) => {
                         const isX = picksForThisMatch.includes(opt)
                         return (
@@ -827,6 +831,8 @@ return (
                         )
                       })}
                       <div className="text-center font-medium">{m.away_team}</div>
+                        <span className="inline sm:hidden">{m.short_name_away}</span>
+                        <span className="hidden sm:inline">{m.away_team}</span>
                       <div className="flex justify-center">
                         {bonusEntry ? (
                           bonusCode === 'RIBERY' ? (
