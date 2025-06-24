@@ -656,17 +656,10 @@ if (activeGrid && activeGrid.grid_items) {
   const isPlayed = gridBonuses.length>0;
   const playedBonusCode = bonusDefs.find(b=>b.id===gridBonuses[0]?.bonus_definition)?.code;
 
-              //console.log("[🟧 Bandeau] grids =", grids);
-              //console.log("[🟧 Bandeau] grid =", grid);
-              //console.log("[🟧 Bandeau] matches =", matches);
-              //console.log("[🟧 Bandeau] user =", user?.id);
-              //console.log("🎯 currentGrid rendu =", currentGrid);
-
 return (
       <>
-    <main className="container mx-auto px-4 py-8">
+    <main className="w-full max-w-full lg:max-w-6xl mx-auto px-4 py-8">
       {/* 1) ZONE D’INFORMATION PLEIN LARGEUR */}
-  {/* ── ZONE INFO ── */}
   <section className="w-full mb-8">
     <div className="bg-white rounded-lg p-6 shadow flex flex-col md:flex-row items-center">
       
