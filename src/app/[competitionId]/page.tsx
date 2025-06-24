@@ -658,7 +658,7 @@ if (activeGrid && activeGrid.grid_items) {
 
 return (
       <>
-    <main className="container mx-auto px-4 py-8">
+    <main className="w-full px-2 sm:px-4 py-8">
       {/* 1) ZONE D’INFORMATION PLEIN LARGEUR */}
   <section className="w-full mb-8">
     <div className="bg-white rounded-lg p-6 shadow flex flex-col md:flex-row items-center">
