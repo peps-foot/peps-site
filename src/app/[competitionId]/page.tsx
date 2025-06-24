@@ -827,9 +827,11 @@ return (
                         <div
                           key={opt}
                           onClick={() => !isDisabled && handlePick(m.id, opt)}
-                          className={`w-8 h-8 mx-auto border rounded flex items-center justify-center text-sm ${
-                            isDisabled ? 'opacity-50' : 'cursor-pointer'
-                          }`}
+                          className={`w-6 sm:w-8 h-8 mx-[2px] sm:mx-1 border rounded flex items-center justify-center
+                            text-xs sm:text-sm 
+                            ${isDisabled ? 'opacity-50' : 'cursor-pointer'}
+                            ${isX ? 'bg-black text-white font-bold' : ''}
+                          `}
                         >
                           {isX ? 'x' : opt}
                         </div>
@@ -885,13 +887,13 @@ return (
                       <div className="text-center font-semibold">
                         {m.score_home != null ? m.score_home : '–'}
                       </div>
-                      <div className="text-center text-xs">
+                      <div className="text-center text-xs sm:text-sm">
                         {m.base_1_points ?? '-'}
                       </div>
-                      <div className="text-center text-xs">
+                      <div className="text-center text-xs sm:text-sm">
                         {m.base_n_points ?? '-'}
                       </div>
-                      <div className="text-center text-xs">
+                      <div className="text-center text-xs sm:text-sm">
                         {m.base_2_points ?? '-'}
                       </div>
                       <div className="text-center font-semibold">
