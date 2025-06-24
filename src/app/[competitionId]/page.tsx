@@ -723,9 +723,9 @@ return (
   </section>
 
       {/* 2) CONTENU PRINCIPAL : GRILLE (2/3) & BONUS (1/3) */}
-      <div className="p-6 flex flex-col lg:flex-row gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* ── GRILLE ── */}
-        <div className="w-full max-w-none lg:w-2/3">
+        <div className="w-full lg:w-2/3 px-4">
           <div className="border rounded-lg space-y-2">
             <div className="space-y-1">
               {loadingGrid ? (
@@ -900,7 +900,7 @@ return (
         </div>
 
         {/* ── BONUS ── */}
-        <div className="w-full lg:w-1/3">
+        <div className="w-full lg:w-1/3 px-4">
           <div className="border rounded-lg p-4 space-y-4">
             {/* En-tête */}
             <div className="font-medium">
