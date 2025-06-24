@@ -821,22 +821,22 @@ return (
                     </div>
 
                     {/* Boutons 1/N/2 */}
-                    {(['1', 'N', '2'] as const).map((opt) => {
-                      const isX = picksForThisMatch.includes(opt)
-                      return (
-                        <div
-                          key={opt}
-                          onClick={() => !isDisabled && handlePick(m.id, opt)}
-                          className={`w-6 sm:w-8 h-8 mx-[2px] sm:mx-1 border rounded flex items-center justify-center
-                            text-xs sm:text-sm 
-                            ${isDisabled ? 'opacity-50' : 'cursor-pointer'}
-                            ${isX ? 'bg-black text-white font-bold' : ''}
-                          `}
-                        >
-                          {isX ? 'x' : opt}
-                        </div>
-                      )
-                    })}
+<div className="col-span-3 grid grid-cols-3 gap-1 sm:gap-2 justify-items-center">
+  {(['1', 'N', '2'] as const).map((opt) => {
+    const isX = picksForThisMatch.includes(opt);
+    return (
+      <div
+        key={opt}
+        onClick={() => !isDisabled && handlePick(m.id, opt)}
+        className={`w-6 sm:w-8 h-6 sm:h-8 border rounded flex items-center justify-center text-sm ${
+          isDisabled ? 'opacity-50' : 'cursor-pointer'
+        }`}
+      >
+        {isX ? 'x' : opt}
+      </div>
+    );
+  })}
+</div>
 
                     {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
                     <div className="text-center font-medium">
@@ -887,15 +887,11 @@ return (
                       <div className="text-center font-semibold">
                         {m.score_home != null ? m.score_home : '–'}
                       </div>
-                      <div className="text-center text-xs sm:text-sm">
-                        {m.base_1_points ?? '-'}
-                      </div>
-                      <div className="text-center text-xs sm:text-sm">
-                        {m.base_n_points ?? '-'}
-                      </div>
-                      <div className="text-center text-xs sm:text-sm">
-                        {m.base_2_points ?? '-'}
-                      </div>
+<div className="col-span-3 grid grid-cols-3 gap-1 sm:gap-2 text-center text-xs">
+  <div>{m.base_1_points ?? '-'}</div>
+  <div>{m.base_n_points ?? '-'}</div>
+  <div>{m.base_2_points ?? '-'}</div>
+</div>
                       <div className="text-center font-semibold">
                         {m.score_away != null ? m.score_away : '–'}
                       </div>
