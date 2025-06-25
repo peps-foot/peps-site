@@ -821,7 +821,7 @@ return (
       <div
         key={opt}
         onClick={() => !isDisabled && handlePick(m.id, opt)}
-        className={`w-6 sm:w-8 h-6 sm:h-8 border rounded flex items-center justify-center text-sm ${
+        className={`w-6 sm:w-7 h-6 sm:h-7 border rounded flex items-center justify-center text-sm ${
           isDisabled ? 'opacity-50' : 'cursor-pointer'
         }`}
       >
