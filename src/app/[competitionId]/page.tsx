@@ -16,6 +16,7 @@ const bonusLogos: Record<string,string> = {
   "KANTE": '/images/kante.png',
   "RIBERY": '/images/ribery.png',
   "ZLATAN": '/images/zlatan.png',
+  "INFO" : '/images/info.png',
 };
 
 export default function HomePage() {
@@ -838,54 +839,47 @@ return (
                     </div>
                     
                     {/* BONUS */}
-<div className="flex justify-center">
-  {bonusEntry ? (
-    bonusCode === 'RIBERY' ? (
-      (m.id === matchWin || m.id === matchZero) ? (
-        <Image
-          src={bonusLogos['RIBERY']}
-          alt="RIBERY bonus"
-          width={32}
-          height={32}
-          className="rounded-full"
-        />
-      ) : (
-        <Image
-          src="/info.png"
-          alt="bonus inconnu"
-          width={32}
-          height={32}
-          className="rounded-full"
-        />
-      )
-    ) : m.id === bonusEntry.match_id ? (
-      <Image
-        src={bonusLogos[bonusCode!]}
-        alt={`${bonusCode} bonus`}
-        width={32}
-        height={32}
-        className="rounded-full"
-      />
-    ) : (
-      <Image
-        src="/info.png"
+                      <div className="flex justify-center">
+                        {bonusEntry ? (
+                          bonusCode === 'RIBERY' ? (
+                            (m.id === matchWin || m.id === matchZero) ? (
+                              <Image
+                                src={bonusLogos['RIBERY']}
+                                alt="RIBERY bonus"
+                                width={32}
+                                height={32}
+                                className="rounded-full"
+                              />
+                            ) : (
+                              <div className="w-6 h-6 bg-blue-500 rounded-full" />
+                            )
+                          ) : m.id === bonusEntry.match_id ? (
+                            <Image
+                              src={bonusLogos[bonusCode!]}
+                              alt={`${bonusCode} bonus`}
+                              width={32}
+                              height={32}
+                              className="rounded-full"
+                            />
+                          ) : (
+                                  <Image
+        src={bonusLogos["INFO"]}
         alt="bonus inconnu"
         width={32}
         height={32}
         className="rounded-full"
       />
-    )
-  ) : (
-    <Image
-      src="/info.png"
-      alt="bonus inconnu"
-      width={32}
-      height={32}
-      className="rounded-full"
-    />
-  )}
-</div>
-
+                          )
+                        ) : (
+                                <Image
+        src={bonusLogos["INFO"]}
+        alt="bonus inconnu"
+        width={32}
+        height={32}
+        className="rounded-full"
+      />
+                        )}
+                      </div>
 
                       {/* LIGNE 2 */}
                       {(() => {
