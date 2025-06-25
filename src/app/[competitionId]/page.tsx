@@ -826,13 +826,18 @@ return (
           isDisabled ? 'opacity-50' : 'cursor-pointer'
         }`}
       >
-        {isX ? (
-          <div className="relative w-full h-full">
-            <div className="absolute inset-0 before:absolute before:inset-0 before:rotate-45 before:border-t-4 before:border-black after:absolute after:inset-0 after:-rotate-45 after:border-t-4 after:border-black" />
-          </div>
-        ) : (
-          opt
-        )}
+{isX ? (
+  <div className="relative w-6 sm:w-8 h-6 sm:h-8">
+    <div className="absolute inset-0 flex items-center justify-center">
+      <svg viewBox="0 0 100 100" className="w-full h-full">
+        <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="8" />
+        <line x1="90" y1="10" x2="10" y2="90" stroke="black" strokeWidth="8" />
+      </svg>
+    </div>
+  </div>
+) : (
+  opt
+)}
       </div>
     );
   })}
