@@ -814,7 +814,7 @@ return (
                     </div>
 
                     {/* Boutons 1/N/2 */}
-<div className="col-span-3 grid grid-cols-3 gap-1 sm:gap-2 justify-items-center">
+<div className="col-span-3 grid grid-cols-3 gap-[2px] sm:gap-[4px] justify-items-center">
   {(['1', 'N', '2'] as const).map((opt) => {
     const isX = picksForThisMatch.includes(opt);
     return (
@@ -880,7 +880,7 @@ return (
                       <div className="text-center font-semibold">
                         {m.score_home != null ? m.score_home : '–'}
                       </div>
-<div className="col-span-3 grid grid-cols-3 gap-1 sm:gap-2 text-center text-xs">
+<div className="col-span-3 grid grid-cols-3 gap-[2px] sm:gap-[4px] text-center text-xs">
   <div>{m.base_1_points ?? '-'}</div>
   <div>{m.base_n_points ?? '-'}</div>
   <div>{m.base_2_points ?? '-'}</div>
