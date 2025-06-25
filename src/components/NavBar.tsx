@@ -41,7 +41,7 @@ export function NavBar() {
   if (!isClient) return null;
 
 return (
-  <nav className="flex h-12">
+  <nav className="flex h-12 w-full">
   {tabs.map((tab) => {
     const safePath = pathname ?? '';
     const href = tab.href ?? '';
