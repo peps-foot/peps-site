@@ -803,7 +803,7 @@ return (
                   return (
                     <div
                       key={m.id}
-                      className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_13%] gap-2 items-center"
+                      className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_12%] gap-2 items-center"
                     >
                     {/* LIGNE 1 */}
                     <div className="text-center text-sm">{fmtDate(m.date)}</div>
