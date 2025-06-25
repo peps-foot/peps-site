@@ -802,7 +802,7 @@ return (
                   return (
                     <div
                       key={m.id}
-                      className="border rounded-lg grid grid-cols-7 grid-rows-2 items-center p-1"
+                      className="border rounded-lg grid grid-cols-5 gap-2 items-center"
                     >
                     {/* LIGNE 1 */}
                     <div className="text-center text-sm">{fmtDate(m.date)}</div>
@@ -814,14 +814,14 @@ return (
                     </div>
 
                     {/* Boutons 1/N/2 */}
-<div className="col-span-3 grid grid-cols-3 gap-[2px] sm:gap-[4px] justify-items-center">
+<div className="grid grid-cols-3 gap-[2px] justify-items-center">
   {(['1', 'N', '2'] as const).map((opt) => {
     const isX = picksForThisMatch.includes(opt);
     return (
       <div
         key={opt}
         onClick={() => !isDisabled && handlePick(m.id, opt)}
-        className={`min-w-[28px] h-6 sm:h-7 border rounded flex items-center justify-center text-sm ${
+        className={`w-7 h-6 border rounded flex items-center justify-center text-sm ${
           isDisabled ? 'opacity-50' : 'cursor-pointer'
         }`}
       >
@@ -880,10 +880,10 @@ return (
                       <div className="text-center font-semibold">
                         {m.score_home != null ? m.score_home : '–'}
                       </div>
-<div className="col-span-3 grid grid-cols-3 gap-[2px] sm:gap-[4px] text-center text-xs justify-items-center">
-  <div className="min-w-[28px]">{m.base_1_points ?? '-'}</div>
-  <div className="min-w-[28px]">{m.base_n_points ?? '-'}</div>
-  <div className="min-w-[28px]">{m.base_2_points ?? '-'}</div>
+<div className="grid grid-cols-3 gap-[2px] text-xs text-center justify-items-center mt-1">
+  <div>{m.base_1_points ?? '-'}</div>
+  <div>{m.base_n_points ?? '-'}</div>
+  <div>{m.base_2_points ?? '-'}</div>
 </div>
                       <div className="text-center font-semibold">
                         {m.score_away != null ? m.score_away : '–'}
