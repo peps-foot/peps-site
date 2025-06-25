@@ -826,7 +826,13 @@ return (
           isDisabled ? 'opacity-50' : 'cursor-pointer'
         }`}
       >
-        {isX ? 'x' : opt}
+        {isX ? (
+          <div className="relative w-full h-full">
+            <div className="absolute inset-0 before:absolute before:inset-0 before:rotate-45 before:border-t-4 before:border-black after:absolute after:inset-0 after:-rotate-45 after:border-t-4 after:border-black" />
+          </div>
+        ) : (
+          opt
+        )}
       </div>
     );
   })}
