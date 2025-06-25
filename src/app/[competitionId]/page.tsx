@@ -86,9 +86,9 @@ export default function HomePage() {
   const getMatchLabelAndColor = (status: string) => {
   const s = status.toUpperCase();
   if (s === 'NS') return { label: 'À venir', color: 'text-blue-600' };
-  if (s === '1H') return { label: '1re mi-temps', color: 'text-orange-500' };
+  if (s === '1H') return { label: '1re MT', color: 'text-orange-500' };
   if (s === 'HT') return { label: 'Mi-temps', color: 'text-orange-500' };
-  if (s === '2H') return { label: '2e mi-temps', color: 'text-orange-500' };
+  if (s === '2H') return { label: '2e MT', color: 'text-orange-500' };
   if (['SUSP', 'INT'].includes(s)) return { label: 'Suspendu', color: 'text-red-600' };
   if (s === 'FT') return { label: 'Terminé', color: 'text-gray-700' };
   return { label: s, color: 'text-gray-400' }; // fallback
