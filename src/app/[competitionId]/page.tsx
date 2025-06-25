@@ -861,10 +861,22 @@ return (
                               className="rounded-full"
                             />
                           ) : (
-                            <div className="w-6 h-6 bg-blue-500 rounded-full" />
+                                  <Image
+        src="/info.png"
+        alt="bonus inconnu"
+        width={32}
+        height={32}
+        className="rounded-full"
+      />
                           )
                         ) : (
-                          <div className="w-6 h-6 bg-blue-500 rounded-full" />
+                                <Image
+        src="/info.png"
+        alt="bonus inconnu"
+        width={32}
+        height={32}
+        className="rounded-full"
+      />
                         )}
                       </div>
 
