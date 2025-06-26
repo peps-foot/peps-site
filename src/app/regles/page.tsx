@@ -38,6 +38,7 @@ export default function ReglesPage() {
             </p>
             <p><strong>Avantage :</strong> tu as deux chances sur trois de gagner des points.</p>
             <p><strong>Inconvénient :</strong> tu ne gagnes que la plus petite des deux cotes.</p>
+            <strong>Exemple :</strong> tu ne gagnes que la plus petite des deux cotes.
             <div className="flex justify-center">
               <Image
                 src="/images/exemple_kante.png"
