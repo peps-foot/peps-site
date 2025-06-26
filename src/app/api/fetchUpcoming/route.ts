@@ -33,6 +33,8 @@ export async function GET() {
     league_name: item.league.name,
     home_team: item.teams.home.name,
     away_team: item.teams.away.name,
+    team_home_id: item.teams.home.id,
+    team_away_id: item.teams.away.id,
     status: item.fixture.status.short,
     score_home: item.goals.home,
     score_away: item.goals.away,

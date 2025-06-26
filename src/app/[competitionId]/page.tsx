@@ -1146,7 +1146,7 @@ return (
                     >
                       <option value="1-N">1 N</option>
                       <option value="N-2">N 2</option>
-                      <option value="1-2">2 1</option>
+                      <option value="1-2">1 2</option>
                     </select>
                   </label>
                 </>
