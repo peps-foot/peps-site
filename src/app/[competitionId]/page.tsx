@@ -456,12 +456,12 @@ export default function HomePage() {
   // 🎯 handlePick : enregistre un pick (1/N/2) pour un match dans la grille
   const handlePick = async (match_id: string, pick: '1' | 'N' | '2') => {
     if (!user || !grid) return;
-    console.log("📤 Envoi pick →", {
-      user_id: user.id,
-      grid_id: grid.id,
-      match_id,
-      pick
-    });
+    
+    const match = matches.find(m => m.id === match_id);
+    if (!match || match.status !== 'NS') {
+      alert('❌ Ce match a déjà commencé, tu ne peux plus parier.');
+      return;
+    }
 
     const { error } = await supabase
       .from('grid_matches')
@@ -532,7 +532,21 @@ if (activeGrid && activeGrid.grid_items) {
         parameters: { picks: [] },
       };
 
-      // 3) Logique spécifique à chaque bonus
+      // 3) Vérif si match commencé
+      const matchStatusCheck = (matchId: string) => {
+      const m = matches.find(m => m.id === matchId);
+      return m?.status === 'NS';
+      };
+
+      if (
+        (openedBonus.code === 'RIBERY' && (!matchStatusCheck(popupMatch1) || !matchStatusCheck(popupMatch0))) ||
+        ((openedBonus.code === 'ZLATAN' || openedBonus.code === 'KANTE') && !matchStatusCheck(popupMatch1))
+      ) {
+        alert('❌ Tu ne peux pas jouer ce bonus car un match a déjà commencé.');
+        return;
+      }
+
+      // 4) Logique spécifique à chaque bonus
       switch (openedBonus.code) {
         case 'KANTE':
           if (!popupMatch1) return alert('Match requis pour Kanté');
@@ -567,14 +581,14 @@ if (activeGrid && activeGrid.grid_items) {
           return alert('Bonus non reconnu : ' + openedBonus.code);
       }
 
-      // 4) Envoi Supabase
+      // 5) Envoi Supabase
       const { data, error: be } = await supabase
         .from('grid_bonus')
         .upsert([payload], {
           onConflict: 'user_id,grid_id'
         });
 
-      // 🔁 Recharge les bonus pour la grille actuelle
+      // 6) Recharge les bonus pour la grille actuelle
       const { data: gbs, error: gbe } = await supabase
         .from('grid_bonus')
         .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
@@ -587,7 +601,7 @@ if (activeGrid && activeGrid.grid_items) {
       if (be) throw be;
       console.log('✅ Supabase upsert OK', data);
 
-      // 5) Update local
+      // 7) Update local
       setGridBonuses(gbs => [
         ...gbs.filter(b => b.bonus_definition !== openedBonus.id),
         {
@@ -600,7 +614,7 @@ if (activeGrid && activeGrid.grid_items) {
         }
       ]);
 
-      // 7) Fermeture du popup
+      // 8) Fermeture du popup
       setOpenedBonus(null);
       setPopupMatch1('');
       setPopupMatch0('');
