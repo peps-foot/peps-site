@@ -17,7 +17,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   if (!isMounted) return null
 
-  const hideNavBarRoutes = ['/connexion', '/inscription', '/admin/grids','/regles_connexion']
+  const hideNavBarRoutes = ['/','/connexion', '/inscription', '/admin/grids','/regles_connexion']
   const showNavbar = pathname ? !hideNavBarRoutes.some(route => pathname.startsWith(route)) : false
   console.log('[ClientLayout] pathname =', pathname);
   console.log('[ClientLayout] showNavbar =', showNavbar);
