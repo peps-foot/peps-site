@@ -110,7 +110,6 @@ export default function HomePage() {
     return { label: s, color: 'text-gray-400' };
   };
 
-
   // ✅ Mise à jour unique des points au premier affichage
   useEffect(() => {
     if (!grid?.id || !user?.id) return;
@@ -406,6 +405,16 @@ export default function HomePage() {
       }
     })();
   }, [currentIdx, grids]);
+
+  // MAJ de la page courrante toutes les minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔁 Rafraîchissement automatique de la page');
+      window.location.reload();
+    }, 60000); // toutes les 60 secondes
+
+    return () => clearInterval(interval);
+  }, []);
 
   // ✅ Mise à jour automatique des points (NS = rien / 1H-2H = chaque minute / FT = une seule fois)
   useEffect(() => {
