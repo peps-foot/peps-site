@@ -1,12 +1,26 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import RuleSection from '../../components/RuleSection'
 
-export default function ReglesPage() {
-  return (
-    <main className="px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-center">RÈGLES DU JEU</h1>
+export default function ReglesConnexion() {
+  const router = useRouter()
 
+  return (
+    <main className="flex flex-col items-center px-4 py-8">
+      
+      {/* Bouton retour centré */}
+      <button
+        onClick={() => router.push('/connexion')}
+        className="mb-6 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded"
+      >
+        Retour à la connexion
+      </button>
+
+      {/* Titre centré */}
+      <h1 className="text-2xl font-bold text-center mb-6">RÈGLES DU JEU</h1>
+
+      {/* Ici tu recopies tes blocs pliables/dépliables de règles */}
       <RuleSection title="Résumé en moins d’une minute" iconSrc="/images/regles/chrono.png" type="default">
         <p className="mb-4">
           Pour chaque match, parie sur la victoire à domicile, le match nul ou la victoire à l’extérieur

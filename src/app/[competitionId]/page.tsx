@@ -84,15 +84,32 @@ export default function HomePage() {
 
   // 👉 Format FR pour le status des matchs
   const getMatchLabelAndColor = (status: string) => {
-  const s = status.toUpperCase();
-  if (s === 'NS') return { label: 'À venir', color: 'text-blue-600' };
-  if (s === '1H') return { label: '1re MT', color: 'text-orange-500' };
-  if (s === 'HT') return { label: 'Mi-temps', color: 'text-orange-500' };
-  if (s === '2H') return { label: '2e MT', color: 'text-orange-500' };
-  if (['SUSP', 'INT'].includes(s)) return { label: 'Suspendu', color: 'text-red-600' };
-  if (s === 'FT') return { label: 'Terminé', color: 'text-gray-700' };
-  return { label: s, color: 'text-gray-400' }; // fallback
-};
+    const s = status.toUpperCase();
+
+    if (['NS', 'TBD'].includes(s)) return { label: 'À venir', color: 'text-blue-600' };
+
+    if (s === '1H') return { label: '1re MT', color: 'text-orange-500' };
+    if (s === 'HT') return { label: 'Mi-temps', color: 'text-orange-500' };
+    if (s === '2H') return { label: '2e MT', color: 'text-orange-500' };
+
+    // Tous les statuts post-temps réglementaire = considéré comme terminé
+    if (['ET', 'BT', 'P', 'FT', 'AET', 'PEN'].includes(s)) {
+      return { label: 'Terminé', color: 'text-gray-700' };
+    }
+
+    // Match suspendu qui peut reprendre
+    if (['SUSP', 'INT'].includes(s)) {
+      return { label: 'Suspendu', color: 'text-orange-600' };
+    }
+    // Statuts d'annulation d'un match
+    if (['CANC', 'ABD', 'AWD', 'WO'].includes(s)) {
+      return { label: 'Annulé', color: 'text-red-600' };
+    }
+
+    // Fallback
+    return { label: s, color: 'text-gray-400' };
+  };
+
 
   // ✅ Mise à jour unique des points au premier affichage
   useEffect(() => {
@@ -397,21 +414,21 @@ export default function HomePage() {
     const alreadyUpdated = { current: false };
 
     const interval = setInterval(async () => {
-      const now = new Date();
-
       const matchEnCours = matches.some(
         (m) => ['1H', '2H'].includes(m.status) && m.score_home === null
       );
 
-      const matchTerminé = matches.some((m) => m.status === 'FT');
+      const matchTerminé = matches.some(
+        (m) => ['FT', 'ET', 'BT', 'P', 'AET', 'PEN'].includes(m.status)
+      );
 
       if (matchEnCours) {
-        console.log("📡 Match en cours détecté, mise à jour des points...");
+        console.log('🕒 Match en cours détecté, mise à jour des points...');
       } else if (matchTerminé && !alreadyUpdated.current) {
-        console.log("✅ Match terminé (FT), mise à jour unique des points...");
+        console.log('✅ Match terminé, mise à jour unique des points...');
         alreadyUpdated.current = true;
       } else {
-        // Aucun match en cours ou terminé => on ne fait rien
+        // Aucun match en cours ni terminé (ou déjà mis à jour)
         return;
       }
 
@@ -420,11 +437,9 @@ export default function HomePage() {
       });
 
       if (error) {
-        console.error("❌ Erreur update_grid_points :", error);
-      } else {
-        console.log("✅ update_grid_points exécuté !");
+        console.error("Erreur lors de la mise à jour des points :", error.message);
       }
-    }, 60_000); // toutes les 60 secondes
+    }, 60_000); // chaque minute
 
     return () => clearInterval(interval);
   }, [grid?.id, matches, user?.id]);

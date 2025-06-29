@@ -64,56 +64,88 @@ export default function ConnexionPage() {
     }
   }
 
-  return (
-    <div className="max-w-md mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Connexion</h1>
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <label className="block mb-1">Email</label>
-          <input
-            type="email"
-            className="w-full border rounded px-2 py-1"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="block mb-1">Mot de passe</label>
-          <input
-            type="password"
-            className="w-full border rounded px-2 py-1"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+return (
+  <div className="max-w-md mx-auto p-6 space-y-6 text-center">
+    <img
+      src="/logo_peps_connexion.png"
+      alt="Logo PEPS"
+      className="mx-auto mb-6 w-full max-w-md"
+    />
 
-        {errorMsg && <div className="text-red-600 text-sm">{errorMsg}</div>}
-        {infoMsg && <div className="text-green-600 text-sm">{infoMsg}</div>}
-
-        <button
-          type="submit"
-          className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600"
-        >
-          Se connecter
-        </button>
-      </form>
-
-      <div className="flex justify-between text-sm">
-        <button
-          onClick={handleForgotPassword}
-          className="text-blue-600 hover:underline"
-        >
-          Mot de passe oublié ?
-        </button>
-        <button
-          onClick={() => router.push('/inscription')}
-          className="text-blue-600 hover:underline"
-        >
-          Inscrivez-vous
-        </button>
+    <form onSubmit={handleLogin} className="space-y-4 text-left">
+      <div>
+        <label className="block mb-1">Email</label>
+        <input
+          type="email"
+          className="w-full border rounded px-2 py-1"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
       </div>
-    </div>
-  );
+      <div>
+        <label className="block mb-1">Mot de passe</label>
+        <input
+          type="password"
+          className="w-full border rounded px-2 py-1"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+
+      {errorMsg && <div className="text-red-600 text-sm">{errorMsg}</div>}
+      {infoMsg && <div className="text-green-600 text-sm">{infoMsg}</div>}
+
+      <button
+        type="submit"
+        className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600"
+      >
+        Se connecter
+      </button>
+    </form>
+
+    <table className="mx-auto mt-6 space-y-2 text-sm text-center">
+      <tbody>
+        <tr>
+          <td className="pr-3 pb-2">Tu n'as pas de compte ?</td>
+          <td className="pb-2">
+            <button
+              onClick={() => router.push('/inscription')}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1 px-4 rounded w-48"
+            >
+              Inscription en 30s
+            </button>
+          </td>
+        </tr>
+        <tr>
+          <td className="pr-3 pb-2">Mot de passe oublié ?</td>
+          <td className="pb-2">
+            <button
+              onClick={handleForgotPassword}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-4 rounded w-48"
+            >
+              Clique ici !
+            </button>
+          </td>
+        </tr>
+        <tr>
+          <td className="pr-3 pb-2">Les règles du jeu ?</td>
+          <td className="pb-2">
+            <button
+              onClick={() => router.push('/regles_connexion')}
+              className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-1 px-4 rounded w-48"
+            >
+              Bonne lecture
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p className="mt-6 text-sm text-gray-600">
+      Pour nous contacter : <a className="underline" href="mailto:hello@peps-foot.com">hello@peps-foot.com</a>
+    </p>
+  </div>
+);
 }
