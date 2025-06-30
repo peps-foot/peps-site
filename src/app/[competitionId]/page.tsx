@@ -756,7 +756,7 @@ return (
       </div>
 
       {/* 3) DESCRIPTION DE LA GRILLE */}
-      <div className="w-full flex justify-center">
+      <div className="w-full md:w-1/3 flex justify-center">
         <p className="text-center md:text-justify text-gray-700 max-w-md">
           {currentGrid?.description || "Chargement..."}
         </p>
