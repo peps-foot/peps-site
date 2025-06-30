@@ -75,6 +75,9 @@ export default function HomePage() {
   const currentGrid = grid || { title: '', description: '' }
   const [lastMatchData, setLastMatchData] = useState<RawMatchRow[]>([]);
 
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMatchStatus, setPopupMatchStatus] = useState<'NS' | 'OTHER' | null>(null);
+
   // 👉 Format FR pour la date
   const fmtDate = (d: string) =>
     new Date(d).toLocaleString('fr-FR',{
@@ -853,33 +856,33 @@ return (
                     </div>
 
                     {/* Boutons 1/N/2 */}
-<div className="grid grid-cols-3 gap-[16px] justify-items-center">
-  {(['1', 'N', '2'] as const).map((opt) => {
-    const isX = picksForThisMatch.includes(opt);
-    return (
-      <div
-        key={opt}
-        onClick={() => !isDisabled && handlePick(m.id, opt)}
-        className={`w-7 h-6 border rounded flex items-center justify-center text-sm ${
-          isDisabled ? 'opacity-50' : 'cursor-pointer'
-        }`}
-      >
-{isX ? (
-  <div className="relative w-6 sm:w-8 h-6 sm:h-8">
-    <div className="absolute inset-0 flex items-center justify-center">
-      <svg viewBox="0 0 100 100" className="w-full h-full">
-        <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="8" />
-        <line x1="90" y1="10" x2="10" y2="90" stroke="black" strokeWidth="8" />
-      </svg>
-    </div>
-  </div>
-) : (
-  opt
-)}
-      </div>
-    );
-  })}
-</div>
+                    <div className="grid grid-cols-3 gap-[16px] justify-items-center">
+                      {(['1', 'N', '2'] as const).map((opt) => {
+                        const isX = picksForThisMatch.includes(opt);
+                        return (
+                          <div
+                            key={opt}
+                            onClick={() => !isDisabled && handlePick(m.id, opt)}
+                            className={`w-7 h-6 border rounded flex items-center justify-center text-sm ${
+                              isDisabled ? 'opacity-50' : 'cursor-pointer'
+                            }`}
+                          >
+                    {isX ? (
+                      <div className="relative w-6 sm:w-8 h-6 sm:h-8">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <svg viewBox="0 0 100 100" className="w-full h-full">
+                            <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="8" />
+                            <line x1="90" y1="10" x2="10" y2="90" stroke="black" strokeWidth="8" />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      opt
+                    )}
+                          </div>
+                        );
+                      })}
+                    </div>
 
                     {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
                     <div className="text-center font-medium">
@@ -888,7 +891,14 @@ return (
                     </div>
                     
                     {/* BONUS */}
-                      <div className="flex justify-center">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          setPopupMatchStatus(m.status === 'NS' ? 'NS' : 'OTHER');
+                          setShowPopup(true);
+                        }}
+                        className="focus:outline-none"
+                      >
                         {bonusEntry ? (
                           bonusCode === 'RIBERY' ? (
                             (m.id === matchWin || m.id === matchZero) ? (
@@ -911,24 +921,25 @@ return (
                               className="rounded-full"
                             />
                           ) : (
-                                  <Image
-        src={bonusLogos["INFO"]}
-        alt="bonus inconnu"
-        width={32}
-        height={32}
-        className="rounded-full"
-      />
+                            <Image
+                              src={bonusLogos["INFO"]}
+                              alt="bonus inconnu"
+                              width={32}
+                              height={32}
+                              className="rounded-full"
+                            />
                           )
                         ) : (
-                                <Image
-        src={bonusLogos["INFO"]}
-        alt="bonus inconnu"
-        width={32}
-        height={32}
-        className="rounded-full"
-      />
+                          <Image
+                            src={bonusLogos["INFO"]}
+                            alt="bonus inconnu"
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
                         )}
-                      </div>
+                      </button>
+                    </div>
 
                       {/* LIGNE 2 */}
                       {(() => {
@@ -942,11 +953,11 @@ return (
                       <div className="text-center font-semibold">
                         {m.score_home != null ? m.score_home : '–'}
                       </div>
-<div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
-  <div>{m.base_1_points ?? '-'}</div>
-  <div>{m.base_n_points ?? '-'}</div>
-  <div>{m.base_2_points ?? '-'}</div>
-</div>
+                      <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
+                        <div>{m.base_1_points ?? '-'}</div>
+                        <div>{m.base_n_points ?? '-'}</div>
+                        <div>{m.base_2_points ?? '-'}</div>
+                      </div>
                       <div className="text-center font-semibold">
                         {m.score_away != null ? m.score_away : '–'}
                       </div>
@@ -1040,6 +1051,32 @@ return (
           </div>
         </div>
 
+        {/* ── POPUP PRONOS DES AUTRES ── */}    
+        {showPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded shadow-lg max-w-sm w-full text-center relative">
+              <button
+                onClick={() => setShowPopup(false)}
+                className="absolute top-2 right-2 text-gray-600 hover:text-black text-lg"
+              >
+                ✖
+              </button>
+              {popupMatchStatus === 'NS' ? (
+                <div>
+                  <p className="mb-4 font-semibold">Les pronos des autres joueurs</p>
+                  <p className="text-sm">C'est pas encore l'heure !!</p>
+                <Image src="/NS.png" alt="Match à venir" width={320} height={320} className="mx-auto" />
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-4 font-semibold">Les pronos des autres joueurs</p>
+                  <p className="text-sm">En travaux, pas encore prêt...</p>
+                  <Image src="/NS.png" alt="Arbitre" width={320} height={320} className="mx-auto mt-4" />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── POPUP BONUS ── */}
         {openedBonus && (
