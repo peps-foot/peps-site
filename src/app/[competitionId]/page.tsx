@@ -1065,13 +1065,13 @@ return (
                 <div>
                   <p className="mb-4 font-semibold">Les pronos des autres joueurs</p>
                   <p className="text-sm">C'est pas encore l'heure !!</p>
-                <Image src="/NS.png" alt="Match à venir" width={320} height={320} className="mx-auto" />
+                <Image src="/NS.png" alt="Arbitre" width={320} height={320} className="mx-auto" />
                 </div>
               ) : (
                 <div>
                   <p className="mb-4 font-semibold">Les pronos des autres joueurs</p>
                   <p className="text-sm">En travaux, pas encore prêt...</p>
-                  <Image src="/NS.png" alt="Arbitre" width={320} height={320} className="mx-auto mt-4" />
+                  <Image src="/NS.png" alt="Grille" width={320} height={320} className="mx-auto" />
                 </div>
               )}
             </div>

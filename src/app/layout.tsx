@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Oswald, Poppins } from 'next/font/google';
 import ClientLayout from '../components/ClientLayout';
+import RegisterServiceWorker from '../components/RegisterServiceWorker';
 
 console.log('[layout] rendu');
 
@@ -28,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Manifest et icône pour PWA */}
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/peps-icon.png" type="image/png" />
+        <link rel="icon" href="/icon-512x512.png" type="image/png" />
 
         {/* Métadonnées PWA / mobile */}
         <meta name="theme-color" content="#FF6600" />
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/peps-icon.png" />
       </head>
       <body>
+        <RegisterServiceWorker />
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
