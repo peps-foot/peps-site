@@ -31,7 +31,7 @@ export function NavBar() {
   };
 
   const tabs: Tab[] = [
-    { label: compName, href: '/' },
+    { label: compName, href: '/a033d6cf-7108-4f92-8f71-1d2b428d11f2' },
     { label: 'CLASSEMENT', href: '/classement' },
     { label: 'RÈGLES', href: '/regles' },
     { label: 'PROFIL', href: '/profil' },
