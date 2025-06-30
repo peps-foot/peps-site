@@ -1,12 +1,18 @@
 {
-  "name": "PEPS - Pronos entre Potes",
+  "name": "PEPS - Pronos entre PoteS",
   "short_name": "PEPS",
   "start_url": "/",
+  "id": "/index.html",
+  "description": "Jeu de pronostics foot. Grilles de matchs, bonus, classements, tout y est !",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#FF6600",
-  "orientation": "portrait",
+  "background_color": "#212121",
+  "theme_color": "#FF6D00",
   "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
     {
       "src": "/icon-512x512.png",
       "sizes": "512x512",
