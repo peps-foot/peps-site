@@ -1,15 +1,5 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  const router = useRouter()
-  
-  useEffect(() => {
-    // Redirige vers la seule compétition active
-    router.replace('/connexion')
-  }, [router])
-
-  return null
+  redirect('/connexion');
 }
