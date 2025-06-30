@@ -19,5 +19,17 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "screenshots": [
+  {
+    "src": "/screenshots/screenshot1-540x960.png",
+    "sizes": "540x960",
+    "type": "image/png"
+  },
+  {
+    "src": "/screenshots/screenshot2-540x960.png",
+    "sizes": "540x960",
+    "type": "image/png"
+  }
+]
 }
