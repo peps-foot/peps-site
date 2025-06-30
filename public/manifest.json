@@ -8,6 +8,14 @@
   "orientation": "portrait",
   "background_color": "#212121",
   "theme_color": "#FF6D00",
+  "lang": "fr",
+  "dir": "ltr",
+  "scope": "/",
+  "categories": ["sports", "games"],
+  "launch_handler": {
+    "client_mode": "navigate-new"
+  },
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192x192.png",
