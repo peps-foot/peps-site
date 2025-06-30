@@ -151,42 +151,9 @@ export default function ProfilPage() {
           </button>
         </div>
 
-        <h2 className="text-xl font-bold border-b pb-2 text-red-600">Supprimer mon compte :</h2>
-
-        <button
-          onClick={() => setShowConfirmPopup(true)}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded"
-        >
-          SUPPRIMER
-        </button>
-
-        {showConfirmPopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded shadow-lg text-center relative max-w-sm w-full">
-              <button
-                onClick={() => setShowConfirmPopup(false)}
-                className="absolute top-2 right-2 text-gray-500 text-xl"
-              >
-                ✕
-              </button>
-              <p className="mb-4 text-lg font-semibold">Tu veux vraiment supprimer ton compte ?</p>
-              <div className="space-y-2">
-                <button
-                  onClick={handleDelete}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded"
-                >
-                  Je supprime mon compte
-                </button>
-                <button
-                  onClick={() => setShowConfirmPopup(false)}
-                  className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded"
-                >
-                  Je garde mon compte
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="mt-10 text-center text-sm text-gray-700">
+          Pour toute question ou suggestion, écris-nous à <a href="mailto:hello@peps-foot.com" className="text-blue-600 underline">hello@peps-foot.com</a>
+        </div>
       </div>
     </div>
   )
