@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.peps_foot.www.twa",
+      "sha256_cert_fingerprints": [
+        "30:5E:67:D2:EF:A8:D2:6F:87:7A:96:81:F8:F4:CA:BF:3D:50:CC:40:0D:89:DF:07:DC:7C:B1:44:A7:38:29:6E"
+      ]
+    }
+  }
+]
