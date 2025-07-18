@@ -420,26 +420,36 @@ export default function HomePage() {
       let matchTime = null;
 
       if (typeof match.date === 'string' && isValidDate(match.date)) {
-        console.log('🟡 match.date brut:', match.date);
         matchTime = new Date(match.date).getTime();
       } else {
         console.warn(`⛔ Mauvaise date pour match ${match.id}:`, match.date);
-        continue; // ✅ on passe simplement au match suivant
+        continue;
       }
 
-      const delay = matchTime - now + 30_000; // 30 sec après l’heure prévue
-
-      console.log(
-        'Match ID:', match.id,
-        '| match.date:', match.date,
-        '| UTC:', new Date(match.date).toISOString(),
-        '| Local:', new Date(match.date).toLocaleString()
-      );
+      const delay = matchTime - now + 30_000;
 
       if (delay > 0) {
         const timeout = setTimeout(() => {
-          console.log(`⏰ Match ${match.id} vient de démarrer, rafraîchissement…`);
-          window.location.reload();
+          console.log(`⏳ Timeout pour match ${match.id} : désactivation des picks et bonus`);
+
+          // A. 🔒 Désactiver les picks (optionnel si tu gères déjà ça avec match.status !== 'NS')
+          setMatches(prev =>
+            prev.map(m =>
+              m.id === match.id
+                ? { ...m, status: 'LOCKED' } // tu peux utiliser ce flag dans ton rendu
+                : m
+            )
+          );
+
+          // B. 🎯 Bonus : marquer ceux qui sont "en jeu" localement (pas besoin d’update Supabase)
+          setGridBonuses(prev =>
+            prev.map(b =>
+              b.match_id === match.id
+                ? { ...b, inGame: true }
+                : b
+            )
+          );
+
         }, delay);
 
         timeouts.push(timeout);
@@ -460,9 +470,9 @@ export default function HomePage() {
     if (!hasLiveMatch) return;
 
     const interval = setInterval(() => {
-      console.log('🔄 Match en cours : rafraîchissement toutes les 30 sec');
+      console.log('🔄 Match en cours : rafraîchissement toutes les 60 sec');
       window.location.reload();
-    }, 60_000); // toutes les 30 sec
+    }, 60_000); // toutes les 60 sec
 
     return () => clearInterval(interval);
   }, [matches]);
@@ -1037,7 +1047,9 @@ return (
                     {isPlayed && (() => {
                       const bonusEntry = gridBonuses.find(gb => gb.bonus_definition === b.id);
                       const bonusMatch = matches.find(m => m.id === bonusEntry?.match_id);
-                      const bonusIsLocked = bonusEntry && bonusMatch?.status?.toUpperCase?.() !== 'NS';
+                      const bonusIsLocked = bonusEntry && (
+                        bonusMatch?.status?.toUpperCase?.() !== 'NS' || bonusMatch?.is_locked
+                      );
 
                       if (bonusIsLocked) {
                         return (
