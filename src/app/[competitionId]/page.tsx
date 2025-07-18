@@ -421,7 +421,7 @@ export default function HomePage() {
 
       if (typeof match.date === 'string' && isValidDate(match.date)) {
         console.log('🟡 match.date brut:', match.date);
-        matchTime = new Date(match.date + 'Z').getTime();
+        matchTime = new Date(match.date).getTime();
       } else {
         console.warn(`⛔ Mauvaise date pour match ${match.id}:`, match.date);
         continue; // ✅ on passe simplement au match suivant
@@ -432,7 +432,7 @@ export default function HomePage() {
       console.log(
         'Match ID:', match.id,
         '| match.date:', match.date,
-        '| UTC:', new Date(match.date + 'Z').toISOString(),
+        '| UTC:', new Date(match.date).toISOString(),
         '| Local:', new Date(match.date).toLocaleString()
       );
 
