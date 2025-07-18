@@ -17,36 +17,41 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const restoreSessionFromHash = async () => {
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-        const type = params.get('type');
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      const type = params.get('type');
 
-        if (access_token && refresh_token && type === 'recovery') {
-        const { data, error } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-        });
-
-        if (error) {
-            console.error('Erreur de restauration de session :', error);
-            setError("Lien invalide ou expiré. Veuillez redemander un email.");
-            setLoading(false);
-            return;
-        }
-        }
-
-        // Ensuite, on récupère l'utilisateur
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-        if (user) {
-        setUserEmail(user.email || '');
-        } else {
+      if (!access_token || !refresh_token || type !== 'recovery') {
         setError("Lien invalide ou expiré. Veuillez redemander un email.");
-        }
-
         setLoading(false);
+        return;
+      }
+
+      // Restaure la session
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+      if (sessionError) {
+        console.error('Erreur de session :', sessionError);
+        setError("Lien invalide ou expiré. Veuillez redemander un email.");
+        setLoading(false);
+        return;
+      }
+
+      // Récupère l'utilisateur connecté
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (user) {
+        setUserEmail(user.email || '');
+      } else {
+        setError("Lien invalide ou expiré. Veuillez redemander un email.");
+      }
+
+      setLoading(false);
     };
 
     restoreSessionFromHash();
@@ -88,50 +93,52 @@ export default function ResetPasswordPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-sm text-gray-600">
-          Adresse associée : <strong>{userEmail}</strong>
-        </p>
+      {!error && (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Adresse associée : <strong>{userEmail}</strong>
+          </p>
 
-        <div>
-          <label className="block text-sm mb-1">Nouveau mot de passe :</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-        </div>
+          <div>
+            <label className="block text-sm mb-1">Nouveau mot de passe :</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+              required
+            />
+          </div>
 
-        <div>
-          <label className="block text-sm mb-1">Confirmer le mot de passe :</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border px-3 py-2 rounded"
-            required
-          />
-        </div>
+          <div>
+            <label className="block text-sm mb-1">Confirmer le mot de passe :</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full border px-3 py-2 rounded"
+              required
+            />
+          </div>
 
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            checked={autoLogin}
-            onChange={() => setAutoLogin(!autoLogin)}
-            className="mr-2"
-          />
-          <label className="text-sm">Se connecter automatiquement après mise à jour</label>
-        </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={autoLogin}
+              onChange={() => setAutoLogin(!autoLogin)}
+              className="mr-2"
+            />
+            <label className="text-sm">Se connecter automatiquement après mise à jour</label>
+          </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
-        >
-          Valider
-        </button>
-      </form>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
+          >
+            Valider
+          </button>
+        </form>
+      )}
     </div>
   );
 }
