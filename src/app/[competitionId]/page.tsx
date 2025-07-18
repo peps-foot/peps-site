@@ -92,6 +92,7 @@ export default function HomePage() {
     const s = status.toUpperCase();
 
     if (['NS', 'TBD'].includes(s)) return { label: 'À venir', color: 'text-blue-600' };
+    if (s === 'EN_JEU')  return { label: 'En jeu', color: 'text-indigo-600' };
 
     if (s === '1H') return { label: '1re MT', color: 'text-orange-500' };
     if (s === 'HT') return { label: 'Mi-temps', color: 'text-orange-500' };
@@ -103,7 +104,7 @@ export default function HomePage() {
     }
 
     // Match suspendu qui peut reprendre
-    if (['SUSP', 'INT'].includes(s)) {
+    if (['SUSP', 'INT', 'PST'].includes(s)) {
       return { label: 'Suspendu', color: 'text-orange-600' };
     }
     // Statuts d'annulation d'un match
@@ -430,26 +431,38 @@ export default function HomePage() {
 
       if (delay > 0) {
         const timeout = setTimeout(() => {
-          console.log(`⏳ Timeout pour match ${match.id} : désactivation des picks et bonus`);
+          console.log(`⏳ Timeout pour match ${match.id} : désactivation + mise à jour en base`);
 
-          // A. 🔒 Désactiver les picks (optionnel si tu gères déjà ça avec match.status !== 'NS')
-          setMatches(prev =>
-            prev.map(m =>
-              m.id === match.id
-                ? { ...m, status: 'LOCKED' } // tu peux utiliser ce flag dans ton rendu
-                : m
+          // A. 🔒 Désactiver les picks localement
+          setMatches((prev) =>
+            prev.map((m) =>
+              m.id === match.id ? { ...m, status: 'EN_JEU' } : m
             )
           );
 
-          // B. 🎯 Bonus : marquer ceux qui sont "en jeu" localement (pas besoin d’update Supabase)
-          setGridBonuses(prev =>
-            prev.map(b =>
-              b.match_id === match.id
-                ? { ...b, inGame: true }
-                : b
+          // B. 🎯 Marquer les bonus comme "en jeu"
+          setGridBonuses((prev) =>
+            prev.map((b) =>
+              b.match_id === match.id ? { ...b, inGame: true } : b
             )
           );
 
+          // C. 🔁 Forcer mise à jour en base : passer en '1H' si toujours NS
+          const updateStatusTo1H = async () => {
+            const { error } = await supabase
+              .from('matches')
+              .update({ status: '1H' })
+              .eq('id', match.id)
+              .eq('status', 'NS'); // sécurise : évite d’écraser PST, FT...
+
+            if (error) {
+              console.error(`❌ Erreur update match ${match.id} → 1H :`, error);
+            } else {
+              console.log(`✅ Match ${match.id} forcé à '1H'`);
+            }
+          };
+
+          updateStatusTo1H(); // appel immédiat
         }, delay);
 
         timeouts.push(timeout);
@@ -814,7 +827,7 @@ return (
                       : m.pick ? [m.pick] : [];
 
                   let isDisabled = false;
-                  if (upperStatus !== 'NS' || ['SUSP', 'INT'].includes(upperStatus) || m.is_locked) {
+                  if (upperStatus !== 'NS' || ['SUSP', 'INT', 'PST', 'EN_JEU'].includes(upperStatus) || m.is_locked) {
                     isDisabled = true;
                   }
 
@@ -933,7 +946,13 @@ return (
                                 className="rounded-full"
                               />
                             ) : (
-                              <div className="w-6 h-6 bg-blue-500 rounded-full" />
+                              <Image
+                                src={bonusLogos["INFO"]}
+                                alt="bonus inconnu"
+                                width={32}
+                                height={32}
+                                className="rounded-full"
+                              />
                             )
                           ) : m.id === bonusEntry.match_id ? (
                             <Image

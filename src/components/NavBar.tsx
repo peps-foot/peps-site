@@ -35,7 +35,6 @@ export function NavBar() {
     { label: 'CLASSEMENT', href: '/classement' },
     { label: 'RÈGLES', href: '/regles' },
     { label: 'PROFIL', href: '/profil' },
-    { label: 'DÉCONNEXION', onClick: handleSignOut },
   ];
 
   if (!isClient) return null;

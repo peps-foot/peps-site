@@ -105,36 +105,36 @@ return (
       </button>
     </form>
 
-    <table className="mx-auto mt-6 space-y-2 text-sm text-center">
+    <table className="mx-auto mt-6 text-sm text-center">
       <tbody>
         <tr>
-          <td className="pr-3 pb-2">Tu n'as pas de compte ?</td>
+          <td className="pr-3 pb-2 whitespace-nowrap">Tu n'as pas de compte ?</td>
           <td className="pb-2">
             <button
               onClick={() => router.push('/inscription')}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1 px-4 rounded w-48"
+              className="bg-green-500 hover:bg-orange-600 text-white font-semibold py-1 px-4 rounded w-40"
             >
               Inscription en 30s
             </button>
           </td>
         </tr>
         <tr>
-          <td className="pr-3 pb-2">Mot de passe oublié ?</td>
+          <td className="pr-3 pb-2 whitespace-nowrap">Mot de passe oublié ?</td>
           <td className="pb-2">
             <button
               onClick={handleForgotPassword}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-4 rounded w-48"
+              className="bg-gray-500 hover:bg-blue-600 text-white font-semibold py-1 px-4 rounded w-40"
             >
               Clique ici !
             </button>
           </td>
         </tr>
         <tr>
-          <td className="pr-3 pb-2">Les règles du jeu ?</td>
+          <td className="pr-3 pb-2 whitespace-nowrap">Les règles du jeu ?</td>
           <td className="pb-2">
             <button
               onClick={() => router.push('/regles_connexion')}
-              className="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-1 px-4 rounded w-48"
+              className="bg-blue-700 hover:bg-gray-800 text-white font-semibold py-1 px-4 rounded w-40"
             >
               Bonne lecture
             </button>

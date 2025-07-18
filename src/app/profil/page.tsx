@@ -91,6 +91,10 @@ export default function ProfilPage() {
       }, []);
     }
   }
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/connexion';
+  };
 
   return (
     <div className="min-h-screen bg-white px-4 py-6">
@@ -152,7 +156,15 @@ export default function ProfilPage() {
         </div>
 
         <div className="mt-10 text-center text-sm text-gray-700">
-          Pour toute question ou suggestion, écris-nous à <a href="mailto:hello@peps-foot.com" className="text-blue-600 underline">hello@peps-foot.com</a>
+          Pour nous contacter : <a href="mailto:hello@peps-foot.com" className="text-blue-600 underline">hello@peps-foot.com</a>
+          <div className="mt-6">
+            <button
+              onClick={handleSignOut}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+            >
+              Se déconnecter
+            </button>
+          </div>
         </div>
       </div>
     </div>
