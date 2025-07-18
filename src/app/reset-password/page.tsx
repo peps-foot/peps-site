@@ -15,6 +15,43 @@ export default function ResetPasswordPage() {
   const [autoLogin, setAutoLogin] = useState(true);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const restoreSessionFromHash = async () => {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        const type = params.get('type');
+
+        if (access_token && refresh_token && type === 'recovery') {
+        const { data, error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+        });
+
+        if (error) {
+            console.error('Erreur de restauration de session :', error);
+            setError("Lien invalide ou expiré. Veuillez redemander un email.");
+            setLoading(false);
+            return;
+        }
+        }
+
+        // Ensuite, on récupère l'utilisateur
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (user) {
+        setUserEmail(user.email || '');
+        } else {
+        setError("Lien invalide ou expiré. Veuillez redemander un email.");
+        }
+
+        setLoading(false);
+    };
+
+    restoreSessionFromHash();
+  }, []);
+
   // Récupère l'utilisateur via le token contenu dans le hash
   useEffect(() => {
     const checkSession = async () => {
