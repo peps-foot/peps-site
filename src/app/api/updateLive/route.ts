@@ -70,5 +70,52 @@ export async function GET() {
   }
 
   console.log("✅ Mises à jour effectuées :", updates.length);
-  return NextResponse.json({ status: "ok", updated: updates.length });
+
+  // 5. Récupère les match.id internes concernés
+  const { data: matchedRows, error: matchIdError } = await supabase
+    .from("matches")
+    .select("id")
+    .in("fixture_id", updates.map((u) => u.fixture_id));
+
+  if (matchIdError || !matchedRows) {
+    console.error("❌ Erreur récupération match.id :", matchIdError);
+    return NextResponse.json({ status: "error", message: "Erreur match.id" });
+  }
+
+  const matchIds = matchedRows.map((m) => m.id);
+
+  // 6. Récupère les grid_id liés aux match_ids
+  const { data: gridItems, error: gridItemError } = await supabase
+    .from("grid_items")
+    .select("grid_id")
+    .in("match_id", matchIds);
+
+  if (gridItemError || !gridItems) {
+    console.error("❌ Erreur récupération grid_id :", gridItemError);
+    return NextResponse.json({ status: "error", message: "Erreur grid_id" });
+  }
+
+  const uniqueGridIds = [...new Set(gridItems.map((gi) => gi.grid_id))];
+
+  // 7. Met à jour les points des joueurs pour chaque grille
+  let totalUpdatedGrids = 0;
+  for (const gridId of uniqueGridIds) {
+    const { error: rpcError } = await supabase.rpc("update_grid_points", {
+      p_grid_id: gridId,
+    });
+
+    if (rpcError) {
+      console.error(`❌ Erreur update_grid_points pour grille ${gridId} :`, rpcError);
+    } else {
+      totalUpdatedGrids++;
+    }
+  }
+
+  console.log(`✅ Points mis à jour pour ${totalUpdatedGrids} grilles.`);
+
+  return NextResponse.json({
+    status: "ok",
+    updated_matches: updates.length,
+    updated_grids: totalUpdatedGrids,
+  });
 }

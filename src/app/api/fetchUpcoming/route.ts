@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
 const API_KEY = '112a112da460820962f5e9fc0b261d2a';
-const LEAGUE_ID = 15;
 const SEASON = 2025;
 
 export async function GET() {
@@ -13,19 +12,86 @@ export async function GET() {
 
   logs.push('🟠 Lancement de fetchUpcoming');
 
-  const fixturesUrl = `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}&status=NS`;
+  const leagueIds = [667, 2, 3, 848];
+  const allFixtures: any[] = [];
 
-  logs.push(`🔵 Appel API fixtures : ${fixturesUrl}`);
+  for (const leagueId of leagueIds) {
+    const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${SEASON}&status=NS`;
+    logs.push(`🔵 Appel API fixtures : ${url}`);
 
-  const res = await fetch(fixturesUrl, {
-    headers: { 'x-apisports-key': API_KEY }
-  });
+    const res = await fetch(url, {
+      headers: { 'x-apisports-key': API_KEY }
+    });
 
-  const json = await res.json();
-  const fixtures = json.response;
+    const json = await res.json();
 
-  logs.push(`🟢 ${fixtures.length} matchs récupérés avec status=NS`);
+    if (json.response && Array.isArray(json.response)) {
+      logs.push(`🟢 ${json.response.length} matchs récupérés pour league ${leagueId}`);
+      allFixtures.push(...json.response);
+    } else {
+      logs.push(`⚠️ Aucun match pour league ${leagueId}`);
+    }
 
+    await new Promise((r) => setTimeout(r, 250)); // pour éviter de spammer l’API
+  }
+
+  const fixtures = allFixtures;
+  logs.push(`🟢 ${fixtures.length} matchs au total récupérés`);
+
+  // 🧠 Étape : insérer les équipes manquantes dans la table "teams"
+  const allTeamsMap = new Map<number, { id: number, name: string, short_name: string }>();
+
+  for (const match of fixtures) {
+    const home = match.teams.home;
+    const away = match.teams.away;
+
+    if (home?.id) {
+      allTeamsMap.set(home.id, {
+        id: home.id,
+        name: home.name,
+        short_name: home.name.slice(0, 15) // ou toute autre logique
+      });
+    }
+
+    if (away?.id) {
+      allTeamsMap.set(away.id, {
+        id: away.id,
+        name: away.name,
+        short_name: away.name.slice(0, 15)
+      });
+    }
+  }
+
+  const allTeams = Array.from(allTeamsMap.values());
+
+  const { data: existingTeams, error: teamSelectError } = await supabase
+    .from('teams')
+    .select('id');
+
+  if (teamSelectError) {
+    logs.push(`❌ Erreur récupération équipes existantes : ${teamSelectError.message}`);
+    return NextResponse.json({ ok: false, logs });
+  }
+
+  const existingIds = new Set(existingTeams?.map(t => t.id));
+  const newTeams = allTeams.filter(t => !existingIds.has(t.id));
+
+  if (newTeams.length > 0) {
+    const { error: teamInsertError } = await supabase
+      .from('teams')
+      .insert(newTeams);
+
+    if (teamInsertError) {
+      logs.push(`❌ Erreur insertion équipes : ${teamInsertError.message}`);
+      return NextResponse.json({ ok: false, logs });
+    }
+
+    logs.push(`✅ ${newTeams.length} nouvelles équipes insérées`);
+  } else {
+    logs.push(`ℹ️ Aucune nouvelle équipe à insérer`);
+  }
+
+  // 🏟 Insertion ou mise à jour des matchs
   const matchData = fixtures.map((item: any) => ({
     fixture_id: item.fixture.id,
     date: item.fixture.date,
@@ -52,6 +118,7 @@ export async function GET() {
 
   logs.push(`✅ Insertion / mise à jour des matchs terminée`);
 
+  // 🎯 Récupération et insertion des cotes
   let oddsInserted = 0;
   let oddsSkipped = 0;
 
@@ -61,7 +128,6 @@ export async function GET() {
     logs.push(`🔍 Traitement des cotes pour fixture ${fixtureId}`);
 
     try {
-      // Vérifie s’il y a déjà des odds pour ce match
       const { data: existingOdds, error: selectError } = await supabase
         .from('odds')
         .select('id')
@@ -125,7 +191,7 @@ export async function GET() {
         logs.push(`❌ Cotes incomplètes pour match ${fixtureId}`);
       }
 
-      await new Promise((r) => setTimeout(r, 300)); // pour ne pas spammer l’API
+      await new Promise((r) => setTimeout(r, 300));
 
     } catch (e: any) {
       logs.push(`❌ Exception lors du traitement odds match ${fixtureId} : ${e.message}`);

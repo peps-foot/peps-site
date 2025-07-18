@@ -409,52 +409,47 @@ export default function HomePage() {
     })();
   }, [currentIdx, grids]);
 
-  // MAJ de la page courrante toutes les minutes
+  // MAJ de la page quand le match commence
   useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('🔁 Rafraîchissement automatique de la page');
-      window.location.reload();
-    }, 60000); // toutes les 60 secondes
+    const now = new Date().getTime();
+    const timeouts: NodeJS.Timeout[] = [];
 
-    return () => clearInterval(interval);
-  }, []);
+    matches
+      .filter((match) => match.status === 'NS') // match pas encore commencé
+      .forEach((match) => {
+        const matchTime = new Date(match.date).getTime();
+        const delay = matchTime - now + 30_000; // 30 sec après l’heure prévue
 
-  // ✅ Mise à jour automatique des points (NS = rien / 1H-2H = chaque minute / FT = une seule fois)
-  useEffect(() => {
-    if (!grid?.id || matches.length === 0) return;
+        if (delay > 0) {
+          const timeout = setTimeout(() => {
+            console.log(`⏱️ Match ${match.id} vient de démarrer, rafraîchissement…`);
+            window.location.reload();
+          }, delay);
 
-    const alreadyUpdated = { current: false };
-
-    const interval = setInterval(async () => {
-      const matchEnCours = matches.some(
-        (m) => ['1H', '2H'].includes(m.status) && m.score_home === null
-      );
-
-      const matchTerminé = matches.some(
-        (m) => ['FT', 'ET', 'BT', 'P', 'AET', 'PEN'].includes(m.status)
-      );
-
-      if (matchEnCours) {
-        console.log('🕒 Match en cours détecté, mise à jour des points...');
-      } else if (matchTerminé && !alreadyUpdated.current) {
-        console.log('✅ Match terminé, mise à jour unique des points...');
-        alreadyUpdated.current = true;
-      } else {
-        // Aucun match en cours ni terminé (ou déjà mis à jour)
-        return;
-      }
-
-      const { error } = await supabase.rpc("update_grid_points", {
-        p_grid_id: grid.id,
+          timeouts.push(timeout);
+        }
       });
 
-      if (error) {
-        console.error("Erreur lors de la mise à jour des points :", error.message);
-      }
-    }, 60_000); // chaque minute
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  }, [matches]);
+
+  // MAJ de la page toutes les minutes si match en cours 
+  useEffect(() => {
+    const hasLiveMatch = matches.some((match) =>
+      ['1H', 'HT', '2H', 'ET', 'P', 'LIVE'].includes(match.status)
+    );
+
+    if (!hasLiveMatch) return;
+
+    const interval = setInterval(() => {
+      console.log('🔄 Match en cours : rafraîchissement toutes les 30 sec');
+      window.location.reload();
+    }, 60_000); // toutes les 30 sec
 
     return () => clearInterval(interval);
-  }, [grid?.id, matches, user?.id]);
+  }, [matches]);
 
   if (loadingGrids) {
     return (
@@ -486,7 +481,8 @@ export default function HomePage() {
     
     const match = matches.find(m => m.id === match_id);
     if (!match || match.status !== 'NS') {
-      alert('❌ Ce match a déjà commencé, tu ne peux plus parier.');
+      alert('❌ Ce match a déjà démarré. Les pronostics sont maintenant verrouillés.');
+      window.location.reload();
       return;
     }
 
@@ -570,6 +566,7 @@ if (activeGrid && activeGrid.grid_items) {
         ((openedBonus.code === 'ZLATAN' || openedBonus.code === 'KANTE') && !matchStatusCheck(popupMatch1))
       ) {
         alert('❌ Tu ne peux pas jouer ce bonus car un match a déjà commencé.');
+        window.location.reload();
         return;
       }
 
