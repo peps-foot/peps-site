@@ -22,7 +22,7 @@ export default function ResetPasswordPage() {
         const codeInQuery = new URLSearchParams(window.location.search).get('code');
 
         if (codeInQuery) {
-        const { data, error } = await supabase.auth.exchangeCodeForSession({ code: codeInQuery });
+        const { data, error } = await supabase.auth.exchangeCodeForSession(codeInQuery);
 
         if (error) {
             console.error('Erreur de récupération via code:', error);
