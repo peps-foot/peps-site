@@ -417,8 +417,14 @@ export default function HomePage() {
     matches
       .filter((match) => match.status === 'NS') // match pas encore commencé
       .forEach((match) => {
-        const matchTime = new Date(match.date).getTime();
+        const matchTime = new Date(match.date + 'Z').getTime(); // 'Z' = UTC
         const delay = matchTime - now + 30_000; // 30 sec après l’heure prévue
+        console.log(
+          'Match ID:', match.id,
+          '| match.date:', match.date,
+          '| UTC:', new Date(match.date + 'Z').toISOString(),
+          '| Local:', new Date(match.date).toLocaleString()
+        );
 
         if (delay > 0) {
           const timeout = setTimeout(() => {
