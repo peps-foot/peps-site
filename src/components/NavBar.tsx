@@ -25,11 +25,6 @@ export function NavBar() {
 
   const compName = 'PEPS TEST';
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/connexion');
-  };
-
   const tabs: Tab[] = [
     { label: compName, href: '/a033d6cf-7108-4f92-8f71-1d2b428d11f2' },
     { label: 'CLASSEMENT', href: '/classement' },

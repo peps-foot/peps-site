@@ -52,23 +52,6 @@ export default function ResetPasswordPage() {
     restoreSessionFromHash();
   }, []);
 
-  // Récupère l'utilisateur via le token contenu dans le hash
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-
-      if (user) {
-        setUserEmail(user.email || '');
-        setLoading(false);
-      } else {
-        setError('Lien invalide ou expiré. Veuillez redemander un email.');
-        setLoading(false);
-      }
-    };
-
-    checkSession();
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
