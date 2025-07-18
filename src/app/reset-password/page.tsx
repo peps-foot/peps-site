@@ -15,47 +15,58 @@ export default function ResetPasswordPage() {
   const [autoLogin, setAutoLogin] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const restoreSessionFromHash = async () => {
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
-      const type = params.get('type');
+    useEffect(() => {
+    const restoreSession = async () => {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const codeInQuery = new URLSearchParams(window.location.search).get('code');
 
-      if (!access_token || !refresh_token || type !== 'recovery') {
-        setError("Lien invalide ou expiré. Veuillez redemander un email.");
-        setLoading(false);
-        return;
-      }
+        if (codeInQuery) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession({ code: codeInQuery });
 
-      // Restaure la session
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      });
+        if (error) {
+            console.error('Erreur de récupération via code:', error);
+            setError("Lien invalide ou expiré. Veuillez redemander un email.");
+            setLoading(false);
+            return;
+        }
+        } else {
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        const type = params.get('type');
 
-      if (sessionError) {
-        console.error('Erreur de session :', sessionError);
-        setError("Lien invalide ou expiré. Veuillez redemander un email.");
-        setLoading(false);
-        return;
-      }
+        if (access_token && refresh_token && type === 'recovery') {
+            const { error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+            });
 
-      // Récupère l'utilisateur connecté
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (error) {
+            console.error('Erreur de session :', error);
+            setError("Lien invalide ou expiré. Veuillez redemander un email.");
+            setLoading(false);
+            return;
+            }
+        } else {
+            setError("Lien invalide ou expiré. Veuillez redemander un email.");
+            setLoading(false);
+            return;
+        }
+        }
 
-      if (user) {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (user) {
         setUserEmail(user.email || '');
-      } else {
+        } else {
         setError("Lien invalide ou expiré. Veuillez redemander un email.");
-      }
+        }
 
-      setLoading(false);
+        setLoading(false);
     };
 
-    restoreSessionFromHash();
-  }, []);
+    restoreSession();
+    }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
