@@ -416,35 +416,35 @@ export default function HomePage() {
     const now = new Date().getTime();
     const timeouts: NodeJS.Timeout[] = [];
 
-    matches
-      .filter((match) => match.status === 'NS') // match pas encore commencé
-      .forEach((match) => {
-        let matchTime = null;
-        if (typeof match.date === 'string' && isValidDate(match.date)) {
-          console.log('🕒 match.date brut:', match.date);
-          matchTime = new Date(match.date + 'Z').getTime();
-        } else {
-          console.warn(`⛔ Mauvaise date pour match ${match.id}:`, match.date);
-          return; // ou continue si dans une boucle
-        }
+    for (const match of matches.filter((m) => m.status === 'NS')) {
+      let matchTime = null;
 
-        const delay = matchTime - now + 30_000; // 30 sec après l’heure prévue
-        console.log(
-          'Match ID:', match.id,
-          '| match.date:', match.date,
-          '| UTC:', new Date(match.date + 'Z').toISOString(),
-          '| Local:', new Date(match.date).toLocaleString()
-        );
+      if (typeof match.date === 'string' && isValidDate(match.date)) {
+        console.log('🟡 match.date brut:', match.date);
+        matchTime = new Date(match.date + 'Z').getTime();
+      } else {
+        console.warn(`⛔ Mauvaise date pour match ${match.id}:`, match.date);
+        continue; // ✅ on passe simplement au match suivant
+      }
 
-        if (delay > 0) {
-          const timeout = setTimeout(() => {
-            console.log(`⏱️ Match ${match.id} vient de démarrer, rafraîchissement…`);
-            window.location.reload();
-          }, delay);
+      const delay = matchTime - now + 30_000; // 30 sec après l’heure prévue
 
-          timeouts.push(timeout);
-        }
-      });
+      console.log(
+        'Match ID:', match.id,
+        '| match.date:', match.date,
+        '| UTC:', new Date(match.date + 'Z').toISOString(),
+        '| Local:', new Date(match.date).toLocaleString()
+      );
+
+      if (delay > 0) {
+        const timeout = setTimeout(() => {
+          console.log(`⏰ Match ${match.id} vient de démarrer, rafraîchissement…`);
+          window.location.reload();
+        }, delay);
+
+        timeouts.push(timeout);
+      }
+    }
 
     return () => {
       timeouts.forEach(clearTimeout);
