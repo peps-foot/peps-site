@@ -79,6 +79,8 @@ export default function HomePage() {
   const [popupMatchStatus, setPopupMatchStatus] = useState<'NS' | 'OTHER' | null>(null);
 
   // 👉 Format FR pour la date
+  // 🔎 Vérifie si une string est une date valide
+  const isValidDate = (d: string) => !isNaN(Date.parse(d));
   const fmtDate = (d: string) =>
     new Date(d).toLocaleString('fr-FR',{
       day:'2-digit', month:'2-digit',
@@ -417,7 +419,15 @@ export default function HomePage() {
     matches
       .filter((match) => match.status === 'NS') // match pas encore commencé
       .forEach((match) => {
-        const matchTime = new Date(match.date + 'Z').getTime(); // 'Z' = UTC
+        let matchTime = null;
+        if (typeof match.date === 'string' && isValidDate(match.date)) {
+          console.log('🕒 match.date brut:', match.date);
+          matchTime = new Date(match.date + 'Z').getTime();
+        } else {
+          console.warn(`⛔ Mauvaise date pour match ${match.id}:`, match.date);
+          return; // ou continue si dans une boucle
+        }
+
         const delay = matchTime - now + 30_000; // 30 sec après l’heure prévue
         console.log(
           'Match ID:', match.id,
