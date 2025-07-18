@@ -58,10 +58,7 @@ export default function ResetPasswordPage() {
 
         if (user) {
         setUserEmail(user.email || '');
-        } else {
-        setError("Lien invalide ou expiré. Veuillez redemander un email.");
         }
-
         setLoading(false);
     };
 
