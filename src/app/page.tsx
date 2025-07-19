@@ -20,10 +20,6 @@ export default function Home() {
       }
 
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        console.log("🔴 Pas de session, redirection vers /connexion")
-        router.replace('/connexion')
-      }
     }
     check()
   }, [])
