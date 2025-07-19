@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
       console.log('🔄 refresh_token:', refresh_token)
       console.log('📦 type:', type)
 
-      if (access_token && refresh_token && type === 'recovery') {
+      if (access_token && refresh_token) {
         console.log('🧪 Tentative de restauration de session...')
         const { error: sessionError } = await supabase.auth.setSession({
           access_token,
