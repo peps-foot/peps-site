@@ -547,6 +547,7 @@ export default function HomePage() {
       console.log('🎯 Matchs à vérifier :', matchIdsToCheck);
       for (const id of matchIdsToCheck) {
         const m = matches.find(m => m.id === id);
+        console.log('🔍 Match trouvé ?', m);
         if (!m || !('utc_date' in m)) continue;
 
         const matchTime = new Date(m.date).getTime();
@@ -559,7 +560,7 @@ console.log('🕒 Test horaire dans handleBonusValidate :', {
   parsed: new Date(m.date),
 });
           setShowOffside(true); // affichera l'image + bouton OK
-          console.log('🚫 pop-up OFFSIDE déclenché')
+          console.log('🚫 pop-up OFFSIDE déclenché !')
           return;
         }
       }
