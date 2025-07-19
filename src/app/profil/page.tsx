@@ -9,7 +9,7 @@ export default function ProfilPage() {
   const [pseudo, setPseudo] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showConfirmPopup, setShowConfirmPopup] = useState(false)
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -32,21 +32,44 @@ export default function ProfilPage() {
   }, [])
 
   const handleSave = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    setIsSaving(true)
 
-    if (pseudo.length < 3 || pseudo.length > 15) {
-      alert('Le pseudo doit contenir entre 3 et 15 caractères.')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setIsSaving(false)
       return
     }
 
+    // 🔁 Changement d'e-mail (sans confirmation)
+    if (user.email !== userEmail) {
+      const { error: emailError } = await supabase.auth.updateUser({
+        email: userEmail,
+      })
+
+      if (emailError) {
+        alert("Erreur lors du changement d'adresse e-mail.")
+        setIsSaving(false)
+        return
+      }
+    }
+
+    // 🔎 Vérification du pseudo
+    if (pseudo.length < 3 || pseudo.length > 15) {
+      alert('Le pseudo doit contenir entre 3 et 15 caractères.')
+      setIsSaving(false)
+      return
+    }
+
+    // 🔐 Mise à jour du mot de passe
     if (newPassword.length > 0) {
       if (newPassword.length < 6) {
         alert('Le mot de passe doit contenir au moins 6 caractères.')
+        setIsSaving(false)
         return
       }
       if (newPassword !== confirmPassword) {
         alert('Les deux mots de passe ne correspondent pas.')
+        setIsSaving(false)
         return
       }
 
@@ -55,10 +78,12 @@ export default function ProfilPage() {
       })
       if (pwError) {
         alert("Erreur lors du changement de mot de passe.")
+        setIsSaving(false)
         return
       }
     }
 
+    // 📝 Mise à jour du pseudo dans 'profiles'
     const { error: profileError } = await supabase
       .from('profiles')
       .update({ username: pseudo })
@@ -66,31 +91,16 @@ export default function ProfilPage() {
 
     if (profileError) {
       alert("Erreur lors de la mise à jour du profil.")
+      setIsSaving(false)
       return
     }
 
     alert('Modifications enregistrées.')
     setNewPassword('')
     setConfirmPassword('')
+    setIsSaving(false)
   }
 
-  const handleDelete = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { error } = await supabase.rpc('delete_user', { uid: user.id })
-    if (error) {
-      alert('Erreur lors de la suppression.')
-    } else {
-      alert('Compte supprimé. À bientôt !')
-      await supabase.auth.signOut()
-      useEffect(() => {
-        if (typeof window !== 'undefined') {
-          window.location.href = '/connexion';
-        }
-      }, []);
-    }
-  }
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     window.location.href = '/connexion';
@@ -109,7 +119,6 @@ export default function ProfilPage() {
             value={userEmail}
             onChange={(e) => setUserEmail(e.target.value)}
             className="w-full border px-3 py-2 rounded"
-            disabled
           />
         </div>
 
@@ -149,9 +158,12 @@ export default function ProfilPage() {
         <div className="flex justify-center mt-4">
           <button
             onClick={handleSave}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            disabled={isSaving}
+            className={`px-4 py-2 rounded text-white transition ${
+              isSaving ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
+            }`}
           >
-            Valider les changements
+            {isSaving ? 'Chargement...' : 'Valider les changements'}
           </button>
         </div>
 
