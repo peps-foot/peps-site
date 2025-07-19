@@ -14,46 +14,44 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
 
   // 🔁 Restaure la session depuis le lien reçu (code ou access_token)
-  useEffect(() => {
+    useEffect(() => {
     const restoreSession = async () => {
-      const hash = window.location.hash.substring(1)
-      const params = new URLSearchParams(hash)
-      const codeFromQuery = new URLSearchParams(window.location.search).get('code')
+        try {
+        const url = new URL(window.location.href);
+        const code = url.searchParams.get('code');
+        const hash = url.hash?.substring(1);
+        const access_token = new URLSearchParams(hash).get('access_token');
+        const refresh_token = new URLSearchParams(hash).get('refresh_token');
+        const type = new URLSearchParams(hash).get('type');
 
-      try {
-        if (codeFromQuery) {
-          const { error } = await supabase.auth.exchangeCodeForSession(codeFromQuery)
-          if (error) throw error
+        if (code) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) throw error;
+            console.log("🔁 Session restaurée via code !");
+        } else if (access_token && refresh_token && type === 'recovery') {
+            const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+            if (error) throw error;
+            console.log("🔁 Session restaurée via token !");
         } else {
-          const access_token = params.get('access_token')
-          const refresh_token = params.get('refresh_token')
-          const type = params.get('type')
-
-          if (access_token && refresh_token && type === 'recovery') {
-            const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-            if (error) throw error
-          } else {
-            throw new Error('Lien invalide ou incomplet.')
-          }
+            throw new Error('Lien invalide ou incomplet.');
         }
 
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        if (user?.email) {
-          setEmail(user.email)
-        } else {
-          throw userError || new Error('Utilisateur non trouvé.')
+        // Petit délai de synchronisation
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (!user?.email) throw userError || new Error("Utilisateur non trouvé.");
+        setEmail(user.email);
+        setLoading(false);
+        } catch (e) {
+        console.error('⛔ Erreur de session :', e);
+        setError("Lien invalide ou expiré. Veuillez redemander un email.");
+        setLoading(false);
         }
+    };
 
-        setLoading(false)
-      } catch (e) {
-        console.error('⛔ Erreur de session :', e)
-        setError("Lien invalide ou expiré. Veuillez redemander un email.")
-        setLoading(false)
-      }
-    }
-
-    restoreSession()
-  }, [])
+    restoreSession();
+    }, []);
 
   const handleSubmit = async () => {
     setError('')
