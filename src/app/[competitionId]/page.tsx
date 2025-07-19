@@ -693,21 +693,6 @@ console.log('🕒 Test horaire :', {
   const isPlayed = gridBonuses.length>0;
   const playedBonusCode = bonusDefs.find(b=>b.id===gridBonuses[0]?.bonus_definition)?.code;
 
-  //message d'erreur si un joueur parie trop tard = hors jeu
-  {showOffside && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl text-center shadow-xl max-w-xs">
-        <img src="/offside.png" alt="Hors-jeu" className="w-28 mx-auto mb-4" />
-        <button
-          className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded"
-          onClick={() => window.location.reload()}
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  )}
-
 return (
       <>
     <main className="w-full px-2 sm:px-4 py-8">
@@ -1096,6 +1081,21 @@ return (
           </div>
         )}
 
+        {/* ── message d'erreur si un joueur parie trop tard = hors jeu ── */}
+        {showOffside && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-xl text-center shadow-xl max-w-xs">
+              <img src="/offside.png" alt="Hors-jeu" className="w-28 mx-auto mb-4" />
+              <button
+                className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded"
+                onClick={() => window.location.reload()}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── POPUP BONUS ── */}
         {openedBonus && (
           <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
@@ -1264,7 +1264,7 @@ return (
               </div>
             </div>
           </div>
-        )}
+        )}        
       </div>
     </main>
     </>
