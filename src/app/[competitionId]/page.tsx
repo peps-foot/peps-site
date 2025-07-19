@@ -548,7 +548,7 @@ export default function HomePage() {
       for (const id of matchIdsToCheck) {
         const m = matches.find(m => m.id === id);
         console.log('🔍 Match trouvé ?', m);
-        if (!m || !('utc_date' in m)) continue;
+        if (!m || !('date' in m)) continue;
 
         const matchTime = new Date(m.date).getTime();
         if (now > matchTime - margin) {
