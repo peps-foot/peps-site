@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../utils/supabase'
-import Image from 'next/image'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -17,36 +16,31 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const restoreSession = async () => {
       const hash = window.location.hash.substring(1)
-      console.log('🔍 URL hash:', hash)
-
       const params = new URLSearchParams(hash)
       const access_token = params.get('access_token')
       const refresh_token = params.get('refresh_token')
       const type = params.get('type')
 
-      console.log('🔐 Token access:', access_token)
-      console.log('🔐 Token refresh:', refresh_token)
-      console.log('🔁 Type:', type)
-
       if (access_token && refresh_token && type === 'recovery') {
-        const { error: sessionError } = await supabase.auth.setSession({ access_token, refresh_token })
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token,
+          refresh_token
+        })
+
         if (sessionError) {
           console.error('⛔ Erreur setSession :', sessionError)
           setError("Lien invalide ou expiré. Veuillez redemander un email.")
-          setLoading(false)
-          return
-        }
-
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        if (user?.email) {
-          setEmail(user.email)
-          setError('')
         } else {
-          console.error('⛔ Utilisateur non trouvé :', userError)
-          setError("Utilisateur non trouvé. Veuillez réessayer.")
+          const { data: { user }, error: userError } = await supabase.auth.getUser()
+          if (user?.email) {
+            setEmail(user.email)
+            setError('')
+          } else {
+            console.error('⛔ Utilisateur non trouvé :', userError)
+            setError("Utilisateur non trouvé. Veuillez réessayer.")
+          }
         }
       } else {
-        console.warn('⛔ Paramètres manquants ou invalides dans le lien')
         setError("Lien invalide ou expiré. Veuillez redemander un email.")
       }
 
@@ -64,6 +58,11 @@ export default function ResetPasswordPage() {
       return
     }
 
+    if (password.length < 6) {
+      setError("Le mot de passe doit contenir au moins 6 caractères.")
+      return
+    }
+
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
       console.error('⛔ Erreur updateUser :', error)
@@ -71,7 +70,6 @@ export default function ResetPasswordPage() {
     } else {
       setError('')
       setSuccess(true)
-      router.push('/connexion')
     }
   }
 
@@ -86,7 +84,15 @@ export default function ResetPasswordPage() {
       ) : error ? (
         <div className="bg-red-100 text-red-700 px-4 py-3 rounded mb-4">{error}</div>
       ) : success ? (
-        <div className="bg-green-100 text-green-700 px-4 py-3 rounded mb-4">Mot de passe mis à jour !</div>
+        <div className="bg-green-100 text-green-700 px-4 py-3 rounded mb-4">
+          Mot de passe mis à jour avec succès !
+          <button
+            onClick={() => router.push('/connexion')}
+            className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+          >
+            Retour à la connexion
+          </button>
+        </div>
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="mb-4 text-sm">
