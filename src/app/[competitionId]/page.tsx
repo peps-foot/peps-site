@@ -79,8 +79,6 @@ export default function HomePage() {
   const [popupMatchStatus, setPopupMatchStatus] = useState<'NS' | 'OTHER' | null>(null);
 
   // 👉 Format FR pour la date
-  // 🔎 Vérifie si une string est une date valide
-  const isValidDate = (d: string) => !isNaN(Date.parse(d));
   const fmtDate = (d: string) =>
     new Date(d).toLocaleString('fr-FR',{
       day:'2-digit', month:'2-digit',
@@ -92,11 +90,11 @@ export default function HomePage() {
     const s = status.toUpperCase();
 
     if (['NS', 'TBD'].includes(s)) return { label: 'À venir', color: 'text-blue-600' };
-    if (s === 'EN_JEU')  return { label: 'En jeu', color: 'text-indigo-600' };
 
     if (s === '1H') return { label: '1re MT', color: 'text-orange-500' };
     if (s === 'HT') return { label: 'Mi-temps', color: 'text-orange-500' };
     if (s === '2H') return { label: '2e MT', color: 'text-orange-500' };
+    if (s === 'PST') return { label: 'Reporté', color: 'text-red-600' };
 
     // Tous les statuts post-temps réglementaire = considéré comme terminé
     if (['ET', 'BT', 'P', 'FT', 'AET', 'PEN'].includes(s)) {
@@ -104,7 +102,7 @@ export default function HomePage() {
     }
 
     // Match suspendu qui peut reprendre
-    if (['SUSP', 'INT', 'PST'].includes(s)) {
+    if (['SUSP', 'INT'].includes(s)) {
       return { label: 'Suspendu', color: 'text-orange-600' };
     }
     // Statuts d'annulation d'un match
@@ -412,68 +410,6 @@ export default function HomePage() {
     })();
   }, [currentIdx, grids]);
 
-  // MAJ de la page quand le match commence
-  useEffect(() => {
-    const now = new Date().getTime();
-    const timeouts: NodeJS.Timeout[] = [];
-
-    for (const match of matches.filter((m) => m.status === 'NS')) {
-      let matchTime = null;
-
-      if (typeof match.date === 'string' && isValidDate(match.date)) {
-        matchTime = new Date(match.date).getTime();
-      } else {
-        console.warn(`⛔ Mauvaise date pour match ${match.id}:`, match.date);
-        continue;
-      }
-
-      const delay = matchTime - now + 30_000;
-
-      if (delay > 0) {
-        const timeout = setTimeout(() => {
-          console.log(`⏳ Timeout pour match ${match.id} : désactivation + mise à jour en base`);
-
-          // A. 🔒 Désactiver les picks localement
-          setMatches((prev) =>
-            prev.map((m) =>
-              m.id === match.id ? { ...m, status: 'EN_JEU' } : m
-            )
-          );
-
-          // B. 🎯 Marquer les bonus comme "en jeu"
-          setGridBonuses((prev) =>
-            prev.map((b) =>
-              b.match_id === match.id ? { ...b, inGame: true } : b
-            )
-          );
-
-          // C. 🔁 Forcer mise à jour en base : passer en '1H' si toujours NS
-          const updateStatusTo1H = async () => {
-            const { error } = await supabase
-              .from('matches')
-              .update({ status: '1H' })
-              .eq('id', match.id)
-              .eq('status', 'NS'); // sécurise : évite d’écraser PST, FT...
-
-            if (error) {
-              console.error(`❌ Erreur update match ${match.id} → 1H :`, error);
-            } else {
-              console.log(`✅ Match ${match.id} forcé à '1H'`);
-            }
-          };
-
-          updateStatusTo1H(); // appel immédiat
-        }, delay);
-
-        timeouts.push(timeout);
-      }
-    }
-
-    return () => {
-      timeouts.forEach(clearTimeout);
-    };
-  }, [matches]);
-
   // MAJ de la page toutes les minutes si match en cours 
   useEffect(() => {
     const hasLiveMatch = matches.some((match) =>
@@ -515,12 +451,22 @@ export default function HomePage() {
   }
 
   // 🎯 handlePick : enregistre un pick (1/N/2) pour un match dans la grille
-  const handlePick = async (match_id: string, pick: '1' | 'N' | '2') => {
+    const handlePick = async (match_id: string, pick: '1' | 'N' | '2') => {
     if (!user || !grid) return;
-    
+
     const match = matches.find(m => m.id === match_id);
-    if (!match || match.status !== 'NS') {
+    if (!match) return;
+
+    const matchTime = new Date((match as any).utc_date).getTime(); //début du match
+    const now = Date.now();
+    const margin = 60 * 1000; // 1 minute
+
+    if (now >= matchTime - margin) {
       alert('❌ Ce match a déjà démarré. Les pronostics sont maintenant verrouillés.');
+      
+      // 🌀 Rafraîchit les statuts en base comme le fait le setInterval
+      await fetch(`/api/matches/update-status?match_id=${match.id}`);
+
       window.location.reload();
       return;
     }
@@ -827,7 +773,7 @@ return (
                       : m.pick ? [m.pick] : [];
 
                   let isDisabled = false;
-                  if (upperStatus !== 'NS' || ['SUSP', 'INT', 'PST', 'EN_JEU'].includes(upperStatus) || m.is_locked) {
+                  if (upperStatus !== 'NS' || ['SUSP', 'INT', 'PST'].includes(upperStatus) || m.is_locked) {
                     isDisabled = true;
                   }
 
