@@ -139,8 +139,9 @@ export default function ProfilPage() {
           <label className="block text-sm mb-1">Nouveau mot de passe :</label>
           <input
             type="password"
-            value={newPassword}
+            autoComplete="new-password"
             onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Nouveau mot de passe"
             className="w-full border px-3 py-2 rounded"
           />
         </div>
@@ -149,8 +150,9 @@ export default function ProfilPage() {
           <label className="block text-sm mb-1">Confirmer le mot de passe :</label>
           <input
             type="password"
-            value={confirmPassword}
+            autoComplete="new-password"
             onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirmer le mot de passe"
             className="w-full border px-3 py-2 rounded"
           />
         </div>

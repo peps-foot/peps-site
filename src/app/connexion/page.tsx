@@ -122,33 +122,33 @@ return (
 
     <div className="mt-6 space-y-3 max-w-md mx-auto text-sm">
       {/* LIGNE 1 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-2 text-center">
+      <div className="grid grid-cols-2 items-center gap-2 text-center">
         <span>Tu n'as pas de compte ?</span>
         <button
           onClick={() => router.push('/inscription')}
-          className="bg-green-500 hover:bg-orange-600 text-white font-semibold py-1 px-4 rounded w-44 mx-auto"
+          className="bg-green-500 text-white font-semibold py-1 px-2 rounded w-full"
         >
           Inscription en 30s
         </button>
       </div>
 
       {/* LIGNE 2 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-2 text-center">
+      <div className="grid grid-cols-2 items-center gap-2 text-center">
         <span>Mot de passe oublié ?</span>
         <button
           onClick={handleForgotPassword}
-          className="bg-gray-500 hover:bg-orange-600 text-white font-semibold py-1 px-4 rounded w-44 mx-auto"
+          className="bg-gray-500 text-white font-semibold py-1 px-2 rounded w-full"
         >
           Clique ici !
         </button>
       </div>
 
       {/* LIGNE 3 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-2 text-center">
+      <div className="grid grid-cols-2 items-center gap-2 text-center">
         <span>Les règles du jeu ?</span>
         <button
           onClick={() => router.push('/regles_connexion')}
-          className="bg-blue-700 hover:bg-orange-800 text-white font-semibold py-1 px-4 rounded w-44 mx-auto"
+          className="bg-blue-700 text-white font-semibold py-1 px-2 rounded w-full"
         >
           Bonne lecture
         </button>
