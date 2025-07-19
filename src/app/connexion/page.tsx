@@ -106,11 +106,11 @@ return (
       >
         Se connecter
       </button>
-      <div className="mt-2 flex items-center space-x-2 text-sm">
+      <div className="flex justify-center items-center mt-2 mb-4">
         <input
           id="remember"
           type="checkbox"
-          className="border-gray-300"
+          className="mr-2"
           checked={remember}
           onChange={(e) => setRemember(e.target.checked)}
         />
