@@ -56,7 +56,9 @@ export default function ConnexionPage() {
       return;
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://www.peps-foot.com/reset-password',
+      });
     if (error) {
       setErrorMsg(error.message);
     } else {
