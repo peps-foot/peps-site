@@ -447,7 +447,7 @@ export default function HomePage() {
     if (!match) return;
     console.log('Match reçu dans handlePick :', match);
 
-    const matchTime = new Date((match as any).utc_date).getTime(); //début du match
+    const matchTime = new Date(match.date).getTime(); //début du match
     const now = Date.now();
     const margin = 60 * 1000; // 1 minute
 
