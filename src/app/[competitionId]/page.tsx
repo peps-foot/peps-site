@@ -20,7 +20,6 @@ const bonusLogos: Record<string,string> = {
 };
 
 export default function HomePage() {
-  console.log('[app/[competitionId]] rendu');
   const supabase = useSupabase()
   // 👉 État principal de l'utilisateur connecté (renseigné au chargement)
   const [user, setUser] = useState<User | null>(null);
@@ -158,7 +157,6 @@ export default function HomePage() {
     hasRun.current = true;
 
     const initAndLoad = async () => {
-      console.log("🚨 Chargement en cours...");
       setLoadingGrids(true);
 
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -221,7 +219,6 @@ export default function HomePage() {
         setLastMatchData(matchData as RawMatchRow[]);
 
       if (matchError || !matchData) {
-        console.error("❌ Erreur chargement matchData :", matchError);
         setError("Erreur chargement grilles.");
         setLoadingGrids(false);
         return;
@@ -275,10 +272,7 @@ export default function HomePage() {
       setGrids(finalGrids.map(f => f.grid));
       setMatches(firstMatches);
 
-      console.log("✅ Grilles chargées :", finalGrids.map((g) => g.grid.title));
-      console.log("✅ Matchs de la première grille :", firstMatches);
     } catch (e) {
-      console.error("🔥 Erreur loadUserGrids", e);
       setError("Erreur lors du chargement des grilles");
     } finally {
       // 🎯 Sélection grille : soit forcer un index, soit logique normale
@@ -329,12 +323,9 @@ export default function HomePage() {
 
         if (ge) throw ge;
         setGrid(g);
-        console.log("📦 grille active chargée :", g);
-        console.log('🧠 SET GRID exécuté pour ID :', gridId, g)
 
         // 2) Préparer la liste des match_id à récupérer
         const ids = (g.grid_items || []).map((x: { match_id: string }) => x.match_id);
-        console.log('🔍 match IDs to fetch =', ids);
 
         // 3) Fetch des matchs (côtes et scores)
         const { data: raws, error: re } = await supabase
@@ -360,7 +351,6 @@ export default function HomePage() {
           .in('id', ids)
           .order('date', { ascending: true });
         if (re) throw re;
-        console.log('🔍 raws fetched =', raws);
 
         // 4) Fetch des picks posés dans grid_matches
         const { data: rawGridMatches, error: gmError } = await supabase
@@ -368,7 +358,6 @@ export default function HomePage() {
           .select('id, match_id, pick, points')
           .eq('grid_id', gridId);
         if (gmError) throw gmError;
-        console.log('🔍 rawGridMatches =', rawGridMatches);
 
         // 5) Fusionner tout pour construire le tableau final
         const clean: MatchWithState[] = (raws || []).map((m) => {
@@ -383,8 +372,7 @@ export default function HomePage() {
             league_id: match.league_id,
           };
         });
-        console.log("🧪 test picks fusionnés :", clean.map(c => ({ id: c.id, pick: c.pick })));
-        console.log("✅ Matches chargés :", clean);
+
         const totalPoints = clean.reduce((acc, m) => acc + (m.points || 0), 0);
         setMatches(clean);
         setTotalPoints(totalPoints);
@@ -395,7 +383,6 @@ export default function HomePage() {
           .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
           .eq('grid_id', gridId);
         if (gbe) throw gbe;
-        console.log('🔍 gridBonuses =', gbs);
         setGridBonuses(gbs || []);
 
         // 7) Fetch des définitions de bonus
@@ -406,7 +393,6 @@ export default function HomePage() {
         setBonusDefs(bd || []);
 
       } catch (e: unknown) {
-        console.error(e);
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setLoadingGrid(false);
@@ -423,7 +409,6 @@ export default function HomePage() {
     if (!hasLiveMatch) return;
 
     const interval = setInterval(() => {
-      console.log('🔄 Match en cours : rafraîchissement toutes les 60 sec');
       window.location.reload();
     }, 60_000); // toutes les 60 sec
 
@@ -464,6 +449,13 @@ export default function HomePage() {
     const matchTime = new Date((match as any).utc_date).getTime(); //début du match
     const now = Date.now();
     const margin = 60 * 1000; // 1 minute
+
+console.log('🕒 Test horaire :', {
+  match_id: match.id,
+  kickoff: (match as any).utc_date,
+  now: new Date(),
+  parsed: new Date((match as any).utc_date).getTime(),
+});
 
     if (now >= matchTime - margin) {
       setShowOffside(true);
@@ -616,7 +608,6 @@ export default function HomePage() {
       setGridBonuses(gbs || []);
 
       if (be) throw be;
-      console.log('✅ Supabase upsert OK', data);
 
       // 7) Update local
       setGridBonuses(gbs => [
@@ -637,7 +628,6 @@ export default function HomePage() {
       setPopupMatch0('');
     }
     catch (e: unknown) {
-      console.error('🔥 handleBonusValidate error', e);
       alert('Erreur Supabase : ' + (e instanceof Error ? e.message : String(e)));
     }
   };
@@ -672,7 +662,6 @@ export default function HomePage() {
         .eq('bonus_definition', openedBonus.id);
 
       if (de) throw de;
-      console.log("🗑️ Bonus supprimé en base");
 
       // 2) Supprimer côté front
       setGridBonuses(gbs =>
@@ -695,7 +684,6 @@ export default function HomePage() {
       setPopupMatch0('');
     }
     catch (e: unknown) {
-      console.error('🔥 handleBonusDelete catch', e);
       alert('Erreur suppression bonus : ' + (e instanceof Error ? e.message : String(e)));
     }
   };
