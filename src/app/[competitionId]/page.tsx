@@ -549,14 +549,14 @@ export default function HomePage() {
         const m = matches.find(m => m.id === id);
         if (!m || !('utc_date' in m)) continue;
 
-        const matchTime = new Date((m as any).utc_date).getTime();
+        const matchTime = new Date(m.date).getTime();
         if (now > matchTime - margin) {
-          console.log('🕒 Test horaire dans handleBonusValidate :', {
+console.log('🕒 Test horaire dans handleBonusValidate :', {
   bonus: openedBonus.code,
   match_id: id,
-  kickoff: (m as any).utc_date,
+  kickoff: m.date,
   now: new Date(),
-  parsed: new Date((m as any).utc_date).getTime(),
+  parsed: new Date(m.date),
 });
           setShowOffside(true); // affichera l'image + bouton OK
           console.log('🚫 pop-up OFFSIDE déclenché')
