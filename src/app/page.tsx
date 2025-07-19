@@ -6,14 +6,14 @@ import { supabase } from '../utils/supabase'
 
 export default function Home() {
   const router = useRouter()
-  
+
   useEffect(() => {
     const check = async () => {
+      // 🟡 Récupération du type dans le hash (PAS dans l'URL)
       const hash = window.location.hash.substring(1)
       const params = new URLSearchParams(hash)
       const type = params.get('type')
 
-      // ✅ NE PAS REDIRIGER si c'est un lien recovery (réinit mot de passe)
       if (type === 'recovery') {
         console.log("🟡 URL de réinitialisation détectée — pas de redirection.")
         return
