@@ -532,9 +532,8 @@ console.log('🕒 Test horaire :', {
         parameters: { picks: [] },
       };
 
-      // 3) Vérifie si un des matchs a déjà commencé
+      // 3) Vérif si l’un des matchs a déjà commencé (basé sur l'heure, pas le status)
       const matchIdsToCheck: string[] = [];
-
       if (openedBonus.code === 'RIBERY') {
         if (popupMatch0) matchIdsToCheck.push(popupMatch0);
         if (popupMatch1) matchIdsToCheck.push(popupMatch1);
@@ -548,10 +547,10 @@ console.log('🕒 Test horaire :', {
       for (const id of matchIdsToCheck) {
         const m = matches.find(m => m.id === id);
         if (!m || !('utc_date' in m)) continue;
-        
+
         const matchTime = new Date((m as any).utc_date).getTime();
         if (now > matchTime - margin) {
-          setShowOffside(true);
+          setShowOffside(true); // affichera l'image + bouton OK
           return;
         }
       }
@@ -1085,7 +1084,7 @@ return (
         {showOffside && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-xl text-center shadow-xl max-w-xs">
-              <img src="/offside.png" alt="Hors-jeu" className="w-28 mx-auto mb-4" />
+              <img src="/offside.png" alt="Hors-jeu" className="w-40 sm:w-48 mx-auto mb-4" />
               <button
                 className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded"
                 onClick={() => window.location.reload()}
