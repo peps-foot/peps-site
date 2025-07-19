@@ -40,19 +40,6 @@ return (
     const safePath = pathname ?? '';
     const href = tab.href ?? '';
 
-    // Cas particulier : bouton DÉCONNEXION
-    if (tab.onClick) {
-      return (
-        <button
-          key={tab.label}
-          onClick={tab.onClick}
-          className="flex-1 flex items-center justify-center font-medium text-sm h-full transition-all bg-orange-500 text-white hover:bg-orange-600"
-        >
-          {tab.label}
-        </button>
-      );
-    }
-
     // Cas UUID : la homepage = /[competitionId]
     const isUUID = /^[0-9a-fA-F-]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
       safePath.replace('/', '')

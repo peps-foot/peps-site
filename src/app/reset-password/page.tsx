@@ -17,7 +17,6 @@ export default function ResetPasswordPage() {
     const checkUser = async () => {
       const { data, error } = await supabase.auth.getUser()
       if (error || !data.user) {
-        console.error('⛔ Utilisateur non connecté :', error)
         setError("Lien invalide ou expiré. Veuillez redemander un email.")
       } else {
         setEmail(data.user.email || '')
@@ -43,7 +42,6 @@ export default function ResetPasswordPage() {
 
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
-      console.error('⛔ Erreur updateUser :', error)
       setError("Erreur lors de la mise à jour du mot de passe.")
     } else {
       setError('')

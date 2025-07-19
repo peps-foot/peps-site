@@ -13,6 +13,7 @@ export default function ConnexionPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -57,7 +58,7 @@ export default function ConnexionPage() {
     }
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://www.peps-foot.com/recovery-redirect',
+        redirectTo: 'https://www.peps-foot.com/reset-password',
       });
     if (error) {
       setErrorMsg(error.message);
@@ -105,6 +106,18 @@ return (
       >
         Se connecter
       </button>
+      <div className="mt-2 flex items-center space-x-2 text-sm">
+        <input
+          id="remember"
+          type="checkbox"
+          className="border-gray-300"
+          checked={remember}
+          onChange={(e) => setRemember(e.target.checked)}
+        />
+        <label htmlFor="remember" className="text-gray-700">
+          Rester connecté
+        </label>
+      </div>
     </form>
 
     <div className="mt-6 space-y-3 max-w-md mx-auto text-sm">
