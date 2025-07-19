@@ -451,12 +451,12 @@ export default function HomePage() {
     const now = Date.now();
     const margin = 60 * 1000; // 1 minute
 
-console.log('🕒 Test horaire :', {
-  match_id: match.id,
-  kickoff: (match as any).utc_date,
-  now: new Date(),
-  parsed: new Date((match as any).utc_date).getTime(),
-});
+    console.log('🕒 Test horaire :', {
+      match_id: match.id,
+      kickoff: (match as any).utc_date,
+      now: new Date(),
+      parsed: new Date((match as any).utc_date).getTime(),
+    });
 
     if (now >= matchTime - margin) {
       setShowOffside(true);
@@ -544,13 +544,22 @@ console.log('🕒 Test horaire :', {
       const margin = 60 * 1000; // 1 minute
       const now = Date.now();
 
+      console.log('🎯 Matchs à vérifier :', matchIdsToCheck);
       for (const id of matchIdsToCheck) {
         const m = matches.find(m => m.id === id);
         if (!m || !('utc_date' in m)) continue;
 
         const matchTime = new Date((m as any).utc_date).getTime();
         if (now > matchTime - margin) {
+          console.log('🕒 Test horaire dans handleBonusValidate :', {
+  bonus: openedBonus.code,
+  match_id: id,
+  kickoff: (m as any).utc_date,
+  now: new Date(),
+  parsed: new Date((m as any).utc_date).getTime(),
+});
           setShowOffside(true); // affichera l'image + bouton OK
+          console.log('🚫 pop-up OFFSIDE déclenché')
           return;
         }
       }
