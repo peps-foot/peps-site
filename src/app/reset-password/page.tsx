@@ -6,57 +6,26 @@ import supabase from '../../lib/supabaseBrowser'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [email, setEmail] = useState('')
 
   useEffect(() => {
-    const restoreSession = async () => {
-      const hash = window.location.hash.substring(1)
-      const params = new URLSearchParams(hash)
-      const access_token = params.get('access_token')
-      const refresh_token = params.get('refresh_token')
-      const type = params.get('type')
-
-      console.log('🔍 Hash complet:', window.location.hash)
-      console.log('🔐 access_token:', access_token)
-      console.log('🔄 refresh_token:', refresh_token)
-      console.log('📦 type:', type)
-
-      if (access_token && refresh_token) {
-        console.log('🧪 Tentative de restauration de session...')
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token,
-          refresh_token
-        })
-
-        if (sessionError) {
-          console.error('⛔ Erreur setSession :', sessionError)
-          setError("Lien invalide ou expiré. Veuillez redemander un email.")
-        } else {
-          console.log('✅ Session restaurée, on récupère l’utilisateur…')
-          const { data: { user }, error: userError } = await supabase.auth.getUser()
-          if (user?.email) {
-            console.log('✅ Utilisateur récupéré :', user.email)
-            setEmail(user.email)
-            setError('')
-          } else {
-            console.error('⛔ Utilisateur non trouvé :', userError)
-            setError("Utilisateur non trouvé. Veuillez réessayer.")
-          }
-        }
-      } else {
-        console.warn('⛔ Lien invalide ou paramètres manquants.')
+    const checkUser = async () => {
+      const { data, error } = await supabase.auth.getUser()
+      if (error || !data.user) {
+        console.error('⛔ Utilisateur non connecté :', error)
         setError("Lien invalide ou expiré. Veuillez redemander un email.")
+      } else {
+        setEmail(data.user.email || '')
+        setError('')
       }
-
       setLoading(false)
     }
-
-    restoreSession()
+    checkUser()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,13 +41,11 @@ export default function ResetPasswordPage() {
       return
     }
 
-    console.log('💾 Tentative de mise à jour du mot de passe...')
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
       console.error('⛔ Erreur updateUser :', error)
       setError("Erreur lors de la mise à jour du mot de passe.")
     } else {
-      console.log('✅ Mot de passe mis à jour avec succès.')
       setError('')
       setSuccess(true)
     }
