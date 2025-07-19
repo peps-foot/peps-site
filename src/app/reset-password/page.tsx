@@ -13,29 +13,41 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(true)
   const [success, setSuccess] = useState(false)
 
+  console.log("🔍 URL hash:", window.location.hash);
+  console.log("🔍 URL search:", window.location.search);
+
   // 🔁 Restaure la session depuis le lien reçu (code ou access_token)
     useEffect(() => {
     const restoreSession = async () => {
         try {
-        const url = new URL(window.location.href)
-        const code = url.searchParams.get('code')
-        const type = url.searchParams.get('type')
-        const hash = url.hash?.substring(1)
+            const url = new URL(window.location.href);
+            const code = url.searchParams.get('code');
+            const type = url.searchParams.get('type') ?? ''; // par sécurité, défaut = chaîne vide
 
-        const access_token = new URLSearchParams(hash).get('access_token')
-        const refresh_token = new URLSearchParams(hash).get('refresh_token')
+            console.log("🔐 Code extrait :", code);
+            console.log("🔍 URL search:", url.search);
+            console.log("🔍 URL hash:", url.hash);
 
-        if (code && type === 'recovery') {
-            const { error } = await supabase.auth.exchangeCodeForSession(code)
-            if (error) throw error
-            console.log("🔁 Session restaurée via code recovery !")
-        } else if (access_token && refresh_token && type === 'recovery') {
-            const { error } = await supabase.auth.setSession({ access_token, refresh_token })
-            if (error) throw error
-            console.log("🔁 Session restaurée via access_token / refresh_token !")
-        } else {
-            throw new Error('Lien invalide ou incomplet.')
-        }
+            // Si des tokens sont présents dans le hash
+            const hash = url.hash.startsWith('#') ? url.hash.slice(1) : '';
+            const hashParams = new URLSearchParams(hash);
+            const access_token = hashParams.get('access_token');
+            const refresh_token = hashParams.get('refresh_token');
+
+            console.log("🧪 Token access:", access_token);
+            console.log("🧪 Token refresh:", refresh_token);
+
+            if (code) {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (error) throw error;
+            console.log("✅ Session restaurée via code !");
+            } else if (access_token && refresh_token && type === 'recovery') {
+            const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+            if (error) throw error;
+            console.log("✅ Session restaurée via token !");
+            } else {
+            throw new Error('Lien invalide ou incomplet.');
+            }
 
         await new Promise(resolve => setTimeout(resolve, 500))
 
