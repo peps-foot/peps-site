@@ -445,6 +445,7 @@ export default function HomePage() {
 
     const match = matches.find(m => m.id === match_id);
     if (!match) return;
+    console.log('Match reçu dans handlePick :', match);
 
     const matchTime = new Date((match as any).utc_date).getTime(); //début du match
     const now = Date.now();
