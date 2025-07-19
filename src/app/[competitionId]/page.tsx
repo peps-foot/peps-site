@@ -57,6 +57,7 @@ export default function HomePage() {
   const router        = useRouter();
   const params = useParams();
   const competitionId = params?.competitionId as string;
+  const [showOffside, setShowOffside] = useState(false);
   const pathname = '/' + competitionId; // usePathname (supprimé)();
   // 👉 Change l’index ET met à jour l’URL en shallow routing
   const goToPage = (i: number) => {    setCurrentIdx(i);
@@ -259,8 +260,11 @@ export default function HomePage() {
           grid: entry.grid as GridWithItems,
           matches: entry.matches,
         }))
-        .sort((a, b) => a.grid.title.localeCompare(b.grid.title));
-
+        .sort((a, b) => {
+          const numA = parseInt(a.grid.title.split(' ')[1]);
+          const numB = parseInt(b.grid.title.split(' ')[1]);
+          return numA - numB;
+        });
 
       const firstGridId = finalGrids[0]?.grid.id;
       const firstMatches = (groupedByGrid[firstGridId]?.matches ?? []).sort((a, b) =>
@@ -462,12 +466,7 @@ export default function HomePage() {
     const margin = 60 * 1000; // 1 minute
 
     if (now >= matchTime - margin) {
-      alert('❌ Ce match a déjà démarré. Les pronostics sont maintenant verrouillés.');
-      
-      // 🌀 Rafraîchit les statuts en base comme le fait le setInterval
-      await fetch(`/api/matches/update-status?match_id=${match.id}`);
-
-      window.location.reload();
+      setShowOffside(true);
       return;
     }
 
@@ -499,19 +498,19 @@ export default function HomePage() {
     setMatches(updatedMatches);
     
     const activeGrid = grids.find((g) => g.id === grid.id);
-if (activeGrid && activeGrid.grid_items) {
-  const matchIds = activeGrid.grid_items.map((gi) => gi.match_id);
-  const refreshedMatches = lastMatchData
-    .filter((row) => matchIds.includes(row.match_id))
-    .map((row) => ({
-      ...(row.matches as Match),
-      pick: row.pick ?? undefined,
-      points: row.points ?? 0,
-    }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (activeGrid && activeGrid.grid_items) {
+      const matchIds = activeGrid.grid_items.map((gi) => gi.match_id);
+      const refreshedMatches = lastMatchData
+        .filter((row) => matchIds.includes(row.match_id))
+        .map((row) => ({
+          ...(row.matches as Match),
+          pick: row.pick ?? undefined,
+          points: row.points ?? 0,
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  setMatches(refreshedMatches);
-}
+      setMatches(refreshedMatches);
+    }
   };
 
   // 🎯 handleBonusValidate : applique ou modifie un bonus pour la grille active
@@ -540,19 +539,28 @@ if (activeGrid && activeGrid.grid_items) {
         parameters: { picks: [] },
       };
 
-      // 3) Vérif si match commencé
-      const matchStatusCheck = (matchId: string) => {
-      const m = matches.find(m => m.id === matchId);
-      return m?.status === 'NS';
-      };
+      // 3) Vérifie si un des matchs a déjà commencé
+      const matchIdsToCheck: string[] = [];
 
-      if (
-        (openedBonus.code === 'RIBERY' && (!matchStatusCheck(popupMatch1) || !matchStatusCheck(popupMatch0))) ||
-        ((openedBonus.code === 'ZLATAN' || openedBonus.code === 'KANTE') && !matchStatusCheck(popupMatch1))
-      ) {
-        alert('❌ Tu ne peux pas jouer ce bonus car un match a déjà commencé.');
-        window.location.reload();
-        return;
+      if (openedBonus.code === 'RIBERY') {
+        if (popupMatch0) matchIdsToCheck.push(popupMatch0);
+        if (popupMatch1) matchIdsToCheck.push(popupMatch1);
+      } else if (popupMatch1) {
+        matchIdsToCheck.push(popupMatch1);
+      }
+
+      const margin = 60 * 1000; // 1 minute
+      const now = Date.now();
+
+      for (const id of matchIdsToCheck) {
+        const m = matches.find(m => m.id === id);
+        if (!m || !('utc_date' in m)) continue;
+        
+        const matchTime = new Date((m as any).utc_date).getTime();
+        if (now > matchTime - margin) {
+          setShowOffside(true);
+          return;
+        }
       }
 
       // 4) Logique spécifique à chaque bonus
@@ -637,6 +645,22 @@ if (activeGrid && activeGrid.grid_items) {
   // 🧨 Suppression d’un bonus (base + front + points)
   const handleBonusDelete = async () => {
     if (!openedBonus || !user) return;
+    // 🔎 Récupère le bonus déjà joué pour cette grille
+    const placedBonus = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
+    if (!placedBonus) return;
+
+    const matchId = placedBonus.match_id;
+    const m = matches.find(m => m.id === matchId);
+    if (!m || !('utc_date' in m)) return;
+
+    const matchTime = new Date((m as any)['utc_date']).getTime();
+    const now = Date.now();
+    const margin = 60 * 1000;
+
+    if (now >= matchTime - margin) {
+      setShowOffside(true);
+      return;
+    }
 
     try {
       // 1) Supprimer côté base
@@ -679,6 +703,21 @@ if (activeGrid && activeGrid.grid_items) {
   // // 🧠 Aide bonus : savoir si un bonus a été joué, et lequel
   const isPlayed = gridBonuses.length>0;
   const playedBonusCode = bonusDefs.find(b=>b.id===gridBonuses[0]?.bonus_definition)?.code;
+
+  //message d'erreur si un joueur parie trop tard = hors jeu
+  {showOffside && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-xl text-center shadow-xl max-w-xs">
+        <img src="/offside.png" alt="Hors-jeu" className="w-28 mx-auto mb-4" />
+        <button
+          className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded"
+          onClick={() => window.location.reload()}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  )}
 
 return (
       <>
