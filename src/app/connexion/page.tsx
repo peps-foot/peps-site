@@ -17,6 +17,15 @@ export default function ConnexionPage() {
 
   useEffect(() => {
     setIsClient(true);
+
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push('/a033d6cf-7108-4f92-8f71-1d2b428d11f2');
+      }
+    };
+
+    checkSession();
   }, []);
 
   if (!isClient) return null;
