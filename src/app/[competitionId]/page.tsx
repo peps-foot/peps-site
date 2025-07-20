@@ -532,37 +532,30 @@ export default function HomePage() {
         parameters: { picks: [] },
       };
 
-      // 3) Vérif si l’un des matchs a déjà commencé (basé sur l'heure, pas le status)
-      const matchIdsToCheck: string[] = [];
-      if (openedBonus.code === 'RIBERY') {
-        if (popupMatch0) matchIdsToCheck.push(popupMatch0);
-        if (popupMatch1) matchIdsToCheck.push(popupMatch1);
-      } else if (popupMatch1) {
-        matchIdsToCheck.push(popupMatch1);
-      }
+      // 3) Vérifie si le match concerné par le bonus est déjà commencé
+      const bonusJoue = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
+      const matchId = bonusJoue?.match_id;
+      if (!matchId) return;
 
-      const margin = 60 * 1000; // 1 minute
+      const m = matches.find(m => m.id === matchId);
+      if (!m || !('date' in m)) return;
+
+      const matchTime = new Date(m.date).getTime();
       const now = Date.now();
+      const margin = 60 * 1000; // 1 min
 
-      console.log('🎯 Matchs à vérifier :', matchIdsToCheck);
-      for (const id of matchIdsToCheck) {
-        const m = matches.find(m => m.id === id);
-        console.log('🔍 Match trouvé ?', m);
-        if (!m || !('date' in m)) continue;
+      console.log('⏱ Test horaire dans handleBonusValidate :', {
+        bonus: openedBonus.code,
+        match_id: matchId,
+        kickoff: m.date,
+        now: new Date(),
+        parsed: new Date(m.date).getTime()
+      });
 
-        const matchTime = new Date(m.date).getTime();
-        if (now > matchTime - margin) {
-console.log('🕒 Test horaire dans handleBonusValidate :', {
-  bonus: openedBonus.code,
-  match_id: id,
-  kickoff: m.date,
-  now: new Date(),
-  parsed: new Date(m.date),
-});
-          setShowOffside(true); // affichera l'image + bouton OK
-          console.log('🚫 pop-up OFFSIDE déclenché !')
-          return;
-        }
+      if (now > matchTime - margin) {
+        setShowOffside(true);
+        console.log('🚫 pop-up OFFSIDE déclenché !');
+        return;
       }
 
       // 4) Logique spécifique à chaque bonus
