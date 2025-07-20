@@ -533,30 +533,37 @@ export default function HomePage() {
       };
 
       // 3) Vérifie si le match concerné par le bonus est déjà commencé
-      const bonusJoue = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
-      const matchId = bonusJoue?.match_id;
-      if (!matchId) return;
+const matchIdToCheck =
+  openedBonus.code === 'RIBERY' ? popupMatch1 :
+  openedBonus.code === 'ZLATAN' ? popupMatch1 :
+  openedBonus.code === 'KANTE' ? popupMatch1 :
+  null;
 
-      const m = matches.find(m => m.id === matchId);
-      if (!m || !('date' in m)) return;
+if (!matchIdToCheck) {
+  console.log('⛔ Aucun match à vérifier pour le bonus', openedBonus.code);
+  return;
+}
 
-      const matchTime = new Date(m.date).getTime();
-      const now = Date.now();
-      const margin = 60 * 1000; // 1 min
+const m = matches.find(m => m.id === matchIdToCheck);
 
-      console.log('⏱ Test horaire dans handleBonusValidate :', {
-        bonus: openedBonus.code,
-        match_id: matchId,
-        kickoff: m.date,
-        now: new Date(),
-        parsed: new Date(m.date).getTime()
-      });
+if (!m || !('date' in m)) return;
+const matchTime = new Date(m.date).getTime();
+const now = Date.now();
+const margin = 60 * 1000;
 
-      if (now > matchTime - margin) {
-        setShowOffside(true);
-        console.log('🚫 pop-up OFFSIDE déclenché !');
-        return;
-      }
+console.log('⏱ Test horaire dans handleBonusValidate :', {
+  bonus: openedBonus.code,
+  match_id: matchIdToCheck,
+  kickoff: m.date,
+  now: new Date(),
+  parsed: matchTime
+});
+
+if (now > matchTime - margin) {
+  setShowOffside(true);
+  console.log('🚫 pop-up OFFSIDE déclenché !');
+  return;
+}
 
       // 4) Logique spécifique à chaque bonus
       switch (openedBonus.code) {

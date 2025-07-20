@@ -17,7 +17,7 @@ export default function ReglesPage() {
           <img src="/images/regles/regle_exemple.png" alt="regles_exemple" className="w-full max-w-lg rounded-lg border" />
         </div>
         <p className="mt-4">Tu gagnes 4 points si Paris gagne son match ! et si Paris fait match nul, tu pourras te mordre les doigts de ne pas avoir parié N !! Simple, non ?</p>
-        <p className="mt-4">Pour rendre le jeu plus sympa, on a rajouté des bonus : Kanté, Ribery et Zlatan. Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...</p>
+        <p className="mt-4">Pour rendre le jeu plus sympa, on a rajouté des bonus : KANTE, RIBERY et ZLATAN. Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...</p>
       </RuleSection>
 
       <RuleSection title="Match, grille... on t'explique tout !" iconSrc="/images/regles/emoji.png" type="default">
@@ -30,10 +30,11 @@ export default function ReglesPage() {
             <li>L’équipe à gauche est celle qui joue à domicile, celle de droite joue à l’extérieur. Le score en live s’affiche quand le match est commencé.</li>
             <li>Tu peux cliquer sur les cases 1-N-2 pour y mettre tes croix (ton <strong>PRONO</strong>) sans avoir besoin d’enregistrer.</li>
             <li>Les valeurs en dessous correspondent aux <strong>POINTS</strong> à gagner.</li>
-            <li>En cliquant sur l’image à droite, tu verras les pronos des autres joueurs si le match a commencé, ainsi que les points gagnés en live.</li>
+            <li>En cliquant sur l’image à droite, tu verras les pronos des autres joueurs si le match a commencé.</li>
+            <li>En dessous, tu verras en live les points que tu gagnes, de quoi vibrer pendant tout le match.</li>
           </ul>
 
-          <p className="mb-2"><strong>Une GRILLE</strong> est composée de plusieurs MATCHS, généralement ceux d’une journée de Ligue 1.</p>
+          <p className="mb-2"><strong>Une GRILLE</strong> est composée de plusieurs <strong>MATCHS</strong>, généralement ceux d’une journée de Ligue 1.</p>
           <p className="mb-4"><strong>Une COMPET</strong> regroupe plusieurs GRILLES. Elle peut se jouer en mode <strong>CLASSIC</strong> ou en mode <strong>TOURNOI</strong>.</p>
       </RuleSection>
 
