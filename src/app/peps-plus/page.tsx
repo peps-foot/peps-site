@@ -4,7 +4,6 @@ import RuleSection from '../../components/RuleSection';
 export default function PepsPlusPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 text-center">PEPS+</h1>
 
       <RuleSection title="Contact" iconSrc="/images/regles/contact.png" type="default">
         <p>Adresse email :{" "}
