@@ -168,7 +168,7 @@ export default function ProfilPage() {
             {isSaving ? 'Chargement...' : 'Valider les changements'}
           </button>
         </div>
-          <div className="mt-6">
+          <div className="mt-6 text-center">
             <button
               onClick={handleSignOut}
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
