@@ -638,20 +638,30 @@ export default function HomePage() {
   // 🧨 Suppression d’un bonus (base + front + points)
   const handleBonusDelete = async () => {
     if (!openedBonus || !user) return;
-    // 🔎 Récupère le bonus déjà joué pour cette grille
+
+    // 🔵 Récupère le bonus déjà joué pour cette grille
     const placedBonus = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
     if (!placedBonus) return;
 
     const matchId = placedBonus.match_id;
     const m = matches.find(m => m.id === matchId);
-    if (!m || !('utc_date' in m)) return;
+    if (!m || !('date' in m)) return;
 
-    const matchTime = new Date((m as any)['utc_date']).getTime();
+    const matchTime = new Date(m.date).getTime(); // 🔁 on utilise bien "date"
     const now = Date.now();
     const margin = 60 * 1000;
 
-    if (now >= matchTime - margin) {
+    console.log('⏱ Test horaire dans handleBonusDelete :', {
+      bonus: openedBonus.code,
+      match_id: matchId,
+      kickoff: m.date,
+      now: new Date(),
+      parsed: matchTime
+    });
+
+    if (now > matchTime - margin) {
       setShowOffside(true);
+      console.log('🚫 pop-up OFFSIDE déclenché (delete bonus) !');
       return;
     }
 
