@@ -532,6 +532,19 @@ export default function HomePage() {
         parameters: { picks: [] },
       };
 
+console.log('📦 Payload préparé pour upsert', payload);
+
+const bonusExistant = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
+if (bonusExistant) {
+  const m = matches.find(m => m.id === bonusExistant.match_id);
+  const margin = 60 * 1000;
+  if (m && new Date(m.date).getTime() < Date.now() - margin) {
+    console.log('🚫 Bonus déjà validé et match commencé → modification interdite');
+    setShowOffside(true);
+    return;
+  }
+}
+
       // 3) Vérifie si le match concerné par le bonus est déjà commencé
 const matchesToCheck =
   openedBonus.code === 'RIBERY' ? [popupMatch1, popupMatch0] :
@@ -560,8 +573,9 @@ for (const matchId of matchesToCheck) {
   });
 
   if (now > matchTime - margin) {
+    console.log('⛔ Match trop tardif détecté : ', matchId, new Date(m.date));
     setShowOffside(true);
-    console.log('🚫 pop-up OFFSIDE déclenché sur match :', matchId);
+    console.log('✅ Match encore valide : ', matchId);
     return;
   }
 }
@@ -613,6 +627,7 @@ for (const matchId of matchesToCheck) {
         .from('grid_bonus')
         .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
         .eq('grid_id', grid.id);
+      console.log('🧾 Résultat upsert Supabase :', { data, error: be });
 
       if (gbe) throw gbe;
 
@@ -1087,7 +1102,6 @@ return (
               {popupMatchStatus === 'NS' ? (
                 <div>
                   <p className="mb-4 font-semibold">Les pronos des autres joueurs</p>
-                  <p className="text-sm">C'est pas encore l'heure !!</p>
                 <Image src="/NS.png" alt="Arbitre" width={320} height={320} className="mx-auto" />
                 </div>
               ) : (

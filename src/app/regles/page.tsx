@@ -76,7 +76,7 @@ export default function ReglesPage() {
         <p>Si Paris gagne ou fait match nul, tu gagnes 4 points. Si Paris perd, tu ne gagnes pas de points ! </p>
       </RuleSection>
 
-            <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus">
+      <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus">
         <p><strong>Description :</strong> On a demandé à Francky de jouer une Kanté mais il n’a pas tout compris. Il a bien rajouté une croix supplémentaire sur la grille mais il a oublié de parier sur un match. Au lotofoot, c’est un triple : 1-N-2</p>
         <p className="mt-2"><strong>Avantage :</strong> T'es sûr de marquer des points.</p>
         <p className="mt-2"><strong>Inconvénient :</strong> Ca te fait un match en moins à parier.</p>
@@ -91,7 +91,7 @@ export default function ReglesPage() {
         <p>Pour le match Palmeiras - Botafogo, tu es sûr de ne pas marquer de points</p>
       </RuleSection>
 
-            <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus">
+      <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus">
         <p><strong>Description :</strong> T’es aussi confiant que lui ? T’es sûr du résultat final d’un match ? Ce bonus te permet de doubler les points mis en jeu.</p>
         <p className="mt-2"><strong>Avantage :</strong> Si tu sens le bon coup, tu peux zlatanner les autres</p>
         <p className="mt-2"><strong>Inconvénient :</strong> Si tu te trompes... bah... 0 fois 2, ça fait toujours 0 hein !</p>
