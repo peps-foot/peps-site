@@ -20,6 +20,23 @@ export default function ReglesPage() {
         <p className="mt-4">Pour rendre le jeu plus sympa, on a rajouté des bonus : Kanté, Ribery et Zlatan. Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...</p>
       </RuleSection>
 
+      <RuleSection title="Match, grille... on t'explique tout !" iconSrc="/images/regles/emoji.png" type="default">
+        <p className="mb-4">
+            Pas de panique, on ne va pas revenir sur la règle du hors-jeu mais juste définir quelques mots importants du jeu :
+          </p>
+          <p className="mb-2 font-semibold">Un <strong>MATCH</strong> est défini par plusieurs informations :</p>
+          <ul className="list-disc pl-5 mb-4">
+            <li>La date et l’heure du coup d’envoi de la rencontre et le statut du match qui évolue en live.</li>
+            <li>L’équipe à gauche est celle qui joue à domicile, celle de droite joue à l’extérieur. Le score en live s’affiche quand le match est commencé.</li>
+            <li>Tu peux cliquer sur les cases 1-N-2 pour y mettre tes croix (ton <strong>PRONO</strong>) sans avoir besoin d’enregistrer.</li>
+            <li>Les valeurs en dessous correspondent aux <strong>POINTS</strong> à gagner.</li>
+            <li>En cliquant sur l’image à droite, tu verras les pronos des autres joueurs si le match a commencé, ainsi que les points gagnés en live.</li>
+          </ul>
+
+          <p className="mb-2"><strong>Une GRILLE</strong> est composée de plusieurs MATCHS, généralement ceux d’une journée de Ligue 1.</p>
+          <p className="mb-4"><strong>Une COMPET</strong> regroupe plusieurs GRILLES. Elle peut se jouer en mode <strong>CLASSIC</strong> ou en mode <strong>TOURNOI</strong>.</p>
+      </RuleSection>
+
       <RuleSection title="Les 4 règles principales" iconSrc="/images/regles/etoile.png" type="default">
         <ul className="list-disc pl-5 space-y-2">
           <li><strong>Règle 1 :</strong> Seul le score à la fin du temps réglementaire compte (pas de prolongations, ni de tirs au but).</li>
@@ -27,6 +44,24 @@ export default function ReglesPage() {
           <li><strong>Règle 3 :</strong> Un seul bonus peut être utilisé par grille, pour l'instant...</li>
           <li><strong>Règle 4 :</strong> Tu peux changer ton choix jusqu'au coup d’envoi.</li>
         </ul>
+      </RuleSection>
+
+      <RuleSection title="Les modes CLASSIC et TOURNOI" iconSrc="/images/regles/mode.png" type="default" >
+        <p className="mb-4">
+          Pour expliquer le mode <strong>CLASSIC</strong>, faisons un peu de maths. On prend les 34 journées de Ligue 1 et on y ajoute deux tours de Coupe de France, cela nous donne 36 grilles.
+          Tout est prêt pour élire les champions des 4 saisons sur des <strong>COMPETS</strong> de 9 grilles.
+        </p>
+
+        <ul className="list-disc pl-5 mb-4">
+          <li>J1 =&gt; J9 : Compet d’Été</li>
+          <li>J10 =&gt; J17 + CDF : Compet d’Automne</li>
+          <li>J18 =&gt; J26 + CDF : Compet d’Hiver</li>
+          <li>J27 =&gt; J34 : Compet de Printemps</li>
+        </ul>
+
+        <p>
+          Le mode <strong>TOURNOI</strong> est en préparation, trois types de tournois à élimination vous seront proposés…
+        </p>
       </RuleSection>
 
       <RuleSection title="Le bonus KANTÉ" iconSrc="/images/kante.png" type="bonus">
