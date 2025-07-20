@@ -60,7 +60,7 @@ export default function ReglesPage() {
         </ul>
 
         <p>
-          Le mode <strong>TOURNOI</strong> est en préparation, trois types de tournois à élimination vous seront proposés…
+          Le mode <strong>TOURNOI</strong> est en préparation, trois types de tournois à éliminations vous seront proposés…
         </p>
       </RuleSection>
 
