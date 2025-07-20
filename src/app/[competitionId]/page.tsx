@@ -536,14 +536,37 @@ console.log('📦 Payload préparé pour upsert', payload);
 
 const bonusExistant = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
 if (bonusExistant) {
-  const m = matches.find(m => m.id === bonusExistant.match_id);
   const margin = 60 * 1000;
-  if (m && new Date(m.date).getTime() < Date.now() - margin) {
-    console.log('🚫 Bonus déjà validé et match commencé → modification interdite');
-    setShowOffside(true);
-    return;
+  let matchIdsToCheck: string[] = [];
+
+  if (
+    openedBonus.code === 'RIBERY' &&
+    'match_win' in bonusExistant.parameters &&
+    'match_zero' in bonusExistant.parameters
+  ) {
+    matchIdsToCheck = [
+      bonusExistant.parameters.match_win,
+      bonusExistant.parameters.match_zero
+    ];
+  } else {
+    matchIdsToCheck = [bonusExistant.match_id];
+  }
+
+  for (const matchId of matchIdsToCheck) {
+    const m = matches.find(m => m.id === matchId);
+    if (!m || !('date' in m)) continue;
+
+    const matchTime = new Date(m.date).getTime();
+    const now = Date.now();
+
+    if (now > matchTime - margin) {
+      console.log('🚫 Bonus déjà validé et un des matchs est commencé → modification interdite', matchId);
+      setShowOffside(true);
+      return;
+    }
   }
 }
+
 
       // 3) Vérifie si le match concerné par le bonus est déjà commencé
 const matchesToCheck =
@@ -662,30 +685,48 @@ for (const matchId of matchesToCheck) {
   const handleBonusDelete = async () => {
     if (!openedBonus || !user) return;
 
-    // 🔵 Récupère le bonus déjà joué pour cette grille
+    // 🔍 Récupère le bonus posé pour cette grille
     const placedBonus = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
     if (!placedBonus) return;
 
-    const matchId = placedBonus.match_id;
-    const m = matches.find(m => m.id === matchId);
-    if (!m || !('date' in m)) return;
-
-    const matchTime = new Date(m.date).getTime(); // 🔁 on utilise bien "date"
-    const now = Date.now();
     const margin = 60 * 1000;
+    let matchIdsToCheck: string[] = [];
 
-    console.log('⏱ Test horaire dans handleBonusDelete :', {
-      bonus: openedBonus.code,
-      match_id: matchId,
-      kickoff: m.date,
-      now: new Date(),
-      parsed: matchTime
-    });
+    // 🧠 Cas particulier RIBERY
+    if (
+      openedBonus.code === 'RIBERY' &&
+      'match_win' in placedBonus.parameters &&
+      'match_zero' in placedBonus.parameters
+    ) {
+      matchIdsToCheck = [
+        placedBonus.parameters.match_win,
+        placedBonus.parameters.match_zero
+      ];
+    } else {
+      matchIdsToCheck = [placedBonus.match_id];
+    }
 
-    if (now > matchTime - margin) {
-      setShowOffside(true);
-      console.log('🚫 pop-up OFFSIDE déclenché (delete bonus) !');
-      return;
+    // 🔎 Vérifie l'heure de tous les matchs concernés
+    for (const matchId of matchIdsToCheck) {
+      const m = matches.find(m => m.id === matchId);
+      if (!m || !('date' in m)) continue;
+
+      const matchTime = new Date(m.date).getTime();
+      const now = Date.now();
+
+      console.log('⏱ Test horaire dans handleBonusDelete :', {
+        bonus: openedBonus.code,
+        match_id: matchId,
+        kickoff: m.date,
+        now: new Date(),
+        parsed: matchTime
+      });
+
+      if (now > matchTime - margin) {
+        setShowOffside(true);
+        console.log('🚫 pop-up OFFSIDE déclenché (delete bonus) !');
+        return;
+      }
     }
 
     try {
