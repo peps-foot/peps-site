@@ -168,9 +168,6 @@ export default function ProfilPage() {
             {isSaving ? 'Chargement...' : 'Valider les changements'}
           </button>
         </div>
-
-        <div className="mt-10 text-center text-sm text-gray-700">
-          Pour nous contacter : <a href="mailto:hello@peps-foot.com" className="text-blue-600 underline">hello@peps-foot.com</a>
           <div className="mt-6">
             <button
               onClick={handleSignOut}
@@ -181,6 +178,5 @@ export default function ProfilPage() {
           </div>
         </div>
       </div>
-    </div>
   )
 }
