@@ -56,8 +56,8 @@ export default function ReglesPage() {
         <ul className="list-disc pl-5 mb-4">
           <li>J1 =&gt; J9 : Compet d’Été</li>
           <li>J10 =&gt; J17 + CDF : Compet d’Automne</li>
-          <li>J18 =&gt; J26 + CDF : Compet d’Hiver</li>
-          <li>J27 =&gt; J34 : Compet de Printemps</li>
+          <li>J18 =&gt; J25 + CDF : Compet d’Hiver</li>
+          <li>J26 =&gt; J34 : Compet de Printemps</li>
         </ul>
 
         <p>
