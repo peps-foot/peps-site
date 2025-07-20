@@ -48,8 +48,8 @@ export default function ReglesConnexion() {
             <li>En dessous, tu verras en live les points que tu gagnes, de quoi vibrer pendant tout le match.</li>
           </ul>
 
-          <p className="mb-2"><strong>Une GRILLE</strong> est composée de plusieurs <strong>MATCHS</strong>, généralement ceux d’une journée de Ligue 1.</p>
-          <p className="mb-4"><strong>Une COMPET</strong> regroupe plusieurs GRILLES. Elle peut se jouer en mode <strong>CLASSIC</strong> ou en mode <strong>TOURNOI</strong>.</p>
+          <p className="mb-2">Une <strong>GRILLE</strong> est composée de plusieurs <strong>MATCHS</strong>, généralement ceux d’une journée de Ligue 1.</p>
+          <p className="mb-4">Une <strong>COMPET</strong> regroupe plusieurs GRILLES. Elle peut se jouer en mode <strong>CLASSIC</strong> ou en mode <strong>TOURNOI</strong>.</p>
       </RuleSection>
 
       <RuleSection title="Les 4 règles principales" iconSrc="/images/regles/etoile.png" type="default">

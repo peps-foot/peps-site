@@ -30,6 +30,7 @@ export function NavBar() {
     { label: 'CLASSEMENT', href: '/classement' },
     { label: 'RÈGLES', href: '/regles' },
     { label: 'PROFIL', href: '/profil' },
+    { label: 'PEPS+', href: '/peps-plus' },
   ];
 
   if (!isClient) return null;
