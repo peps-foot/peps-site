@@ -6,37 +6,23 @@ export default function PepsPlusPage() {
     <main className="max-w-3xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6 text-center">PEPS+</h1>
 
-      <RuleSection
-        title="Contact"
-        iconSrc="/images/regles/contact.png"
-        type="default"
-      >
-        <p>Adresse email : <strong>hello@peps-foot.com</strong></p>
+      <RuleSection title="Contact" iconSrc="/images/regles/contact.png" type="default">
+        <p>Adresse email :{" "}
+            <a href="mailto:hello@peps-foot.com" className="text-blue-600 underline">hello@peps-foot.com</a>
+        </p>
         <p>N’hésitez pas à nous écrire pour toute question ou retour sur le jeu !</p>
       </RuleSection>
 
-      <RuleSection
-        title="Site web"
-        iconSrc="/images/regles/web.png"
-        type="default"
-      >
+      <RuleSection title="Site web" iconSrc="/images/regles/web.png" type="default" >
         <p>Accès direct au site : <a href="https://www.peps-foot.com" target="_blank" className="text-blue-600 underline">www.peps-foot.com</a></p>
       </RuleSection>
 
-      <RuleSection
-        title="Application mobile"
-        iconSrc="/images/regles/mobile.png"
-        type="default"
-      >
-        <p><strong>Android :</strong> à venir très bientôt (dispo prévue pour le 17 août)</p>
-        <p><strong>iOS :</strong> en attente — utilisez la version web ci-dessous</p>
+      <RuleSection title="Application mobile" iconSrc="/images/regles/mobile.png" type="default">
+        <p><strong>Android :</strong> à venir très bientôt...</p>
+        <p><strong>iOS :</strong> à venir plus tard, utilisez l'appli web ci-dessous</p>
       </RuleSection>
 
-      <RuleSection
-        title="Installer PEPS sur iOS"
-        iconSrc="/images/regles/ios.png"
-        type="default"
-      >
+      <RuleSection title="Installer PEPS sur iOS" iconSrc="/images/regles/ios.png" type="default">
         <ol className="list-decimal pl-5 space-y-1">
           <li>Ouvrez Safari sur votre iPhone</li>
           <li>Allez sur <a href="https://www.peps-foot.com" className="text-blue-600 underline">www.peps-foot.com</a></li>
@@ -46,11 +32,7 @@ export default function PepsPlusPage() {
         </ol>
       </RuleSection>
 
-      <RuleSection
-        title="Notifications"
-        iconSrc="/images/regles/notif.png"
-        type="default"
-      >
+      <RuleSection title="Notifications" iconSrc="/images/regles/notif.png" type="default">
         <p>Cette fonctionnalité est en chantier. Les notifications push seront disponibles prochainement !</p>
       </RuleSection>
     </main>
