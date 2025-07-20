@@ -533,36 +533,37 @@ export default function HomePage() {
       };
 
       // 3) Vérifie si le match concerné par le bonus est déjà commencé
-const matchIdToCheck =
-  openedBonus.code === 'RIBERY' ? popupMatch1 :
-  openedBonus.code === 'ZLATAN' ? popupMatch1 :
-  openedBonus.code === 'KANTE' ? popupMatch1 :
-  null;
+const matchesToCheck =
+  openedBonus.code === 'RIBERY' ? [popupMatch1, popupMatch0] :
+  openedBonus.code === 'ZLATAN' ? [popupMatch1] :
+  openedBonus.code === 'KANTE' ? [popupMatch1] :
+  [];
 
-if (!matchIdToCheck) {
-  console.log('⛔ Aucun match à vérifier pour le bonus', openedBonus.code);
+if (matchesToCheck.length === 0 || matchesToCheck.includes('')) {
+  console.log('⛔ Match manquant pour la vérification du bonus', openedBonus.code);
   return;
 }
 
-const m = matches.find(m => m.id === matchIdToCheck);
+for (const matchId of matchesToCheck) {
+  const m = matches.find(m => m.id === matchId);
+  if (!m || !('date' in m)) return;
 
-if (!m || !('date' in m)) return;
-const matchTime = new Date(m.date).getTime();
-const now = Date.now();
-const margin = 60 * 1000;
+  const matchTime = new Date(m.date).getTime();
+  const now = Date.now();
+  const margin = 60 * 1000;
 
-console.log('⏱ Test horaire dans handleBonusValidate :', {
-  bonus: openedBonus.code,
-  match_id: matchIdToCheck,
-  kickoff: m.date,
-  now: new Date(),
-  parsed: matchTime
-});
+  console.log('⏱ Vérification Ribéry :', {
+    match_id: matchId,
+    kickoff: m.date,
+    now: new Date(),
+    parsed: matchTime
+  });
 
-if (now > matchTime - margin) {
-  setShowOffside(true);
-  console.log('🚫 pop-up OFFSIDE déclenché !');
-  return;
+  if (now > matchTime - margin) {
+    setShowOffside(true);
+    console.log('🚫 pop-up OFFSIDE déclenché sur match :', matchId);
+    return;
+  }
 }
 
       // 4) Logique spécifique à chaque bonus
