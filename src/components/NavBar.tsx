@@ -23,7 +23,7 @@ export function NavBar() {
     setIsClient(true);
   }, []);
 
-  const compName = 'PEPS TEST';
+  const compName = 'GRILLE';
 
   const tabs: Tab[] = [
     { label: compName, href: '/a033d6cf-7108-4f92-8f71-1d2b428d11f2' },

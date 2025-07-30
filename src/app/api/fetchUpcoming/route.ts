@@ -12,7 +12,7 @@ export async function GET() {
 
   logs.push('🟠 Lancement de fetchUpcoming');
 
-  const leagueIds = [2, 3];
+  const leagueIds = [667];
   const allFixtures: any[] = [];
 
   for (const leagueId of leagueIds) {
@@ -32,99 +32,65 @@ export async function GET() {
       logs.push(`⚠️ Aucun match pour league ${leagueId}`);
     }
 
-    await new Promise((r) => setTimeout(r, 250)); // pour éviter de spammer l’API
+    await new Promise((r) => setTimeout(r, 250));
   }
 
-  const fixtures = allFixtures;
-  logs.push(`🟢 ${fixtures.length} matchs au total récupérés`);
+  logs.push(`🟢 ${allFixtures.length} matchs au total récupérés`);
 
-  // 🧠 Étape : insérer les équipes manquantes dans la table "teams"
-  const allTeamsMap = new Map<number, { id: number, name: string, short_name: string }>();
-
-  for (const match of fixtures) {
-    const home = match.teams.home;
-    const away = match.teams.away;
-
-    if (home?.id) {
-      allTeamsMap.set(home.id, {
-        id: home.id,
-        name: home.name,
-        short_name: home.name.slice(0, 15) // ou toute autre logique
-      });
-    }
-
-    if (away?.id) {
-      allTeamsMap.set(away.id, {
-        id: away.id,
-        name: away.name,
-        short_name: away.name.slice(0, 15)
-      });
-    }
-  }
-
-  const allTeams = Array.from(allTeamsMap.values());
-
-  const { data: existingTeams, error: teamSelectError } = await supabase
+  // 🔍 On récupère les équipes déjà présentes dans la table teams
+  const { data: teamIdsInDb, error: fetchTeamsErr } = await supabase
     .from('teams')
     .select('id');
 
-  if (teamSelectError) {
-    logs.push(`❌ Erreur récupération équipes existantes : ${teamSelectError.message}`);
+  if (fetchTeamsErr || !teamIdsInDb) {
+    logs.push('❌ Erreur récupération des teams en BDD avant insertion matchs');
     return NextResponse.json({ ok: false, logs });
   }
 
-  const existingIds = new Set(existingTeams?.map(t => t.id));
-  const newTeams = allTeams.filter(t => !existingIds.has(t.id));
+  const validTeamIds = new Set(teamIdsInDb.map(t => t.id));
 
-  if (newTeams.length > 0) {
-    const { error: teamInsertError } = await supabase
-      .from('teams')
-      .insert(newTeams);
+  // 🎯 On filtre les matchs à insérer
+  const matchesToInsert = allFixtures
+    .filter((m: any) =>
+      m.fixture.status.short === 'NS' &&
+      new Date(m.fixture.date) > new Date() &&
+      validTeamIds.has(m.teams.home.id) &&
+      validTeamIds.has(m.teams.away.id)
+    )
+    .map((item: any) => ({
+      fixture_id: item.fixture.id,
+      date: item.fixture.date,
+      league_id: item.league.id,
+      league_name: item.league.name,
+      home_team: item.teams.home.name,
+      away_team: item.teams.away.name,
+      team_home_id: item.teams.home.id,
+      team_away_id: item.teams.away.id,
+      status: item.fixture.status.short,
+      score_home: item.goals.home,
+      score_away: item.goals.away,
+      is_locked: false
+    }));
 
-    if (teamInsertError) {
-      logs.push(`❌ Erreur insertion équipes : ${teamInsertError.message}`);
-      return NextResponse.json({ ok: false, logs });
-    }
-
-    logs.push(`✅ ${newTeams.length} nouvelles équipes insérées`);
-  } else {
-    logs.push(`ℹ️ Aucune nouvelle équipe à insérer`);
-  }
-
-  // 🏟 Insertion ou mise à jour des matchs
-  const matchData = fixtures.map((item: any) => ({
-    fixture_id: item.fixture.id,
-    date: item.fixture.date,
-    league_id: item.league.id,
-    league_name: item.league.name,
-    home_team: item.teams.home.name,
-    away_team: item.teams.away.name,
-    team_home_id: item.teams.home.id,
-    team_away_id: item.teams.away.id,
-    status: item.fixture.status.short,
-    score_home: item.goals.home,
-    score_away: item.goals.away,
-    is_locked: false,
-  }));
+  logs.push(`🧹 ${matchesToInsert.length} matchs à insérer (NS et à venir)`);
 
   const { error: insertError } = await supabase
     .from('matches')
-    .upsert(matchData, { onConflict: 'fixture_id', ignoreDuplicates: true });
+    .upsert(matchesToInsert, { onConflict: 'fixture_id' });
 
   if (insertError) {
     logs.push(`❌ Erreur insertion matches : ${insertError.message}`);
     return NextResponse.json({ ok: false, logs });
   }
 
-  logs.push(`✅ Insertion / mise à jour des matchs terminée`);
+  logs.push('✅ Insertion / mise à jour des matchs terminée');
 
-  // 🎯 Récupération et insertion des cotes
+  // 🧮 Insertion des cotes (si disponibles)
   let oddsInserted = 0;
   let oddsSkipped = 0;
 
-  for (const match of fixtures) {
-    const fixtureId = match.fixture.id;
-
+  for (const match of matchesToInsert) {
+    const fixtureId = match.fixture_id;
     logs.push(`🔍 Traitement des cotes pour fixture ${fixtureId}`);
 
     try {
@@ -145,7 +111,6 @@ export async function GET() {
         continue;
       }
 
-      logs.push(`📡 Appel API odds pour fixture ${fixtureId}`);
       const oddsRes = await fetch(`https://v3.football.api-sports.io/odds?fixture=${fixtureId}`, {
         headers: { 'x-apisports-key': API_KEY }
       });
@@ -192,7 +157,6 @@ export async function GET() {
       }
 
       await new Promise((r) => setTimeout(r, 300));
-
     } catch (e: any) {
       logs.push(`❌ Exception lors du traitement odds match ${fixtureId} : ${e.message}`);
     }
@@ -202,7 +166,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    inserted_matches: fixtures.length,
+    inserted_matches: matchesToInsert.length,
     inserted_odds: oddsInserted,
     skipped_odds: oddsSkipped,
     logs
