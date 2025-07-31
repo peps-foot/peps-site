@@ -43,7 +43,7 @@ export default function ConnexionPage() {
       if (userEmail === 'admin@peps.foot') {
         router.push('/admin/grids');
       } else {
-        router.push('/a033d6cf-7108-4f92-8f71-1d2b428d11f2');
+        router.push('/');
       }
     }, 200);
   }

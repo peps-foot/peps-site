@@ -11,6 +11,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { useSupabase } from '../../components/SupabaseProvider'
 import { useRouter, useSearchParams, useParams} from 'next/navigation';
+import supabase from '../../lib/supabaseBrowser';
 
 const bonusLogos: Record<string,string> = {
   "KANTE": '/images/kante.png',
@@ -56,8 +57,10 @@ export default function HomePage() {
   const router        = useRouter();
   const params = useParams();
   const competitionId = params?.competitionId as string;
+  console.log("🔍 competitionId reçu :", competitionId);
+
   const [showOffside, setShowOffside] = useState(false);
-  const pathname = '/' + competitionId; // usePathname (supprimé)();
+  const pathname = '/' + competitionId;
   // 👉 Change l’index ET met à jour l’URL en shallow routing
   const goToPage = (i: number) => {    setCurrentIdx(i);
     // Reconstruit les params en conservant les autres éventuels
@@ -113,6 +116,30 @@ export default function HomePage() {
     // Fallback
     return { label: s, color: 'text-gray-400' };
   };
+
+  // ✅ Redirection vers la bonne compet
+useEffect(() => {
+  const fetchGrids = async () => {
+    const { data, error } = await supabase
+      .from('competition_grids')
+      .select('grids (id, title, description, allowed_bonuses)')
+      .eq('competition_id', competitionId);
+
+    if (error) {
+      console.error('Erreur fetch grids:', error);
+    } else {
+      // 🔧 aide TypeScript en déclarant le type exact
+      const mappedGrids: Grid[] = (data ?? [])
+        .map((entry) => entry.grids as Grid)
+        .filter((grid): grid is Grid => !!grid); // supprime les éventuels null
+
+      setGrids(mappedGrids);
+      console.log('✅ Grilles chargées :', mappedGrids);
+    }
+  };
+
+  fetchGrids();
+}, [competitionId]);
 
   // ✅ Mise à jour unique des points au premier affichage
   useEffect(() => {

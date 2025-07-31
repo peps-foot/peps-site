@@ -1,69 +1,114 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useSupabase } from './SupabaseProvider';
-import { useEffect, useState } from 'react';
 
-console.log('[NavBar] rendu');
-
-type Tab = {
+type MenuItem = {
   label: string;
-  href?: string;
-  onClick?: () => void;
+  href: string;
 };
 
 export function NavBar() {
-  const supabase = useSupabase();
   const pathname = usePathname();
-  const router = useRouter();
-
   const [isClient, setIsClient] = useState(false);
+  const [showLeftMenu, setShowLeftMenu] = useState(false);
+  const [showRightMenu, setShowRightMenu] = useState(false);
+  const leftMenuRef = useRef<HTMLDivElement>(null);
+  const rightMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const compName = 'GRILLE';
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        leftMenuRef.current &&
+        !leftMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowLeftMenu(false);
+      }
 
-  const tabs: Tab[] = [
-    { label: compName, href: '/a033d6cf-7108-4f92-8f71-1d2b428d11f2' },
-    { label: 'CLASSEMENT', href: '/classement' },
-    { label: 'RÈGLES', href: '/regles' },
+      if (
+        rightMenuRef.current &&
+        !rightMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowRightMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const leftMenu: MenuItem[] = [
+    { label: 'ACCUEIL', href: '/' },
+    { label: 'COMPET 1', href: '/compet-1' },
+    { label: 'COMPET 2', href: '/compet-2' },
+    { label: 'COMPET 3', href: '/compet-3' },
+  ];
+
+  const rightMenu: MenuItem[] = [
     { label: 'PROFIL', href: '/profil' },
+    { label: 'RÈGLES', href: '/regles' },
     { label: 'PEPS+', href: '/peps-plus' },
   ];
 
   if (!isClient) return null;
 
-return (
-  <nav className="flex h-12 w-full">
-  {tabs.map((tab) => {
-    const safePath = pathname ?? '';
-    const href = tab.href ?? '';
+  const allItems = [...leftMenu, ...rightMenu];
+  const currentItem = allItems.find(item => pathname.startsWith(item.href));
+  const currentLabel = currentItem?.label || '';
 
-    // Cas UUID : la homepage = /[competitionId]
-    const isUUID = /^[0-9a-fA-F-]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
-      safePath.replace('/', '')
-    );
+  return (
+    <nav className="relative flex items-center justify-between h-12 w-full bg-orange-500 text-white px-4 z-50">
+      {/* Burger gauche */}
+      <div className="relative" ref={leftMenuRef}>
+        <button onClick={() => setShowLeftMenu(!showLeftMenu)} className="text-xl">
+          ☰
+        </button>
+        {showLeftMenu && (
+          <div className="absolute left-0 top-12 bg-white text-black rounded shadow min-w-max z-10">
+            {leftMenu.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setShowLeftMenu(false)}
+                className="block px-6 py-2 hover:bg-gray-100 flex items-center justify-between gap-2 whitespace-nowrap"
+              >
+                {item.label}
+                <span className="text-sm text-gray-400">›</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
-    const active =
-      (href === '/' && isUUID) ||
-      (href !== '/' && safePath.startsWith(href));
+      {/* Nom de la page active */}
+      <div className="font-semibold text-sm truncate">{currentLabel}</div>
 
-    const base =
-      'flex-1 flex items-center justify-center font-medium text-sm h-full transition-all';
-    const color = active ? 'bg-black text-white' : 'bg-orange-500 text-white';
-
-    return (
-      <Link
-        key={tab.label}
-        href={href}
-        className={`${base} ${color}`}
-      >
-        {tab.label}
-      </Link>
-    );
-  })}
-</nav>
-);
+      {/* Burger droit */}
+      <div className="relative" ref={rightMenuRef}>
+        <button onClick={() => setShowRightMenu(!showRightMenu)} className="text-xl">
+          ☰
+        </button>
+        {showRightMenu && (
+          <div className="absolute right-0 top-12 bg-white text-black rounded shadow min-w-max z-10">
+            {rightMenu.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setShowRightMenu(false)}
+                className="block px-6 py-2 hover:bg-gray-100 flex items-center justify-between gap-2 whitespace-nowrap"
+              >
+                {item.label}
+                <span className="text-sm text-gray-400">›</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </nav>
+  );
 }

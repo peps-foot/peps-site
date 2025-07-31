@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSupabase } from '@/components/SupabaseProvider'
+import { useSupabase } from '../../components/SupabaseProvider'
 import { useRouter } from 'next/navigation';
 
 export default function Inscription() {
