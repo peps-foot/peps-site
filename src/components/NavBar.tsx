@@ -3,6 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import supabase from '../lib/supabaseBrowser';
+
+type Competition = {
+  id: string;
+  name: string;
+};
 
 type MenuItem = {
   label: string;
@@ -42,12 +48,31 @@ export function NavBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const leftMenu: MenuItem[] = [
-    { label: 'ACCUEIL', href: '/' },
-    { label: 'COMPET 1', href: '/compet-1' },
-    { label: 'COMPET 2', href: '/compet-2' },
-    { label: 'COMPET 3', href: '/compet-3' },
-  ];
+  const [leftMenu, setLeftMenu] = useState<MenuItem[]>([]);
+  useEffect(() => {
+    const fetchCompetitions = async () => {
+      const { data, error } = await supabase
+        .from('competitions')
+        .select('id, name');
+
+      if (error) {
+        console.error('Erreur récupération compétitions :', error);
+        return;
+      }
+
+      const menuItems: MenuItem[] = [
+        { label: 'ACCUEIL', href: '/' },
+        ...(data ?? []).map((comp: Competition) => ({
+          label: comp.name,
+          href: `/${comp.id}`,
+        })),
+      ];
+
+      setLeftMenu(menuItems);
+    };
+
+    fetchCompetitions();
+  }, []);
 
   const rightMenu: MenuItem[] = [
     { label: 'PROFIL', href: '/profil' },
@@ -58,7 +83,10 @@ export function NavBar() {
   if (!isClient) return null;
 
   const allItems = [...leftMenu, ...rightMenu];
-  const currentItem = allItems.find(item => pathname.startsWith(item.href));
+  const currentItem = allItems
+  .sort((a, b) => b.href.length - a.href.length) // trie du plus spécifique au plus générique
+  .find(item => pathname.startsWith(item.href));
+
   const currentLabel = currentItem?.label || '';
 
   return (

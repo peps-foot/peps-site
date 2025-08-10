@@ -5,6 +5,13 @@ type BonusParameters =
   | { match_win: string; match_zero: string } // Ribéry
   | { pick: string };           // Zlatan
 
+type LeaderboardRow = {
+  user_id: string;
+  username: string;
+  total_points: number;
+  rank: number;
+};
+
 import type { User } from '@supabase/supabase-js';
 import type { Grid, Match, GridBonus, BonusDef, GridWithItems, MatchWithState, RawMatchRow } from '../../lib/types';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -21,6 +28,13 @@ const bonusLogos: Record<string,string> = {
 };
 
 export default function HomePage() {
+
+  //pour les classements
+  const [lbRows, setLbRows] = useState<LeaderboardRow[]>([]);
+  const [lbLoading, setLbLoading] = useState(false);
+  const [myRank, setMyRank] = useState<number | null>(null);
+  const [totalPlayers, setTotalPlayers] = useState(0);
+
   const supabase = useSupabase()
   // 👉 État principal de l'utilisateur connecté (renseigné au chargement)
   const [user, setUser] = useState<User | null>(null);
@@ -48,6 +62,18 @@ export default function HomePage() {
   const [popupPick, setPopupPick] = useState<'1' | 'N' | '2'>('1');
   // 👉 Gestion de navigation entre les grilles
   const searchParams  = useSearchParams();
+  type View = 'grid' | 'rankGrid' | 'rankGeneral';
+
+  const viewParam = (searchParams?.get('view') as View) || 'grid';
+  const [view, setView] = useState<View>(viewParam);
+
+  const setViewAndURL = (v: View) => {
+    setView(v);
+    const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
+    params.set('view', v);
+    router.replace(`/${competitionId}?${params.toString()}`);
+  };
+
   const pageParam = searchParams?.get('page');
   const initialPage = pageParam ? Number(pageParam) : 0;
   const [currentIdx, setCurrentIdx] = useState(initialPage);
@@ -62,11 +88,14 @@ export default function HomePage() {
   const [showOffside, setShowOffside] = useState(false);
   const pathname = '/' + competitionId;
   // 👉 Change l’index ET met à jour l’URL en shallow routing
-  const goToPage = (i: number) => {    setCurrentIdx(i);
-    // Reconstruit les params en conservant les autres éventuels
-    const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
-    params.set('page', String(i));
-    router.replace(`${'/' + competitionId}?${params.toString()}`);}
+const goToPage = (i: number) => {
+  setCurrentIdx(i);
+  const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
+  params.set('page', String(i));
+  params.set('view', view); // ✅ garder la vue active
+  router.replace(`/${competitionId}?${params.toString()}`);
+};
+
   // 👉 Fonctions de navigation
   const prevGrid = () => {
     if (currentIdx > 0) goToPage(currentIdx - 1); // ← vers grille précédente
@@ -117,29 +146,83 @@ export default function HomePage() {
     return { label: s, color: 'text-gray-400' };
   };
 
+  //pour l'affichage des classements
+  async function fetchGeneralLeaderboard() {
+    if (!competitionId) return;
+    setLbLoading(true); setLbRows([]); setMyRank(null);
+
+    const { data, error } = await supabase.rpc('get_leaderboard_general', {
+      p_competition_id: competitionId,
+    });
+
+    setLbLoading(false);
+    if (error || !data) return;
+
+    const rows = data as LeaderboardRow[];
+    setLbRows(rows);
+    setTotalPlayers(rows.length);
+    setMyRank(rows.find(r => r.user_id === user?.id)?.rank ?? null);
+  }
+
+  async function fetchLeaderboardByGrid() {
+    const gridId = grids[currentIdx]?.id;
+    if (!gridId) return;
+
+    setLbLoading(true); setLbRows([]); setMyRank(null);
+
+    const { data, error } = await supabase.rpc('get_leaderboard_by_grid', {
+      p_grid_id: gridId,
+    });
+
+    setLbLoading(false);
+    if (error || !data) return;
+
+    const rows = data as LeaderboardRow[];
+    setLbRows(rows);
+    setTotalPlayers(rows.length);
+    setMyRank(rows.find(r => r.user_id === user?.id)?.rank ?? null);
+  }
+
+  //Gestion de la view
+  useEffect(() => {
+    if (view === 'rankGeneral') fetchGeneralLeaderboard();
+    if (view === 'rankGrid')    fetchLeaderboardByGrid();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, competitionId, currentIdx, grids]);
+
   // ✅ Redirection vers la bonne compet
-useEffect(() => {
-  const fetchGrids = async () => {
-    const { data, error } = await supabase
-      .from('competition_grids')
-      .select('grids (id, title, description, allowed_bonuses)')
-      .eq('competition_id', competitionId);
+  useEffect(() => {
+    const fetchGrids = async () => {
+      const { data, error } = await supabase
+        .from('competition_grids')
+        .select('grids!inner(id, title, description, allowed_bonuses)')
+        .eq('competition_id', competitionId);
 
-    if (error) {
-      console.error('Erreur fetch grids:', error);
-    } else {
-      // 🔧 aide TypeScript en déclarant le type exact
-      const mappedGrids: Grid[] = (data ?? [])
-        .map((entry) => entry.grids as Grid)
-        .filter((grid): grid is Grid => !!grid); // supprime les éventuels null
+      if (error) {
+        console.error('Erreur fetch grids:', error);
+      } else {
+  const mappedGrids: GridWithItems[] = (data ?? [])
+    .map((entry) => {
+      const g = entry.grids as unknown as Grid;
 
-      setGrids(mappedGrids);
-      console.log('✅ Grilles chargées :', mappedGrids);
-    }
-  };
+      return {
+        id: g.id,
+        title: g.title,
+        description: g.description,
+        allowed_bonuses: g.allowed_bonuses ?? [],
+        grid_items: [],
+      } satisfies GridWithItems;
+    });
 
-  fetchGrids();
-}, [competitionId]);
+
+
+        setGrids(mappedGrids);
+        console.log('✅ Grilles chargées :', mappedGrids);
+      }
+    };
+
+    fetchGrids();
+  }, [competitionId]);
 
   // ✅ Mise à jour unique des points au premier affichage
   useEffect(() => {
@@ -195,19 +278,32 @@ useEffect(() => {
       }
 
       setUser(user); // ✅ On stocke le user proprement
-      await loadUserGrids(user.id); // 🎯 Charge les grilles de l'utilisateur (avec picks et points)
+      await loadUserGrids(user.id, competitionId); // 🎯 Charge les grilles de l'utilisateur (avec picks et points)
     };
 
     initAndLoad();
   }, []);
 
-  // 📦 Charge toutes les grilles et les matchs d’un joueur, avec ses picks et ses points
-  async function loadUserGrids(userId: string, initialIdx?: number) {
+  // 📦 Charge toutes les grilles et matchs d’un joueur, LIMITÉ à la compétition active
+  async function loadUserGrids(userId: string, competitionId: string, initialIdx?: number) {
     let finalGrids: { grid: GridWithItems; matches: MatchWithState[] }[] = [];
     try {
       setLoadingGrids(true);
 
-      // 1. Requête : grid_matches du joueur, avec matches + grille
+      // 0) IDs des grilles de la compétition
+      const { data: cgIds, error: cgErr } = await supabase
+        .from('competition_grids')
+        .select('grid_id')
+        .eq('competition_id', competitionId);
+
+      if (cgErr || !cgIds?.length) {
+        setError("Aucune grille pour cette compétition.");
+        setLoadingGrids(false);
+        return;
+      }
+      const gridIds = cgIds.map(g => g.grid_id);
+
+      // 1) grid_matches du joueur, mais UNIQUEMENT pour ces grilles 🔒
       const { data: matchData, error: matchError } = await supabase
         .from("grid_matches")
         .select(`
@@ -216,34 +312,18 @@ useEffect(() => {
           pick,
           points,
           matches (
-            id,
-            date,
-            home_team,
-            away_team,
-            fixture_id,
-            league_id,
-            base_1_points,
-            base_n_points,
-            base_2_points,
-            score_home,
-            score_away,
-            status,
-            is_locked,
-            odd_1_snapshot,
-            odd_n_snapshot,
-            odd_2_snapshot,
-            short_name_home,
-            short_name_away
+            id, date, home_team, away_team, fixture_id, league_id,
+            base_1_points, base_n_points, base_2_points,
+            score_home, score_away, status, is_locked,
+            odd_1_snapshot, odd_n_snapshot, odd_2_snapshot,
+            short_name_home, short_name_away
           ),
-          grids (
-            id,
-            title,
-            description,
-            allowed_bonuses
-          )
+          grids ( id, title, description, allowed_bonuses )
         `)
-        .eq("user_id", userId);
-        setLastMatchData(matchData as RawMatchRow[]);
+        .eq("user_id", userId)
+        .in("grid_id", gridIds);   // ✅ filtre compétition
+
+      setLastMatchData(matchData as RawMatchRow[]);
 
       if (matchError || !matchData) {
         setError("Erreur chargement grilles.");
@@ -251,9 +331,8 @@ useEffect(() => {
         return;
       }
 
-      // 2. Regrouper les matchs par grille
+      // 2) Regrouper par grille (identique à ton code)
       const groupedByGrid: Record<string, { grid: Grid; matches: MatchWithState[] }> = {};
-
       for (const row of matchData) {
         const gridId = row.grid_id;
         const g = row.grids as unknown as Grid;
@@ -270,7 +349,7 @@ useEffect(() => {
             matches: [],
           };
         }
-        
+
         groupedByGrid[gridId].matches.push({
           ...m,
           pick: row.pick ?? undefined,
@@ -278,12 +357,9 @@ useEffect(() => {
         });
       }
 
-      // 3. Créer la liste finale triée
+      // 3) Liste finale + tri (identique)
       finalGrids = Object.values(groupedByGrid)
-        .map((entry) => ({
-          grid: entry.grid as GridWithItems,
-          matches: entry.matches,
-        }))
+        .map((entry) => ({ grid: entry.grid as GridWithItems, matches: entry.matches }))
         .sort((a, b) => {
           const numA = parseInt(a.grid.title.split(' ')[1]);
           const numB = parseInt(b.grid.title.split(' ')[1]);
@@ -291,18 +367,17 @@ useEffect(() => {
         });
 
       const firstGridId = finalGrids[0]?.grid.id;
-      const firstMatches = (groupedByGrid[firstGridId]?.matches ?? []).sort((a, b) =>
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      const firstMatches = (groupedByGrid[firstGridId]?.matches ?? [])
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      // 4. Mise à jour du state
+      // 4) Mise à jour du state
       setGrids(finalGrids.map(f => f.grid));
       setMatches(firstMatches);
 
     } catch (e) {
       setError("Erreur lors du chargement des grilles");
     } finally {
-      // 🎯 Sélection grille : soit forcer un index, soit logique normale
+      // Sélection de la grille (identique)
       if (typeof initialIdx === 'number') {
         if (initialIdx !== currentIdx) goToPage(initialIdx);
       } else {
@@ -310,15 +385,9 @@ useEffect(() => {
         let chosenIdx = finalGrids.findIndex(({ matches }) =>
           matches.some(m => m.status === 'NS' && new Date(m.date) > now)
         );
-
-        if (chosenIdx === -1) {
-          chosenIdx = finalGrids.length - 1;
-        }
-
+        if (chosenIdx === -1) chosenIdx = finalGrids.length - 1;
         if (chosenIdx !== currentIdx) goToPage(chosenIdx);
       }
-
-      // ✅ Termine le chargement
       setLoadingGrids(false);
     }
   }
@@ -800,70 +869,182 @@ return (
       <>
     <main className="w-full px-2 sm:px-4 py-8">
       {/* 1) ZONE D’INFORMATION PLEIN LARGEUR */}
-  <section className="w-full mb-8">
-    <div className="bg-white rounded-lg p-6 shadow flex flex-col md:flex-row items-center">
-      
-      {/* 1) NAVIGATION GRILLES (← title →) */}
-      <div className="w-full md:w-1/3 flex items-center justify-center space-x-4 mb-4 md:mb-0">
-      {/* ← Précédent */}
-      <button
-        onClick={prevGrid}
-        disabled={currentIdx === 0}
-        className="bg-[#212121] hover:bg-gray-800 text-white rounded-full p-2 disabled:opacity-30 disabled:cursor-not-allowed"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
+        {/* Bandeau info : desktop = 1 ligne / mobile = 2 lignes */}
+        <section className="w-full mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* Nom de la grille courante */}
-        <span className="text-2xl font-semibold">
-          {currentGrid?.title || "Chargement..."}
-        </span>
+            {/* A) NAVIGATION GRILLES */}
+            <div className="border rounded-lg p-4 flex items-center justify-center gap-4">
+              {/* ← Précédent */}
+              <button
+                onClick={prevGrid}
+                disabled={currentIdx === 0}
+                className="bg-[#212121] hover:bg-gray-800 text-white rounded-full p-2 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Grille précédente"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
 
-        {/* → Suivant */}
-        <button
-          onClick={nextGrid}
-          disabled={currentIdx === grids.length - 1}
-          className="bg-[#212121] hover:bg-gray-800 text-white rounded-full p-2 disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
+              <span className="text-2xl font-semibold">
+                {currentGrid?.title || "Chargement..."}
+              </span>
 
-      {/* 2) POINTS */}
-      <div className="w-full md:w-1/3 text-center mb-4 md:mb-0">
-        <span className="text-lg font-semibold">POINTS :</span>
-        <span className="ml-2 text-gray-600">{totalPoints}</span>
-      </div>
+              {/* → Suivante */}
+              <button
+                onClick={nextGrid}
+                disabled={currentIdx === grids.length - 1}
+                className="bg-[#212121] hover:bg-gray-800 text-white rounded-full p-2 disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Grille suivante"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
 
-      {/* 3) DESCRIPTION DE LA GRILLE */}
-      <div className="w-full md:w-1/3 flex justify-center">
-        <p className="text-center md:text-justify text-gray-700 max-w-md">
-          {currentGrid?.description || "Chargement..."}
-        </p>
-      </div>
-    </div>
-  </section>
+            {/* B) 1N2 • POINTS • PODIUM • STATS */}
+            <div className="border rounded-lg p-4 flex items-center justify-center gap-4">
+              {/* 1) Aller à la GRILLE */}
+              <button
+                onClick={() => setViewAndURL('grid')}
+                className={`w-12 h-12 rounded-full border flex items-center justify-center transition hover:opacity-90 ${view==='grid' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                title="Voir la grille"
+                aria-pressed={view==='grid'}
+              >
+                {/* Remplace par ton icône */}
+                {/* <Image src="/icons/1n2.png" alt="1N2" width={28} height={28} /> */}
+                <span className="text-sm font-semibold">1N2</span>
+              </button>
+
+              {/* 2) POINTS (non cliquable) */}
+              <div
+                className="w-12 h-12 rounded-full border flex items-center justify-center text-base font-semibold select-none"
+                title="Points de la grille sélectionnée"
+                aria-label="Points"
+              >
+                {totalPoints}
+              </div>
+
+              {/* 3) Classement GÉNÉRAL */}
+              <button
+                onClick={() => setViewAndURL('rankGeneral')}
+                className={`w-12 h-12 rounded-full border flex items-center justify-center transition hover:opacity-90 ${view==='rankGeneral' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                title="Classement général"
+                aria-pressed={view==='rankGeneral'}
+              >
+                {/* <Image src="/icons/podium.png" alt="Podium" width={28} height={28} /> */}
+                <span className="text-lg">🏆</span>
+              </button>
+
+              {/* 4) Classement de la GRILLE */}
+              <button
+                onClick={() => setViewAndURL('rankGrid')}
+                className={`w-12 h-12 rounded-full border flex items-center justify-center transition hover:opacity-90 ${view==='rankGrid' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                title="Classement de la grille"
+                aria-pressed={view==='rankGrid'}
+              >
+                {/* <Image src="/icons/stats.png" alt="Stats" width={28} height={28} /> */}
+                <span className="text-lg">📊</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+      {/* Vue des 2 classements */}
+      {view === 'rankGrid' && (
+        <div className="w-full">
+          {lbLoading && <p className="text-center text-sm text-gray-500 my-4">Chargement…</p>}
+
+          {!lbLoading && myRank !== null && (
+            <div className="text-center text-base font-medium text-gray-800 my-6">
+              Tu es <strong>{myRank}</strong>
+              <span className="ml-1 align-super">{myRank === 1 ? 'er' : 'e'}</span>
+              {' '}sur <strong>{totalPlayers}</strong> joueur{totalPlayers > 1 ? 's' : ''}
+            </div>
+          )}
+
+          {!lbLoading && lbRows.length > 0 && (
+            <div className="max-w-2xl mx-auto">
+              <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
+                <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+                  <tr>
+                    <th className="text-left px-4 py-3">Position</th>
+                    <th className="text-left px-4 py-3">Pseudo</th>
+                    <th className="text-left px-4 py-3">Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lbRows.map(row => {
+                    const me = row.user_id === user?.id;
+                    return (
+                      <tr key={row.user_id}
+                          className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}>
+                        <td className="px-4 py-2">{row.rank}</td>
+                        <td className="px-4 py-2">{row.username}</td>
+                        <td className="px-4 py-2">{row.total_points}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!lbLoading && lbRows.length === 0 && (
+            <p className="text-center text-sm text-gray-500 my-4">Aucun participant pour cette grille.</p>
+          )}
+        </div>
+      )}
+
+      {view === 'rankGeneral' && (
+        <div className="w-full">
+          {lbLoading && <p className="text-center text-sm text-gray-500 my-4">Chargement…</p>}
+          {!lbLoading && myRank !== null && (
+            <div className="text-center text-base font-medium text-gray-800 my-6">
+              Tu es <strong>{myRank}</strong>
+              <span className="ml-1 align-super">{myRank === 1 ? 'er' : 'e'}</span>
+              {' '}sur <strong>{totalPlayers}</strong> joueur{totalPlayers > 1 ? 's' : ''}
+            </div>
+          )}
+          {/* même tableau que ci-dessus, on réutilise lbRows */}
+          {!lbLoading && lbRows.length > 0 && (
+            <div className="max-w-2xl mx-auto">
+              <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
+                <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+                  <tr>
+                    <th className="text-left px-4 py-3">Position</th>
+                    <th className="text-left px-4 py-3">Pseudo</th>
+                    <th className="text-left px-4 py-3">Points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lbRows.map(row => {
+                    const me = row.user_id === user?.id;
+                    return (
+                      <tr key={row.user_id}
+                          className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}>
+                        <td className="px-4 py-2">{row.rank}</td>
+                        <td className="px-4 py-2">{row.username}</td>
+                        <td className="px-4 py-2">{row.total_points}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!lbLoading && lbRows.length === 0 && (
+            <p className="text-center text-sm text-gray-500 my-4">Aucun participant pour cette compétition.</p>
+          )}
+        </div>
+      )}
+
+
 
       {/* 2) CONTENU PRINCIPAL : GRILLE (2/3) & BONUS (1/3) */}
-      <div className="flex flex-col lg:flex-row gap-6">
+      <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'grid' ? 'hidden' : ''}`}>
         {/* ── GRILLE ── */}
         <div className="w-full lg:w-2/3">
           <div className="w-full border rounded-lg space-y-2">

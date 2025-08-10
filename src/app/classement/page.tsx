@@ -5,7 +5,7 @@ console.log('✅ process.env URL :', process.env.NEXT_PUBLIC_SUPABASE_URL)
 
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { useSupabase } from '@/components/SupabaseProvider'
+import { useSupabase } from '../../components/SupabaseProvider'
 
 type LeaderboardRow = {
   user_id: string

@@ -91,3 +91,8 @@ export type MatchWithState = Match & {
   pick?: '1' | 'N' | '2';
   points?: number;
 };
+
+export type Competition = {
+  id: string;
+  name: string;
+};
