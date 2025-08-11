@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import supabase from '../lib/supabaseBrowser';
+import Image from "next/image";
 
 type Competition = {
   id: string;
@@ -63,14 +64,20 @@ export default function Home() {
           className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between"
         >
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-black rounded-full" />
+            <Image
+              src="/images/compet/ligue1.png"
+              alt="Ligue 1"
+              width={48}
+              height={48}
+              className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+            />
             <div>
               <p className="text-green-600 font-bold">{comp.name}</p>
               <p className="text-sm text-gray-800">{comp.description}</p>
             </div>
           </div>
           <div className="border border-black px-4 py-1 bg-white">
-            Message
+            JOUER
           </div>
         </div>
       ))}

@@ -909,13 +909,16 @@ return (
               {/* 1) Aller à la GRILLE */}
               <button
                 onClick={() => setViewAndURL('grid')}
-                className={`w-12 h-12 rounded-full border flex items-center justify-center transition hover:opacity-90 ${view==='grid' ? 'bg-black text-white' : 'bg-white text-black'}`}
-                title="Voir la grille"
                 aria-pressed={view==='grid'}
+                className={`w-12 h-12 rounded-full border border-black bg-white
+                            flex items-center justify-center transition
+                            hover:bg-neutral-50 focus:outline-none
+                            ${view==='grid'
+                              ? 'ring-2 ring-orange-500 shadow-[0_0_0_2px_#fff] bg-orange-50'
+                              : ''}`}
+                title="Voir la grille"
               >
-                {/* Remplace par ton icône */}
-                {/* <Image src="/icons/1n2.png" alt="1N2" width={28} height={28} /> */}
-                <span className="text-sm font-semibold">1N2</span>
+                <Image src="/images/icons/grille.png" alt="Grille" width={24} height={24}/>
               </button>
 
               {/* 2) POINTS (non cliquable) */}
@@ -930,23 +933,31 @@ return (
               {/* 3) Classement GÉNÉRAL */}
               <button
                 onClick={() => setViewAndURL('rankGeneral')}
-                className={`w-12 h-12 rounded-full border flex items-center justify-center transition hover:opacity-90 ${view==='rankGeneral' ? 'bg-black text-white' : 'bg-white text-black'}`}
-                title="Classement général"
                 aria-pressed={view==='rankGeneral'}
+                className={`w-12 h-12 rounded-full border border-black bg-white
+                            flex items-center justify-center transition
+                            hover:bg-neutral-50 focus:outline-none
+                            ${view==='rankGeneral'
+                              ? 'ring-2 ring-orange-500 shadow-[0_0_0_2px_#fff] bg-orange-50'
+                              : ''}`}
+                title="Classement général"
               >
-                {/* <Image src="/icons/podium.png" alt="Podium" width={28} height={28} /> */}
-                <span className="text-lg">🏆</span>
+                <Image src="/images/icons/podium.png" alt="Podium" width={24} height={24}/>
               </button>
 
               {/* 4) Classement de la GRILLE */}
               <button
                 onClick={() => setViewAndURL('rankGrid')}
-                className={`w-12 h-12 rounded-full border flex items-center justify-center transition hover:opacity-90 ${view==='rankGrid' ? 'bg-black text-white' : 'bg-white text-black'}`}
-                title="Classement de la grille"
                 aria-pressed={view==='rankGrid'}
+                className={`w-12 h-12 rounded-full border border-black bg-white
+                            flex items-center justify-center transition
+                            hover:bg-neutral-50 focus:outline-none
+                            ${view==='rankGrid'
+                              ? 'ring-2 ring-orange-500 shadow-[0_0_0_2px_#fff] bg-orange-50'
+                              : ''}`}
+                title="Classement de la grille"
               >
-                {/* <Image src="/icons/stats.png" alt="Stats" width={28} height={28} /> */}
-                <span className="text-lg">📊</span>
+                <Image src="/images/icons/classement.png" alt="Stats" width={24} height={24}/>
               </button>
             </div>
           </div>

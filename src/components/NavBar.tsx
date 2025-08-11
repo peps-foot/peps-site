@@ -16,7 +16,8 @@ type MenuItem = {
 };
 
 export function NavBar() {
-  const pathname = usePathname();
+  const pathnameRaw = usePathname();
+  const pathname = pathnameRaw ?? ''; // ✅ jamais null
   const [isClient, setIsClient] = useState(false);
   const [showLeftMenu, setShowLeftMenu] = useState(false);
   const [showRightMenu, setShowRightMenu] = useState(false);
@@ -83,11 +84,11 @@ export function NavBar() {
   if (!isClient) return null;
 
   const allItems = [...leftMenu, ...rightMenu];
-  const currentItem = allItems
-  .sort((a, b) => b.href.length - a.href.length) // trie du plus spécifique au plus générique
-  .find(item => pathname.startsWith(item.href));
+  const currentItem = [...allItems] // évite de muter l’original
+    .sort((a, b) => b.href.length - a.href.length)
+    .find(item => pathname.startsWith(item.href));
 
-  const currentLabel = currentItem?.label || '';
+  const currentLabel = currentItem?.label ?? '';  
 
   return (
     <nav className="relative flex items-center justify-between h-12 w-full bg-orange-500 text-white px-4 z-50">
