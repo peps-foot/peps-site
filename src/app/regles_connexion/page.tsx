@@ -27,10 +27,10 @@ export default function ReglesConnexion() {
           (comme le 1-N-2 au Lotofoot) et marque un maximum de points pour grimper dans le classement.  </p>
         <p className="mb-4"> Les points dépendent de la difficulté du pronostic. Plus le pari est risqué, plus il rapporte de points.</p>
         <p className="mb-4 font-semibold">Un p'tit exemple :</p>
-                <div className="flex justify-center my-4">
-          <img src="/images/regles/regle_exemple.png" alt="regles_exemple" className="w-full max-w-lg rounded-lg border" />
+        <div className="flex justify-center my-4">
+          <img src="/images/regles/ex_resume.png" alt="regles_resume" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p className="mt-4">Tu gagnes 4 points si Paris gagne son match ! et si Paris fait match nul, tu pourras te mordre les doigts de ne pas avoir parié N !! Simple, non ?</p>
+        <p className="mt-4">Si tu paries sur N et que le classico se termine sur un match nul (on ne veut froisser personne) ça te fait 11 points. S'il n'y a pas match nul, tu ne gagnes pas de points. Simple, non ?</p>
         <p className="mt-4">Pour rendre le jeu plus sympa, on a rajouté des bonus : KANTE, RIBERY et ZLATAN. Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...</p>
       </RuleSection>
 
@@ -38,7 +38,10 @@ export default function ReglesConnexion() {
         <p className="mb-4">
             Pas de panique, on ne va pas revenir sur la règle du hors-jeu mais juste définir quelques mots importants du jeu :
           </p>
-          <p className="mb-2 font-semibold">Un <strong>MATCH</strong> est défini par plusieurs informations :</p>
+          <p className="mb-4">Un <strong>MATCH</strong> est défini par plusieurs informations :</p>
+          <div className="flex justify-center my-4">
+            <img src="/images/regles/ex_lexique.png" alt="regles_lexique" className="w-full max-w-lg rounded-lg border" />
+          </div>
           <ul className="list-disc pl-5 mb-4">
             <li>La date et l’heure du coup d’envoi de la rencontre et le statut du match qui évolue en live.</li>
             <li>L’équipe à gauche est celle qui joue à domicile, celle de droite joue à l’extérieur. Le score en live s’affiche quand le match est commencé.</li>
@@ -85,9 +88,9 @@ export default function ReglesConnexion() {
         <p className="mt-2"><strong>Inconvénient :</strong> Tu ne gagnes que les points associés au pronostic avec la plus petite cote.</p>
         <p className="mt-4 mb-4 font-semibold">Exemple :</p>
         <div className="flex justify-center my-4">
-          <img src="/images/regles/exemple_kante.png" alt="Exemple Kanté" className="w-full max-w-lg rounded-lg border" />
+          <img src="/images/regles/ex_kante.png" alt="Exemple Kanté" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p>Si Paris gagne ou fait match nul, tu gagnes 4 points. Si Paris perd, tu ne gagnes pas de points ! </p>
+        <p>Si Rennes gagne ou fait match nul, tu gagnes 7 points. Si Rennes perd, tu ne gagnes pas de points ! </p>
       </RuleSection>
 
       <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus">
@@ -96,13 +99,13 @@ export default function ReglesConnexion() {
         <p className="mt-2"><strong>Inconvénient :</strong> Ca te fait un match en moins à parier.</p>
         <p className="mt-4 mb-4 font-semibold">Exemple :</p>
         <div className="flex justify-center my-4">
-          <img src="/images/regles/exemple_ribery_1.png" alt="Exemple Ribery 1" className="w-full max-w-lg rounded-lg border" />
+          <img src="/images/regles/ex_ribery_1.png" alt="Exemple Ribery 1" className="w-full max-w-lg rounded-lg border" />
         </div>
         <div className="flex justify-center my-4">
-          <img src="/images/regles/exemple_ribery_2.png" alt="Exemple Ribery 2" className="w-full max-w-lg rounded-lg border" />
+          <img src="/images/regles/ex_ribery_2.png" alt="Exemple Ribery 2" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p>Si Paris gagne, tu gagnes 4 points. Si Paris fait match nul, tu gagnes 23 points. Si Paris perd, tu gagnes 42 points </p>
-        <p>Pour le match Palmeiras - Botafogo, tu es sûr de ne pas marquer de points</p>
+        <p>Si Metz gagne, tu gagnes 9 points. Si Metz fait match nul, tu gagnes 11 points. Si Nantes gagne, tu gagnes 8 points.</p>
+        <p>Pour le derby du nord Lille - Lens, jamais facile à pronostiquer, tu es sûr de marquer 0 point.</p>
       </RuleSection>
 
       <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus">
@@ -111,9 +114,9 @@ export default function ReglesConnexion() {
         <p className="mt-2"><strong>Inconvénient :</strong> Si tu te trompes... bah... 0 fois 2, ça fait toujours 0 hein !</p>
         <p className="mt-4 mb-4 font-semibold">Exemple :</p>
         <div className="flex justify-center my-4">
-          <img src="/images/regles/exemple_zlatan.png" alt="Exemple zlatan" className="w-full max-w-lg rounded-lg border" />
+          <img src="/images/regles/ex_zlatan.png" alt="Exemple zlatan" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p>Si Paris gagne, tu gagnes 8 points. Sinon, tu ne gagnes pas de points. </p>
+        <p>Si Toulouse gagne, tu gagnes 2x5 = 10 points. Sinon, tu ne gagnes pas de points. </p>
       </RuleSection>
     </main>
   )
