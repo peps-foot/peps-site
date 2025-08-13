@@ -910,15 +910,18 @@ return (
               <button
                 onClick={() => setViewAndURL('grid')}
                 aria-pressed={view==='grid'}
-                className={`w-12 h-12 rounded-full border border-black bg-white
-                            flex items-center justify-center transition
-                            hover:bg-neutral-50 focus:outline-none
-                            ${view==='grid'
-                              ? 'ring-2 ring-orange-500 shadow-[0_0_0_2px_#fff] bg-orange-50'
-                              : ''}`}
+                className={`w-12 h-12 rounded-full border border-black bg-white p-[3px]
+                            flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none
+                            ${view==='grid' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
                 title="Voir la grille"
               >
-                <Image src="/images/icons/grille.png" alt="Grille" width={24} height={24}/>
+  <Image
+    src="/images/icons/grille.png"   // ton PNG (sans cercle noir)
+    alt="Grille"
+    width={40}
+    height={40}
+    className="rounded-full object-cover"
+  />
               </button>
 
               {/* 2) POINTS (non cliquable) */}
@@ -934,30 +937,36 @@ return (
               <button
                 onClick={() => setViewAndURL('rankGeneral')}
                 aria-pressed={view==='rankGeneral'}
-                className={`w-12 h-12 rounded-full border border-black bg-white
-                            flex items-center justify-center transition
-                            hover:bg-neutral-50 focus:outline-none
-                            ${view==='rankGeneral'
-                              ? 'ring-2 ring-orange-500 shadow-[0_0_0_2px_#fff] bg-orange-50'
-                              : ''}`}
+                className={`w-12 h-12 rounded-full border border-black bg-white p-[3px]
+                            flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none
+                            ${view==='rankGeneral' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
                 title="Classement général"
               >
-                <Image src="/images/icons/podium.png" alt="Podium" width={24} height={24}/>
+  <Image
+    src="/images/icons/podium.png"   // ton PNG (sans cercle noir)
+    alt="Podium"
+    width={40}
+    height={40}
+    className="rounded-full object-cover"
+  />
               </button>
 
               {/* 4) Classement de la GRILLE */}
               <button
                 onClick={() => setViewAndURL('rankGrid')}
                 aria-pressed={view==='rankGrid'}
-                className={`w-12 h-12 rounded-full border border-black bg-white
-                            flex items-center justify-center transition
-                            hover:bg-neutral-50 focus:outline-none
-                            ${view==='rankGrid'
-                              ? 'ring-2 ring-orange-500 shadow-[0_0_0_2px_#fff] bg-orange-50'
-                              : ''}`}
+                className={`w-12 h-12 rounded-full border border-black bg-white p-[3px]
+                            flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none
+                            ${view==='rankGrid' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
                 title="Classement de la grille"
               >
-                <Image src="/images/icons/classement.png" alt="Stats" width={24} height={24}/>
+  <Image
+    src="/images/icons/classement.png"   // ton PNG (sans cercle noir)
+    alt="Classement"
+    width={40}
+    height={40}
+    className="rounded-full object-cover"
+  />
               </button>
             </div>
           </div>
@@ -967,7 +976,9 @@ return (
       {view === 'rankGrid' && (
         <div className="w-full">
           {lbLoading && <p className="text-center text-sm text-gray-500 my-4">Chargement…</p>}
-
+            <h2 className="text-center text-lg font-semibold text-gray-800 mb-3">
+              Classement de la grille
+            </h2>
           {!lbLoading && myRank !== null && (
             <div className="text-center text-base font-medium text-gray-800 my-6">
               Tu es <strong>{myRank}</strong>
@@ -1012,6 +1023,9 @@ return (
       {view === 'rankGeneral' && (
         <div className="w-full">
           {lbLoading && <p className="text-center text-sm text-gray-500 my-4">Chargement…</p>}
+              <h2 className="text-center text-lg font-semibold text-gray-800 mb-3">
+                Classement GÉNÉRAL
+              </h2>
           {!lbLoading && myRank !== null && (
             <div className="text-center text-base font-medium text-gray-800 my-6">
               Tu es <strong>{myRank}</strong>
