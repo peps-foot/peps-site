@@ -1261,7 +1261,7 @@ return (
                         );
                       })()}
                       <div className="text-center font-semibold">
-                        {m.score_home != null ? m.score_home : '–'}
+                        {m.score_home != null ? m.score_home : ''}
                       </div>
                       <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
                         <div>{m.base_1_points ?? '-'}</div>
@@ -1269,10 +1269,10 @@ return (
                         <div>{m.base_2_points ?? '-'}</div>
                       </div>
                       <div className="text-center font-semibold">
-                        {m.score_away != null ? m.score_away : '–'}
+                        {m.score_away != null ? m.score_away : ''}
                       </div>
                       <div className="text-center text-sm">
-                        {m.score_home != null ? `${m.points || 0} pts` : '–'}
+                        {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
                       </div>
                     </div>
                   )

@@ -56,7 +56,16 @@ export default function Home() {
   if (!sessionChecked) return null;
 
   return (
-    <main className="p-4 space-y-4 bg-gray-100 min-h-screen">
+  <main className="px-4 py-8 max-w-3xl mx-auto">
+    {/* Bandeau d'info */}
+    <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4">
+      <p className="text-sm sm:text-base leading-relaxed">
+        <span className="mr-2">🏆</span>
+        <span className="font-semibold">Pour la coupe d'été :</span> Le jeu comporte 9 grilles de 9 matchs. Le premier au classement général final remportera <span className="font-semibold">50 €</span> 💸
+      </p>
+    </div>
+
+    {/* Liste des compétitions */}
       {competitions.map((comp) => (
         <div
           key={comp.id}
