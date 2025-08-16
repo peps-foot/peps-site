@@ -1,31 +1,111 @@
+/* global.css */
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────
+   Thème global : on déclare qu’on gère light/dark
+   ────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* ⬇️ Empêche l’auto-dark de Chrome/Android : on prend la main */
+  color-scheme: light dark;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Couleurs (clair) */
+  --background: #ffffff;   /* fond principal (page)       */
+  --foreground: #171717;   /* texte principal             */
+  --surface:    #f7f7f8;   /* cartes / panneaux           */
+  --border:     #e5e7eb;   /* bordures/grilles            */
+  --muted:      #6b7280;   /* texte secondaire            */
+  --accent:     #ff7a00;   /* accent / icônes / badges    */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* Couleurs (sombre) */
     --background: #0a0a0a;
     --foreground: #ededed;
+    --surface:    #121217;
+    --border:     #2a2f3a;
+    --muted:      #cbd5e1;
+    --accent:     #ff9a3e;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ──────────────────────────────────────────────
+   Bridge Tailwind ←→ variables CSS
+   (Optionnel mais pratique pour écrire bg-[var(--…)]
+   ────────────────────────────────────────────── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface:    var(--surface);
+  --color-border:     var(--border);
+  --color-muted:      var(--muted);
+  --color-accent:     var(--accent);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
+/* ──────────────────────────────────────────────
+   Base globale
+   ────────────────────────────────────────────── */
 html, body {
   width: 100%;
   overflow-x: hidden;
 }
+
+html {
+  /* hérite de color-scheme: root (utile pour scrollbars, selects…) */
+  background-color: var(--background);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Liens, séparateurs, etc. */
+a { color: var(--accent); }
+hr { border: 0; border-top: 1px solid var(--border); }
+
+/* ──────────────────────────────────────────────
+   Petits helpers “full-CSS” (si tu ne veux pas
+   mettre des classes Tailwind partout)
+   ────────────────────────────────────────────── */
+.card {
+  background-color: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.text-muted { color: var(--muted); }
+
+/* Boutons ronds type 1/N/2 (si tu en veux un style par défaut) */
+.btn-circle {
+  display: inline-flex;
+  width: 2rem; height: 2rem;
+  align-items: center; justify-content: center;
+  border-radius: 0.5rem;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+}
+.btn-circle svg { width: 1rem; height: 1rem; stroke: currentColor; }
+
+/* Icône d’aide orange “?” */
+.badge-accent {
+  background-color: var(--accent);
+  color: #000; /* bon contraste sur l’accent */
+}
+
+/* Inputs de formulaire pour éviter l’auto-stylage sombre */
+input, select, textarea {
+  background-color: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+/* Pour les images/svgs : le svg suit la couleur du texte par défaut */
+svg { color: currentColor; fill: none; stroke: currentColor; }
