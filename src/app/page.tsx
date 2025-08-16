@@ -65,6 +65,25 @@ export default function Home() {
       </p>
     </div>
 
+    {/* Bandeau de recrutement testeurs */}
+    <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
+      <p className="text-sm sm:text-base leading-relaxed">
+        <span className="mr-2">📱</span>
+        <span className="font-semibold">Tester l’application PEPS :</span>{' '}
+        Participez à la phase de test et aidez-nous à améliorer le jeu&nbsp;!
+        <br />
+        <a
+          href="https://play.google.com/apps/testing/com.peps_foot.www.twa"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block mt-2 px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded"
+        >
+          📥 Télécharger l’app Android
+        </a>
+          avec votre adresse mail playstore
+      </p>
+    </div>
+
     {/* Liste des compétitions */}
       {competitions.map((comp) => (
         <div
