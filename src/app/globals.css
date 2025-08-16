@@ -134,3 +134,5 @@ svg { color: currentColor; fill: none; stroke: currentColor; }
 /* Bordures */
 .border-gray-200, .border-slate-200, .border-zinc-200 { border-color: var(--border) !important; }
 
+
+

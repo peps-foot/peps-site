@@ -76,7 +76,7 @@ export default function Home() {
           href="https://play.google.com/apps/testing/com.peps_foot.www.twa"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-block mt-2 px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded"
+          className="inline-block mt-2 px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded text-center"
         >
           📥 Télécharger l’app Android
         </a>
