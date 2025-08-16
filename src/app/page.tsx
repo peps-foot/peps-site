@@ -70,7 +70,7 @@ export default function Home() {
       <p className="text-sm sm:text-base leading-relaxed">
         <span className="mr-2">📱</span>
         <span className="font-semibold">Tester l’application PEPS :</span>{' '}
-        Participez à la phase de test et aidez-nous à améliorer le jeu&nbsp;!
+        Participez à la phase de test et aidez-nous à améliorer le jeu (si votre adresse mail playstore a été utlisée pour créer votre compte PEPS)&nbsp;!
         <br />
         <a
           href="https://play.google.com/apps/testing/com.peps_foot.www.twa"
@@ -80,7 +80,6 @@ export default function Home() {
         >
           📥 Télécharger l’app Android
         </a>
-          avec votre adresse mail playstore
       </p>
     </div>
 
