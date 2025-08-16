@@ -66,8 +66,10 @@ body {
 }
 
 /* Liens, séparateurs, etc. */
-a { color: var(--accent); }
-hr { border: 0; border-top: 1px solid var(--border); }
+a {
+  color: var(--foreground); /* noir en clair, blanc en dark */
+  text-decoration: none;
+}
 
 /* ──────────────────────────────────────────────
    Petits helpers “full-CSS” (si tu ne veux pas
@@ -109,3 +111,26 @@ input, select, textarea {
 
 /* Pour les images/svgs : le svg suit la couleur du texte par défaut */
 svg { color: currentColor; fill: none; stroke: currentColor; }
+
+/* ──────────────────────────────────────────────
+   THEME COMPAT SHIM — temporaire
+   On re-map des classes Tailwind figées vers les variables
+   pour que ça suive light/dark sans réécrire tout le JSX.
+   À retirer plus tard quand tu feras la vraie refacto.
+   ────────────────────────────────────────────── */
+
+/* Textes */
+.text-black, .text-gray-900, .text-zinc-900 { color: var(--foreground) !important; }
+.text-gray-800, .text-slate-800             { color: var(--foreground) !important; }
+.text-gray-700, .text-slate-700             { color: var(--foreground) !important; }
+.text-gray-500, .text-slate-500             { color: var(--muted) !important; }
+
+/* Fonds généraux (pages, conteneurs) */
+.bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 { background-color: var(--background) !important; }
+
+/* Fonds de “cartes/panneaux” (si tu en utilises souvent) */
+.bg-gray-100, .bg-slate-100, .bg-zinc-100 { background-color: var(--surface) !important; }
+
+/* Bordures */
+.border-gray-200, .border-slate-200, .border-zinc-200 { border-color: var(--border) !important; }
+
