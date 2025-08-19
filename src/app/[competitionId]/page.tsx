@@ -12,6 +12,25 @@ type LeaderboardRow = {
   rank: number;
 };
 
+type MatchPickRow = {
+  user_id: string;
+  username: string;
+  pick_1: boolean;
+  pick_n: boolean;
+  pick_2: boolean;
+  has_bonus: boolean;
+  bonus_code: string | null;
+};
+
+type PopupMatch = {
+  id: string;
+  home: string;
+  away: string;
+  base1: number | null;
+  baseN: number | null;
+  base2: number | null;
+};
+
 import type { User } from '@supabase/supabase-js';
 import type { Grid, Match, GridBonus, BonusDef, GridWithItems, MatchWithState, RawMatchRow } from '../../lib/types';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -104,11 +123,19 @@ const goToPage = (i: number) => {
   const nextGrid = () => {
     if (currentIdx < grids.length - 1) goToPage(currentIdx + 1); // → vers grille suivante
   };
-  const currentGrid = grid || { title: '', description: '' }
+  const currentGrid: GridWithItems | null = grid ?? null;
+  // et pour l’affichage:
+  const title = currentGrid?.title ?? '';
+  const description = currentGrid?.description ?? '';
   const [lastMatchData, setLastMatchData] = useState<RawMatchRow[]>([]);
 
   const [showPopup, setShowPopup] = useState(false);
   const [popupMatchStatus, setPopupMatchStatus] = useState<'NS' | 'OTHER' | null>(null);
+  const [popupMatch, setPopupMatch] = useState<PopupMatch | null>(null);
+  const [otherPicks, setOtherPicks] = useState<any[]>([]);
+  // 👉 Pour les tris du pop-up pronos des autres
+  const [sortMode, setSortMode] = useState<'rank' | 'alpha'>('rank');
+
 
   // 👉 Format FR pour la date
   const fmtDate = (d: string) =>
@@ -1195,61 +1222,61 @@ return (
                     </div>
                     
                     {/* BONUS */}
-                    <div className="flex justify-center">
-                      <button
-                        onClick={() => {
-                          setPopupMatchStatus(m.status === 'NS' ? 'NS' : 'OTHER');
-                          setShowPopup(true);
-                        }}
-                        className="focus:outline-none"
-                      >
-                        {bonusEntry ? (
-                          bonusCode === 'RIBERY' ? (
-                            (m.id === matchWin || m.id === matchZero) ? (
-                              <Image
-                                src={bonusLogos['RIBERY']}
-                                alt="RIBERY bonus"
-                                width={32}
-                                height={32}
-                                className="rounded-full"
-                              />
+                      <div className="flex justify-center">
+                        <button
+                          onClick={async () => {
+                            setOtherPicks([]);
+
+                            const status = String(m.status ?? '').trim().toUpperCase();
+                            setPopupMatchStatus(status === 'NS' ? 'NS' : 'OTHER');
+
+                            // ⬇️ capture toutes les infos d’en-tête du match cliqué
+                            setPopupMatch({
+                              id: String(m.id),
+                              home: m.short_name_home || m.home_team || 'Équipe A',
+                              away: m.short_name_away || m.away_team || 'Équipe B',
+                              base1: m.base_1_points ?? null,
+                              baseN: m.base_n_points ?? null,
+                              base2: m.base_2_points ?? null,
+                            });
+
+                            setShowPopup(true);
+
+                            if (status === 'NS') return;
+
+                            const { data, error } = await supabase.rpc('get_match_picks', {
+                              p_match_id: m.id,
+                              p_competition_id: competitionId,
+                              p_grid_id: null, // on veut tous les joueurs de la compet
+                            });
+                            if (error) {
+                              console.error('get_match_picks error:', error);
+                              return;
+                            }
+                            setOtherPicks((data ?? []) as MatchPickRow[]);
+                            setSortMode('rank');
+                          }}
+                          className="focus:outline-none"
+                        >
+                          {/* ton rendu d'icône bonus inchangé */}
+                          {bonusEntry ? (
+                            bonusCode === 'RIBERY' ? (
+                              (m.id === matchWin || m.id === matchZero) ? (
+                                <Image src={bonusLogos['RIBERY']} alt="RIBERY bonus" width={32} height={32} className="rounded-full"/>
+                              ) : (
+                                <Image src={bonusLogos['INFO']} alt="bonus inconnu" width={32} height={32} className="rounded-full"/>
+                              )
+                            ) : m.id === bonusEntry.match_id ? (
+                              <Image src={bonusLogos[bonusCode!]} alt={`${bonusCode} bonus`} width={32} height={32} className="rounded-full"/>
                             ) : (
-                              <Image
-                                src={bonusLogos["INFO"]}
-                                alt="bonus inconnu"
-                                width={32}
-                                height={32}
-                                className="rounded-full"
-                              />
+                              <Image src={bonusLogos['INFO']} alt="bonus inconnu" width={32} height={32} className="rounded-full"/>
                             )
-                          ) : m.id === bonusEntry.match_id ? (
-                            <Image
-                              src={bonusLogos[bonusCode!]}
-                              alt={`${bonusCode} bonus`}
-                              width={32}
-                              height={32}
-                              className="rounded-full"
-                            />
                           ) : (
-                            <Image
-                              src={bonusLogos["INFO"]}
-                              alt="bonus inconnu"
-                              width={32}
-                              height={32}
-                              className="rounded-full"
-                            />
-                          )
-                        ) : (
-                          <Image
-                            src={bonusLogos["INFO"]}
-                            alt="bonus inconnu"
-                            width={32}
-                            height={32}
-                            className="rounded-full"
-                          />
-                        )}
-                      </button>
-                    </div>
+                            <Image src={bonusLogos['INFO']} alt="bonus inconnu" width={32} height={32} className="rounded-full"/>
+                          )}
+                        </button>
+                      </div>
+
 
                       {/* LIGNE 2 */}
                       {(() => {
@@ -1363,32 +1390,6 @@ return (
           </div>
         </div>
 
-        {/* ── POPUP PRONOS DES AUTRES ── */}    
-        {showPopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded shadow-lg max-w-sm w-full text-center relative">
-              <button
-                onClick={() => setShowPopup(false)}
-                className="absolute top-2 right-2 text-gray-600 hover:text-black text-lg"
-              >
-                ✖
-              </button>
-              {popupMatchStatus === 'NS' ? (
-                <div>
-                  <p className="mb-4 font-semibold">Les pronos des autres joueurs</p>
-                <Image src="/NS.png" alt="Arbitre" width={320} height={320} className="mx-auto" />
-                </div>
-              ) : (
-                <div>
-                  <p className="mb-4 font-semibold">Les pronos des autres joueurs</p>
-                  <p className="text-sm">En travaux, pas encore prêt...</p>
-                  <Image src="/NS.png" alt="Grille" width={320} height={320} className="mx-auto" />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* ── message d'erreur si un joueur parie trop tard = hors jeu ── */}
         {showOffside && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1400,6 +1401,185 @@ return (
               >
                 OK
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── POPUP Pronos des Autres ── */}
+        {showPopup && popupMatch && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">
+              {/* close, plus gros */}
+              <button
+                onClick={() => setShowPopup(false)}
+                aria-label="Fermer"
+                className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full
+                          text-3xl leading-none text-gray-500 hover:text-gray-800 hover:bg-gray-100
+                          focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                ×
+              </button>
+
+              {/* Titre */}
+              <h2 className="text-center text-lg font-semibold">Les pronos des autres joueurs</h2>
+
+              {/* En-tête match (CENTRÉ) */}
+              {popupMatchStatus !== 'NS' && (
+                <>
+                  <div className="mt-2 text-center text-base font-medium">
+                    {popupMatch.home}
+                    <span className="mx-2">—</span>
+                    {popupMatch.away}
+                  </div>
+
+                  {/* triplet de points sous le match */}
+                  <div className="mt-1 w-fit mx-auto grid grid-cols-5 place-items-center text-sm text-gray-600">
+                    <span>{popupMatch.base1 ?? '–'}</span>
+                    <span className="text-gray-400">/</span>
+                    <span className="font-medium">{popupMatch.baseN ?? '–'}</span>
+                    <span className="text-gray-400">/</span>
+                    <span>{popupMatch.base2 ?? '–'}</span>
+                  </div>
+
+                  {/* Tri */}
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSortMode('rank')}
+                      className={`rounded border px-3 py-1 text-sm font-medium ${
+                        sortMode === 'rank' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
+                      }`}
+                    >
+                      classement
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSortMode('alpha')}
+                      className={`rounded border px-3 py-1 text-sm font-medium ${
+                        sortMode === 'alpha' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
+                      }`}
+                    >
+                      alphabétique
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Corps */}
+              {popupMatchStatus === 'NS' ? (
+                <div className="mt-6 text-center">
+                  <Image src="/NS.png" alt="Match pas commencé" width={260} height={260} className="mx-auto" />
+                </div>
+              ) : (
+<div className="mt-4 max-h-96 overflow-y-auto">
+  {otherPicks.length === 0 ? (
+    <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+      <Image src="/images/empty-box.png" alt="" width={56} height={56} />
+      <p className="mt-3 text-sm">Aucun prono trouvé pour ce match dans la compétition.</p>
+    </div>
+  ) : (
+    <div className="mx-auto w-full max-w-[520px]">
+      <ul className="flex flex-col gap-0">
+        {(sortMode === 'alpha'
+          ? [...otherPicks].sort((a: any, b: any) => (a.username ?? '').localeCompare(b.username ?? ''))
+          : otherPicks
+        ).map((p: any) => {
+          const Square = ({ label, active }: { label: '1'|'N'|'2'; active: boolean }) => (
+            <span
+              role="button"
+              aria-pressed={active}
+              aria-disabled="true"
+              tabIndex={-1}
+              className={`relative inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md border bg-white leading-none ${
+                active ? 'border-gray-700' : 'border-gray-300'
+              }`}
+              title={active ? `Pick ${label} (sélectionné)` : `Pick ${label}`}
+            >
+              {active ? (
+                // Croix pleine (2 diagonales), fine (2px)
+                <svg viewBox="0 0 30 30" className="absolute inset-0 block">
+                  <line x1="2" y1="2" x2="28" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="28" y1="2" x2="2" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              ) : (
+                // 1/N/2 normal (pas gras), un peu plus grand
+                <span className="text-[14px] font-normal text-gray-800">{label}</span>
+              )}
+            </span>
+          );
+
+          const bonusSrc =
+            p.bonus_code && bonusLogos[p.bonus_code]
+              ? bonusLogos[p.bonus_code]
+              : p.has_bonus
+                ? bonusLogos['INFO']
+                : null;
+
+          // 🔸 surlignage “comme le classement”
+          const isMe = p.user_id === user?.id; // <= même pattern que ton leaderboard
+
+          return (
+            <li
+              key={p.user_id}
+              className={`grid h-[32px] grid-cols-7 px-3 rounded-xl border ${
+                isMe ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-300'
+              }`}
+              aria-current={isMe ? 'true' : undefined}
+            >
+              {/* 1–3 : pseudo */}
+              <div className="col-span-3 h-full min-w-0">
+                <div className="flex h-full items-center">
+                  <span className={`truncate leading-none ${isMe ? 'font-bold' : 'font-medium'}`}>
+                    {p.username}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 : 1 */}
+              <div className="col-span-1 h-full">
+                <div className="flex h-full items-center justify-center">
+                  <Square label="1" active={!!p.pick_1} />
+                </div>
+              </div>
+
+              {/* 5 : N */}
+              <div className="col-span-1 h-full">
+                <div className="flex h-full items-center justify-center">
+                  <Square label="N" active={!!p.pick_n} />
+                </div>
+              </div>
+
+              {/* 6 : 2 */}
+              <div className="col-span-1 h-full">
+                <div className="flex h-full items-center justify-center">
+                  <Square label="2" active={!!p.pick_2} />
+                </div>
+              </div>
+
+              {/* 7 : bonus 30×30 */}
+              <div className="col-span-1 h-full">
+                <div className="flex h-full items-center justify-end">
+                  {bonusSrc && (
+                    <Image
+                      src={bonusSrc}
+                      alt="Bonus joué"
+                      width={30}
+                      height={30}
+                      className="block rounded-full"
+                    />
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  )}
+</div>
+
+
+              )}
             </div>
           </div>
         )}
