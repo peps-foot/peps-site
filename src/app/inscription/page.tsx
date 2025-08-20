@@ -73,12 +73,12 @@ export default function Inscription() {
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-lg shadow-md w-full max-w-md"
       >
-        <h1 className="text-2xl font-bold mb-6 text-center text-purple-600">
+        <h1 className="text-2xl font-bold mb-6 text-center text-black-600">
           Inscription
         </h1>
 
         {message && (
-          <div className="mb-4 text-center text-red-500">{message}</div>
+          <div className="mb-4 text-center text-green-500">{message}</div>
         )}
 
         <input
@@ -128,7 +128,7 @@ export default function Inscription() {
 
         <button
           type="submit"
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
         >
           Créer mon compte
         </button>
@@ -137,7 +137,7 @@ export default function Inscription() {
           <button
             type="button"
             onClick={() => router.push("/connexion")}
-            className="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded"
+            className="mt-4 w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded"
           >
             Retour à la connexion
           </button>

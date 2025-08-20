@@ -22,17 +22,36 @@ export default function ReglesConnexion() {
 
       {/* Ici tu recopies tes blocs pliables/dépliables de règles */}
       <RuleSection title="Résumé en moins d’une minute" iconSrc="/images/regles/chrono.png" type="default">
-        <p className="mb-4">
+        <p className="mb-4 text-justify">
           Pour chaque match, parie sur la victoire à domicile, le match nul ou la victoire à l’extérieur
-          (comme le 1-N-2 au Lotofoot) et marque un maximum de points pour grimper dans le classement.  </p>
-        <p className="mb-4"> Les points dépendent de la difficulté du pronostic. Plus le pari est risqué, plus il rapporte de points.</p>
-        <p className="mb-4 font-semibold">Un p'tit exemple :</p>
+          (comme le 1-N-2 au Lotofoot) et marque un maximum de points pour grimper dans le classement.
+        </p>
+
+        <p className="mb-4 text-justify">
+          Les points dépendent de la difficulté du pronostic. Plus le pari est risqué, plus il rapporte de points.
+        </p>
+
+        <p className="mb-4 font-semibold text-justify">Un p'tit exemple :</p>
+
         <div className="flex justify-center my-4">
-          <img src="/images/regles/ex_resume.png" alt="regles_resume" className="w-full max-w-lg rounded-lg border" />
+          <img
+            src="/images/regles/ex_resume.png"
+            alt="regles_resume"
+            className="w-full max-w-lg rounded-lg border"
+          />
         </div>
-        <p className="mt-4">Si tu paries sur N et que le classico se termine sur un match nul (on ne veut froisser personne) ça te fait 11 points. S'il n'y a pas match nul, tu ne gagnes pas de points. Simple, non ?</p>
-        <p className="mt-4">Pour rendre le jeu plus sympa, on a rajouté des bonus : KANTE, RIBERY et ZLATAN. Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...</p>
+
+        <p className="mt-4 text-justify">
+          Si tu paries sur N et que le classico se termine sur un match nul (on ne veut froisser personne) ça te fait 11 points.
+          S'il n'y a pas match nul, tu ne gagnes pas de points. Simple, non ?
+        </p>
+
+        <p className="mt-4 text-justify">
+          Pour rendre le jeu plus sympa, on a rajouté des bonus : KANTE, RIBERY et ZLATAN.
+          Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...
+        </p>
       </RuleSection>
+
 
       <RuleSection title="Match, grille... on t'explique tout !" iconSrc="/images/regles/emoji.png" type="default">
         <p className="mb-4">

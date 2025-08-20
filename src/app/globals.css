@@ -70,14 +70,6 @@ body {
   -webkit-tap-highlight-color: transparent; /* évite l’overlay bleu iOS/Android */
 }
 
-/* Liens — toujours bleus (clair & sombre) */
-a {
-  color: var(--link);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-a:hover { text-decoration-thickness: 2px; }
-
 /* Sélection de texte (cohérente en dark) */
 ::selection {
   background: color-mix(in oklab, var(--focus) 30%, transparent);

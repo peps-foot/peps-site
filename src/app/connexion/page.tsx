@@ -53,7 +53,7 @@ export default function ConnexionPage() {
     setInfoMsg(null);
 
     if (!email) {
-      setErrorMsg('Veuillez d’abord saisir votre email ci-dessous.');
+      setErrorMsg('Veuillez d’abord saisir votre email ci-dessus.');
       return;
     }
 
@@ -156,7 +156,10 @@ return (
     </div>
 
     <p className="mt-6 text-sm text-gray-600">
-      Pour nous contacter : <a className="underline" href="mailto:hello@peps-foot.com">hello@peps-foot.com</a>
+      Pour nous contacter :{" "} <a href="mailto:hello@peps-foot.com" 
+        className="underline text-blue-600 hover:text-blue-800">
+        hello@peps-foot.com
+      </a>
     </p>
   </div>
 );

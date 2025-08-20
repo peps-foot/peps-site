@@ -32,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/icon-512x512.png" type="image/png" />
 
         {/* Métadonnées PWA / mobile */}
+        <meta name="color-scheme" content="light dark" />
         <meta name="theme-color" content="#FF6600" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
