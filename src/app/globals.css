@@ -15,15 +15,6 @@
   --border:     #e5e7eb;   /* bordures/grilles            */
   --muted:      #6b7280;   /* texte secondaire            */
   --accent:     #ff7a00;   /* accent / icônes / badges    */
-
-  /* Liens (toujours bleus) */
-  --link:         #2563eb;
-  --link-hover:   #1e40af;
-  --link-visited: #1d4ed8;
-
-  /* Marque (orange fixe) */
-  --brand:    #ff7a00;
-  --on-brand: #111111; /* noir sur orange */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -35,11 +26,6 @@
     --border:     #2a2f3a;
     --muted:      #cbd5e1;
     --accent:     #ff9a3e;
-
-    /* Liens (identiques en dark) */
-    --link:         #2563eb;
-    --link-hover:   #1e40af;
-    --link-visited: #1d4ed8;
   }
 }
 
@@ -79,25 +65,15 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Liens : toujours bleus, avec états */
+/* Liens, séparateurs, etc. */
 a {
-  color: var(--link);
+  color: var(--foreground); /* noir en clair, blanc en dark */
   text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-a:visited {
-  color: var(--link-visited);
-}
-a:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
 }
 
 /* ──────────────────────────────────────────────
-   Helpers “full-CSS”
+   Petits helpers “full-CSS” (si tu ne veux pas
+   mettre des classes Tailwind partout)
    ────────────────────────────────────────────── */
 .card {
   background-color: var(--surface);
@@ -108,7 +84,7 @@ a:focus-visible {
 
 .text-muted { color: var(--muted); }
 
-/* Boutons ronds type 1/N/2 */
+/* Boutons ronds type 1/N/2 (si tu en veux un style par défaut) */
 .btn-circle {
   display: inline-flex;
   width: 2rem; height: 2rem;
@@ -137,27 +113,10 @@ input, select, textarea {
 svg { color: currentColor; fill: none; stroke: currentColor; }
 
 /* ──────────────────────────────────────────────
-   Bloc marque (fond orange + texte noir, liens/icônes inclus)
-   ────────────────────────────────────────────── */
-.brand {
-  background-color: var(--brand) !important;
-  color: var(--on-brand) !important;
-}
-.brand a,
-.brand svg,
-.brand [class*="icon"] {
-  color: var(--on-brand) !important;
-  fill: currentColor;
-  stroke: currentColor;
-}
-.bg-brand     { background-color: var(--brand) !important; }
-.text-onbrand { color: var(--on-brand) !important; }
-
-/* ──────────────────────────────────────────────
    THEME COMPAT SHIM — temporaire
-   Re-map des classes Tailwind figées vers les variables
-   pour suivre light/dark sans réécrire tout le JSX.
-   À retirer plus tard lors de la refacto.
+   On re-map des classes Tailwind figées vers les variables
+   pour que ça suive light/dark sans réécrire tout le JSX.
+   À retirer plus tard quand tu feras la vraie refacto.
    ────────────────────────────────────────────── */
 
 /* Textes */
@@ -169,7 +128,7 @@ svg { color: currentColor; fill: none; stroke: currentColor; }
 /* Fonds généraux (pages, conteneurs) */
 .bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 { background-color: var(--background) !important; }
 
-/* Fonds de “cartes/panneaux” */
+/* Fonds de “cartes/panneaux” (si tu en utilises souvent) */
 .bg-gray-100, .bg-slate-100, .bg-zinc-100 { background-color: var(--surface) !important; }
 
 /* Bordures */
