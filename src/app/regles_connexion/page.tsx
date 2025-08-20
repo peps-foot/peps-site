@@ -56,7 +56,7 @@ export default function ReglesConnexion() {
         <p className="mb-4 text-justify">
             Pas de panique, on ne va pas revenir sur la règle du hors-jeu mais juste définir quelques mots importants du jeu :
           </p>
-          <p className="mb-4">Un <strong>MATCH</strong> est défini par plusieurs informations :</p>
+          <p className="mb-4">Un <strong>MATCH</strong> est défini par plusieurs infos :</p>
           <div className="flex justify-center my-4">
             <img src="/images/regles/ex_lexique.png" alt="regles_lexique" className="w-full max-w-lg rounded-lg border" />
           </div>
@@ -65,7 +65,7 @@ export default function ReglesConnexion() {
             <li>L’équipe à gauche est celle qui joue à domicile, celle de droite joue à l’extérieur. Le score en live s’affiche quand le match est commencé.</li>
             <li>Tu peux cliquer sur les cases 1-N-2 pour y mettre tes croix (ton <strong>PRONO</strong>) sans avoir besoin d’enregistrer.</li>
             <li>Les valeurs en dessous correspondent aux <strong>POINTS</strong> à gagner.</li>
-            <li>En cliquant sur l’image à droite, tu verras les pronos des autres joueurs si le match a commencé.</li>
+            <li>En cliquant sur l’image de droite, tu verras les pronos des autres joueurs si le match a commencé.</li>
             <li>En dessous, tu verras en live les points que tu gagnes, de quoi vibrer pendant tout le match.</li>
           </ul>
 
@@ -101,7 +101,7 @@ export default function ReglesConnexion() {
       </RuleSection>
 
       <RuleSection title="Le bonus KANTÉ" iconSrc="/images/kante.png" type="bonus">
-        <p><strong>Description :</strong> Quand N’golo joue dans ton équipe c’est comme si tu avais deux joueurs en un. Ici c’est pareil, il te permet de cocher deux croix pour un match. Au lotofoot, c’est comme un double : 1-N, N-2 ou 1-2.</p>
+        <p className="mt-2 text-justify"><strong>Description :</strong> Quand N’golo joue dans ton équipe c’est comme si tu avais deux joueurs en un. Ici c’est pareil, il te permet de cocher deux croix pour un match. Au lotofoot, c’est comme un double : 1-N, N-2 ou 1-2.</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> 2 chances sur 3 de marquer des points.</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Tu ne gagnes que les points associés au pronostic avec la plus petite cote.</p>
         <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
@@ -113,7 +113,7 @@ export default function ReglesConnexion() {
       </RuleSection>
 
       <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus">
-        <p><strong>Description :</strong> On a demandé à Francky de jouer une Kanté mais il n’a pas tout compris. Il a bien rajouté une croix supplémentaire sur la grille mais il a oublié de parier sur un match. Au lotofoot, c’est un triple : 1-N-2</p>
+        <p className="mt-2 text-justify"><strong>Description :</strong> On a demandé à Francky de jouer une Kanté mais il n’a pas tout compris. Il a bien rajouté une croix supplémentaire sur la grille mais il a oublié de parier sur un match. Au lotofoot, c’est un triple : 1-N-2</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> T'es sûr de marquer des points.</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Ça te fait un match en moins à parier.</p>
         <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
@@ -130,7 +130,7 @@ export default function ReglesConnexion() {
       </RuleSection>
 
       <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus">
-        <p><strong>Description :</strong> T’es aussi confiant que lui ? T’es sûr du résultat final d’un match ? Ce bonus te permet de doubler les points mis en jeu.</p>
+        <p className="mt-2 text-justify"><strong>Description :</strong> T’es aussi confiant que lui ? T’es sûr du résultat final d’un match ? Ce bonus te permet de doubler les points mis en jeu.</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> Si tu sens le bon coup, tu peux zlatanner les autres</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Si tu te trompes... bah... 0 fois 2, ça fait toujours 0 hein !</p>
         <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
