@@ -2,10 +2,11 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────
-   Thème global : on déclare qu’on gère light/dark
+   Thème global : on gère light/dark via .dark
+   (pas d’auto bascule OS → stabilité mobile)
    ────────────────────────────────────────────── */
 :root {
-  /* ⬇️ Empêche l’auto-dark de Chrome/Android : on prend la main */
+  /* ⬇️ Empêche l’auto-dark d’Android/Chrome : on prend la main */
   color-scheme: light dark;
 
   /* Couleurs (clair) */
@@ -15,23 +16,25 @@
   --border:     #e5e7eb;   /* bordures/grilles            */
   --muted:      #6b7280;   /* texte secondaire            */
   --accent:     #ff7a00;   /* accent / icônes / badges    */
+  --link:       #2563eb;   /* liens & adresses e‑mail     */
+  --focus:      #60a5fa;   /* surbrillance focus          */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Couleurs (sombre) */
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --surface:    #121217;
-    --border:     #2a2f3a;
-    --muted:      #cbd5e1;
-    --accent:     #ff9a3e;
-  }
+/* Surcharge en sombre quand .dark est posée sur <html> ou <body> */
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --surface:    #121217;
+  --border:     #2a2f3a;
+  --muted:      #cbd5e1;
+  --accent:     #ff9a3e;
+  --link:       #60a5fa;
+  --focus:      #93c5fd;
 }
 
 /* ──────────────────────────────────────────────
    Bridge Tailwind ←→ variables CSS
-   (Optionnel mais pratique pour écrire bg-[var(--…)]
+   (permet bg-[var(--…)] & co)
    ────────────────────────────────────────────── */
 @theme inline {
   --color-background: var(--background);
@@ -40,6 +43,7 @@
   --color-border:     var(--border);
   --color-muted:      var(--muted);
   --color-accent:     var(--accent);
+  --color-link:       var(--link);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -63,17 +67,45 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent; /* évite l’overlay bleu iOS/Android */
 }
 
-/* Liens, séparateurs, etc. */
+/* Liens — toujours bleus (clair & sombre) */
 a {
-  color: var(--foreground); /* noir en clair, blanc en dark */
-  text-decoration: none;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+a:hover { text-decoration-thickness: 2px; }
+
+/* Sélection de texte (cohérente en dark) */
+::selection {
+  background: color-mix(in oklab, var(--focus) 30%, transparent);
+}
+
+/* Scrollbar (non bloquant, support partiel) */
+* {
+  scrollbar-color: var(--border) var(--surface);
+  scrollbar-width: thin;
 }
 
 /* ──────────────────────────────────────────────
-   Petits helpers “full-CSS” (si tu ne veux pas
-   mettre des classes Tailwind partout)
+   Utilitaires maison (pour éviter bg-white partout)
+   ────────────────────────────────────────────── */
+@layer utilities {
+  .bg-app       { background: var(--background); }
+  .text-app     { color: var(--foreground); }
+  .surface      { background: var(--surface); }
+  .border-app   { border-color: var(--border); }
+  .muted        { color: var(--muted); }
+  .link-app     { color: var(--link); }
+  .accent-bg    { background: var(--accent); }
+  .accent-text  { color: var(--accent); }
+}
+
+/* ──────────────────────────────────────────────
+   Composants “full-CSS” (si tu ne veux pas
+   coller des classes Tailwind partout)
    ────────────────────────────────────────────── */
 .card {
   background-color: var(--surface);
@@ -84,7 +116,7 @@ a {
 
 .text-muted { color: var(--muted); }
 
-/* Boutons ronds type 1/N/2 (si tu en veux un style par défaut) */
+/* Boutons ronds type 1/N/2 (style par défaut) */
 .btn-circle {
   display: inline-flex;
   width: 2rem; height: 2rem;
@@ -102,34 +134,58 @@ a {
   color: #000; /* bon contraste sur l’accent */
 }
 
-/* Inputs de formulaire pour éviter l’auto-stylage sombre */
+/* Formulaires — anti “clair sur clair” en mobile */
 input, select, textarea {
   background-color: var(--surface);
   color: var(--foreground);
   border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+::placeholder { color: var(--muted); }
+
+/* Focus accessible uniforme (clavier/screen readers) */
+:where(a, button, input, select, textarea, [role="button"]) :focus { outline: none; }
+:where(a, button, input, select, textarea, [role="button"]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--focus) 25%, transparent);
 }
 
-/* Pour les images/svgs : le svg suit la couleur du texte par défaut */
+/* Pour les images/SVG : le svg suit la couleur du texte par défaut */
 svg { color: currentColor; fill: none; stroke: currentColor; }
+
+/* Désactivation du zoom auto iOS sur petits inputs */
+input, select, textarea, button { font-size: 16px; }
 
 /* ──────────────────────────────────────────────
    THEME COMPAT SHIM — temporaire
-   On re-map des classes Tailwind figées vers les variables
-   pour que ça suive light/dark sans réécrire tout le JSX.
-   À retirer plus tard quand tu feras la vraie refacto.
+   Re-map classes Tailwind figées → variables
+   pour suivre light/dark sans réécrire tout le JSX.
+   À retirer quand tu feras la refacto.
    ────────────────────────────────────────────── */
 
-/* Textes */
+/* Textes (grandes familles) */
 .text-black, .text-gray-900, .text-zinc-900 { color: var(--foreground) !important; }
 .text-gray-800, .text-slate-800             { color: var(--foreground) !important; }
 .text-gray-700, .text-slate-700             { color: var(--foreground) !important; }
 .text-gray-500, .text-slate-500             { color: var(--muted) !important; }
 
 /* Fonds généraux (pages, conteneurs) */
-.bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 { background-color: var(--background) !important; }
+.bg-white, .bg-gray-50, .bg-slate-50, .bg-zinc-50 {
+  background-color: var(--background) !important;
+}
 
-/* Fonds de “cartes/panneaux” (si tu en utilises souvent) */
-.bg-gray-100, .bg-slate-100, .bg-zinc-100 { background-color: var(--surface) !important; }
+/* Fonds de “cartes/panneaux” */
+.bg-gray-100, .bg-slate-100, .bg-zinc-100 {
+  background-color: var(--surface) !important;
+}
 
 /* Bordures */
-.border-gray-200, .border-slate-200, .border-zinc-200 { border-color: var(--border) !important; }
+.border-gray-200, .border-slate-200, .border-zinc-200 {
+  border-color: var(--border) !important;
+}
+
+/* Liens forcés bleus même si un utilitaire les override */
+.text-blue-600, .text-sky-600, .text-indigo-600 {
+  color: var(--link) !important;
+}
