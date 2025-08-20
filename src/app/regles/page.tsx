@@ -8,41 +8,59 @@ export default function ReglesPage() {
       <h1 className="text-2xl font-bold mb-6 text-center">RÈGLES DU JEU</h1>
 
       <RuleSection title="Résumé en moins d’une minute" iconSrc="/images/regles/chrono.png" type="default">
-        <p className="mb-4">
+        <p className="mb-4 text-justify">
           Pour chaque match, parie sur la victoire à domicile, le match nul ou la victoire à l’extérieur
-          (comme le 1-N-2 au Lotofoot) et marque un maximum de points pour grimper dans le classement.  </p>
-        <p className="mb-4"> Les points dépendent de la difficulté du pronostic. Plus le pari est risqué, plus il rapporte de points.</p>
-        <p className="mb-4 font-semibold">Un p'tit exemple :</p>
+          (comme le 1-N-2 au Lotofoot) et marque un maximum de points pour grimper dans le classement.
+        </p>
+
+        <p className="mb-4 text-justify">
+          Les points dépendent de la difficulté du pronostic. Plus le pari est risqué, plus il rapporte de points.
+        </p>
+
+        <p className="mb-4 font-semibold text-justify">Un p'tit exemple :</p>
+
         <div className="flex justify-center my-4">
-          <img src="/images/regles/ex_resume.png" alt="regles_resume" className="w-full max-w-lg rounded-lg border" />
+          <img
+            src="/images/regles/ex_resume.png"
+            alt="regles_resume"
+            className="w-full max-w-lg rounded-lg border"
+          />
         </div>
-        <p className="mt-4">Si tu paries sur N et que le classico se termine sur un match nul (on ne veut froisser personne) ça te fait 11 points. S'il n'y a pas match nul, tu ne gagnes pas de points. Simple, non ?</p>
-        <p className="mt-4">Pour rendre le jeu plus sympa, on a rajouté des bonus : KANTE, RIBERY et ZLATAN. Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...</p>
+
+        <p className="mt-4 text-justify">
+          Si tu paries sur N et que le classico se termine sur un match nul (on ne veut froisser personne) ça te fait 11 points.
+          S'il n'y a pas match nul, tu ne gagnes pas de points. Simple, non ?
+        </p>
+
+        <p className="mt-4 text-justify">
+          Pour rendre le jeu plus sympa, on a rajouté des bonus : KANTE, RIBERY et ZLATAN.
+          Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...
+        </p>
       </RuleSection>
 
       <RuleSection title="Match, grille... on t'explique tout !" iconSrc="/images/regles/emoji.png" type="default">
-        <p className="mb-4">
+        <p className="mb-4 text-justify">
             Pas de panique, on ne va pas revenir sur la règle du hors-jeu mais juste définir quelques mots importants du jeu :
           </p>
-          <p className="mb-4">Un <strong>MATCH</strong> est défini par plusieurs informations :</p>
+          <p className="mb-4">Un <strong>MATCH</strong> est défini par plusieurs infos :</p>
           <div className="flex justify-center my-4">
             <img src="/images/regles/ex_lexique.png" alt="regles_lexique" className="w-full max-w-lg rounded-lg border" />
           </div>
-          <ul className="list-disc pl-5 mb-4">
+          <ul className="list-disc pl-5 mb-4 text-justify">
             <li>La date et l’heure du coup d’envoi de la rencontre et le statut du match qui évolue en live.</li>
             <li>L’équipe à gauche est celle qui joue à domicile, celle de droite joue à l’extérieur. Le score en live s’affiche quand le match est commencé.</li>
             <li>Tu peux cliquer sur les cases 1-N-2 pour y mettre tes croix (ton <strong>PRONO</strong>) sans avoir besoin d’enregistrer.</li>
             <li>Les valeurs en dessous correspondent aux <strong>POINTS</strong> à gagner.</li>
-            <li>En cliquant sur l’image à droite, tu verras les pronos des autres joueurs si le match a commencé.</li>
+            <li>En cliquant sur l’image de droite, tu verras les pronos des autres joueurs si le match a commencé.</li>
             <li>En dessous, tu verras en live les points que tu gagnes, de quoi vibrer pendant tout le match.</li>
           </ul>
 
-          <p className="mb-2">Une <strong>GRILLE</strong> est composée de plusieurs <strong>MATCHS</strong>, généralement ceux d’une journée de Ligue 1.</p>
-          <p className="mb-4">Une <strong>COMPET</strong> regroupe plusieurs GRILLES. Elle peut se jouer en mode <strong>CLASSIC</strong> ou en mode <strong>TOURNOI</strong>.</p>
+          <p className="mb-2 text-justify">Une <strong>GRILLE</strong> est composée de plusieurs <strong>MATCHS</strong>, généralement ceux d’une journée de Ligue 1.</p>
+          <p className="mb-4 text-justify">Une <strong>COMPET</strong> regroupe plusieurs GRILLES. Elle peut se jouer en mode <strong>CLASSIC</strong> ou en mode <strong>TOURNOI</strong>.</p>
       </RuleSection>
 
       <RuleSection title="Les 4 règles principales" iconSrc="/images/regles/etoile.png" type="default">
-        <ul className="list-disc pl-5 space-y-2">
+        <ul className="list-disc pl-5 space-y-2 text-justify">
           <li><strong>Règle 1 :</strong> Seul le score à la fin du temps réglementaire compte (pas de prolongations, ni de tirs au but).</li>
           <li><strong>Règle 2 :</strong> Une seule croix par match, sauf si un bonus est joué.</li>
           <li><strong>Règle 3 :</strong> Un seul bonus peut être utilisé par grille, pour l'instant...</li>
@@ -51,58 +69,62 @@ export default function ReglesPage() {
       </RuleSection>
 
       <RuleSection title="Les modes CLASSIC et TOURNOI" iconSrc="/images/regles/mode.png" type="default" >
-        <p className="mb-4">
+        <p className="mb-4 text-justify">
           Pour expliquer le mode <strong>CLASSIC</strong>, faisons un peu de maths. On prend les 34 journées de Ligue 1 et on y ajoute deux tours de Coupe de France, cela nous donne 36 grilles.
           Tout est prêt pour élire les champions des 4 saisons sur des <strong>COMPETS</strong> de 9 grilles.
         </p>
 
-        <ul className="list-disc pl-5 mb-4">
+        <ul className="list-disc pl-5 mb-4 text-justify">
           <li>J1 =&gt; J9 : Compet d’Été</li>
           <li>J10 =&gt; J17 + CDF : Compet d’Automne</li>
           <li>J18 =&gt; J25 + CDF : Compet d’Hiver</li>
           <li>J26 =&gt; J34 : Compet de Printemps</li>
         </ul>
 
-        <p>
+        <p className="mb-4 text-justify">
           Le mode <strong>TOURNOI</strong> est en préparation, trois types de tournois à éliminations vous seront proposés…
         </p>
       </RuleSection>
 
       <RuleSection title="Le bonus KANTÉ" iconSrc="/images/kante.png" type="bonus">
-        <p><strong>Description :</strong> Quand N’golo joue dans ton équipe c’est comme si tu avais deux joueurs en un. Ici c’est pareil, il te permet de cocher deux croix pour un match. Au lotofoot, c’est comme un double : 1-N, N-2 ou 1-2.</p>
-        <p className="mt-2"><strong>Avantage :</strong> 2 chances sur 3 de marquer des points.</p>
-        <p className="mt-2"><strong>Inconvénient :</strong> Tu ne gagnes que les points associés au pronostic avec la plus petite cote.</p>
-        <p className="mt-4 mb-4 font-semibold">Exemple :</p>
+        <p className="mt-2 text-justify"><strong>Description :</strong> Quand N’golo joue dans ton équipe c’est comme si tu avais deux joueurs en un. Ici c’est pareil, il te permet de cocher deux croix pour un match. Au lotofoot, c’est comme un double : 1-N, N-2 ou 1-2.</p>
+        <p className="mt-2 text-justify"><strong>Avantage :</strong> 2 chances sur 3 de marquer des points.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Tu ne gagnes que les points associés au pronostic avec la plus petite cote.</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_kante.png" alt="Exemple Kanté" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p>Si Rennes gagne ou fait match nul, tu gagnes 7 points. Si Rennes perd, tu ne gagnes pas de points ! </p>
+        <p className="mt-2 text-justify">
+          Si Rennes gagne ou fait match nul, tu gagnes 7 points. Si Rennes perd, tu ne gagnes pas de points ! </p>
       </RuleSection>
 
       <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus">
-        <p><strong>Description :</strong> On a demandé à Francky de jouer une Kanté mais il n’a pas tout compris. Il a bien rajouté une croix supplémentaire sur la grille mais il a oublié de parier sur un match. Au lotofoot, c’est un triple : 1-N-2</p>
-        <p className="mt-2"><strong>Avantage :</strong> T'es sûr de marquer des points.</p>
-        <p className="mt-2"><strong>Inconvénient :</strong> Ca te fait un match en moins à parier.</p>
-        <p className="mt-4 mb-4 font-semibold">Exemple :</p>
+        <p className="mt-2 text-justify"><strong>Description :</strong> On a demandé à Francky de jouer une Kanté mais il n’a pas tout compris. Il a bien rajouté une croix supplémentaire sur la grille mais il a oublié de parier sur un match. Au lotofoot, c’est un triple : 1-N-2</p>
+        <p className="mt-2 text-justify"><strong>Avantage :</strong> T'es sûr de marquer des points.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Ça te fait un match en moins à parier.</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_ribery_1.png" alt="Exemple Ribery 1" className="w-full max-w-lg rounded-lg border" />
         </div>
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_ribery_2.png" alt="Exemple Ribery 2" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p>Si Metz gagne, tu gagnes 9 points. Si Metz fait match nul, tu gagnes 11 points. Si Nantes gagne, tu gagnes 8 points.</p>
-        <p>Pour le derby du nord Lille - Lens, jamais facile à pronostiquer, tu es sûr de marquer 0 point.</p>
+        <p className="mt-2 text-justify">
+          Si Metz gagne, tu gagnes 9 points. Si Metz fait match nul, tu gagnes 11 points. Si Nantes gagne, tu gagnes 8 points.</p>
+        <p className="mt-2 text-justify">
+          Pour le derby du nord Lille - Lens, jamais facile à pronostiquer, tu es sûr de marquer 0 point.</p>
       </RuleSection>
 
       <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus">
-        <p><strong>Description :</strong> T’es aussi confiant que lui ? T’es sûr du résultat final d’un match ? Ce bonus te permet de doubler les points mis en jeu.</p>
-        <p className="mt-2"><strong>Avantage :</strong> Si tu sens le bon coup, tu peux zlatanner les autres</p>
-        <p className="mt-2"><strong>Inconvénient :</strong> Si tu te trompes... bah... 0 fois 2, ça fait toujours 0 hein !</p>
-        <p className="mt-4 mb-4 font-semibold">Exemple :</p>
+        <p className="mt-2 text-justify"><strong>Description :</strong> T’es aussi confiant que lui ? T’es sûr du résultat final d’un match ? Ce bonus te permet de doubler les points mis en jeu.</p>
+        <p className="mt-2 text-justify"><strong>Avantage :</strong> Si tu sens le bon coup, tu peux zlatanner les autres</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Si tu te trompes... bah... 0 fois 2, ça fait toujours 0 hein !</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_zlatan.png" alt="Exemple zlatan" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p>Si Toulouse gagne, tu gagnes 2x5 = 10 points. Sinon, tu ne gagnes pas de points. </p>
+        <p className="mt-2 text-justify">
+          Si Toulouse gagne, tu gagnes 2 x 5 = 10 points. Sinon, tu ne gagnes pas de points. </p>
       </RuleSection>
     </main>
   )

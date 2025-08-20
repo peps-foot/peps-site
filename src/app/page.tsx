@@ -58,7 +58,7 @@ export default function Home() {
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Bandeau d'info */}
-    <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4">
+    <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
       <p className="text-sm sm:text-base leading-relaxed">
         <span className="mr-2">🏆</span>
         <span className="font-semibold">Pour la coupe d'été :</span> Le jeu comporte 9 grilles de 9 matchs. Le premier au classement général final remportera <span className="font-semibold">50 €</span> 💸
@@ -66,7 +66,7 @@ export default function Home() {
     </div>
 
     {/* Bandeau de recrutement testeurs */}
-    <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4">
+    <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-justify">
       <p className="text-sm sm:text-base leading-relaxed">
         <span className="mr-2">📱</span>
         <span className="font-semibold">Tester l’application PEPS :</span>{' '}
