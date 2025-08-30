@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Oswald, Poppins } from 'next/font/google';
 import ClientLayout from '../components/ClientLayout';
 import RegisterServiceWorker from '../components/RegisterServiceWorker';
+import PushBootstrap from '../components/PushBootstrap';
 
 console.log('[layout] rendu');
 
@@ -34,11 +35,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Métadonnées PWA / mobile */}
         <meta name="color-scheme" content="light dark" />
         <meta name="theme-color" content="#FF6600" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <link rel="apple-touch-icon" href="/icon-512x512.png" />
       </head>
       <body>
+        <PushBootstrap />
         <RegisterServiceWorker />
         <ClientLayout>{children}</ClientLayout>
       </body>

@@ -1,8 +1,7 @@
+importScripts('/firebase-messaging-sw.js');
+
 const CACHE_NAME = "peps-cache-v1";
-const urlsToCache = [
-  "/",
-  "/offline.html",
-];
+const urlsToCache = ["/", "/offline.html",];
 
 // Installation
 self.addEventListener("install", (event) => {
@@ -36,3 +35,4 @@ self.addEventListener("activate", (event) => {
     )
   );
 });
+

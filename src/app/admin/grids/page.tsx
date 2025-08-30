@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../../components/SupabaseProvider'
+import AdminPushPanel from '../../../components/AdminPushPanel';
 
 type BonusDef = { id: string; code: string; name: string };
 type Fixture = {
@@ -20,7 +21,7 @@ type Grid = {
 export default function AdminGridsPage() {
   const supabase = useSupabase()
   // --- Onglets CRUD ---
-  const [tab, setTab] = useState<'create' | 'list' | 'compet' | 'competList'>('create');
+  const [tab, setTab] = useState<'create' | 'list' | 'compet' | 'competList' | 'push'>('create');
   // États pour création/édition compétition
   const [competName, setCompetName] = useState('');
   const [selCompetGrids, setSelCompetGrids] = useState<string[]>([]);
@@ -271,6 +272,7 @@ export default function AdminGridsPage() {
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='list'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('list')}>Liste des grilles</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='compet'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('compet')}>Compétitions</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='competList'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('competList')}>Liste des compétitions</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='push' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('push')} >Notifications</button>
       </div>
 
       {/* Création / Modification */}
@@ -575,6 +577,14 @@ export default function AdminGridsPage() {
     }
   </div>
 )}
+
+{/* Pour envoyer des notifs ponctuelles */}
+{tab === 'push' && (
+  <div className="mt-6">
+    <AdminPushPanel />
+  </div>
+)}
+
     </div>
 );
 }

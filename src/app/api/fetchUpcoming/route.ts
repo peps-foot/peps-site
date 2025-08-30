@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
 const API_KEY = '112a112da460820962f5e9fc0b261d2a';
-const SEASON = 2025;
+const SEASON = 2024;
 
 export async function GET() {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -12,11 +12,12 @@ export async function GET() {
 
   logs.push('🟠 Lancement de fetchUpcoming');
 
-  const leagueIds = [61];
+  const leagueIds = [32];
   const allFixtures: any[] = [];
 
   for (const leagueId of leagueIds) {
-    const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${SEASON}&status=NS`;
+    //    const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${SEASON}&status=NS`;
+    const url = `https://v3.football.api-sports.io/fixtures?league=${leagueId}&season=${SEASON}`;
     logs.push(`🔵 Appel API fixtures : ${url}`);
 
     const res = await fetch(url, {
@@ -26,10 +27,14 @@ export async function GET() {
     const json = await res.json();
 
     if (json.response && Array.isArray(json.response)) {
+      const statusCount: Record<string, number> = {};
+      for (const f of json.response) {
+        const s = f?.fixture?.status?.short || 'UNK';
+        statusCount[s] = (statusCount[s] || 0) + 1;
+      }
+      logs.push(`📊 Statuts league ${leagueId} : ${JSON.stringify(statusCount)}`);
       logs.push(`🟢 ${json.response.length} matchs récupérés pour league ${leagueId}`);
       allFixtures.push(...json.response);
-    } else {
-      logs.push(`⚠️ Aucun match pour league ${leagueId}`);
     }
 
     await new Promise((r) => setTimeout(r, 250));
@@ -49,10 +54,33 @@ export async function GET() {
 
   const validTeamIds = new Set(teamIdsInDb.map(t => t.id));
 
+  // --- DIAGNOSTIC ---
+let exclNonNS = 0;
+let exclPasse = 0;
+let exclTeams = 0;
+
+for (const m of allFixtures) {
+  const isNS = m?.fixture?.status?.short === 'NS';
+  const kickoff = new Date(m?.fixture?.date);
+  const isFuture = kickoff.getTime() > Date.now();
+  const teamsOK =
+    validTeamIds.has(m?.teams?.home?.id) &&
+    validTeamIds.has(m?.teams?.away?.id);
+
+  if (!isNS) { exclNonNS++; continue; }
+  if (!isFuture) { exclPasse++; continue; }
+  if (!teamsOK) { exclTeams++; continue; }
+}
+
+logs.push(`ℹ️ Exclues: non-NS=${exclNonNS}, passées=${exclPasse}, teams_manquantes=${exclTeams}`);
+// --- FIN DIAGNOSTIC ---
+
+  const ALLOWED = new Set(['NS','TBD','TBA']);
+
   // 🎯 On filtre les matchs à insérer
   const matchesToInsert = allFixtures
     .filter((m: any) =>
-      m.fixture.status.short === 'NS' &&
+      ALLOWED.has(m.fixture.status.short) &&
       new Date(m.fixture.date) > new Date() &&
       validTeamIds.has(m.teams.home.id) &&
       validTeamIds.has(m.teams.away.id)
@@ -71,6 +99,7 @@ export async function GET() {
       score_away: item.goals.away,
       is_locked: false
     }));
+
 
   logs.push(`🧹 ${matchesToInsert.length} matchs à insérer (NS et à venir)`);
 
@@ -163,7 +192,7 @@ export async function GET() {
   }
 
   logs.push(`🟢 Terminé : ${oddsInserted} cotes insérées, ${oddsSkipped} ignorées`);
-
+  
   return NextResponse.json({
     ok: true,
     inserted_matches: matchesToInsert.length,

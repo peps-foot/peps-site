@@ -1,0 +1,54 @@
+export const runtime = 'nodejs';
+import 'server-only';
+import { createClient } from '@supabase/supabase-js';
+import { messaging } from '../../../../lib/firebaseAdmin';
+
+// ⬇️ remplace par TES valeurs (une seule ligne chacune)
+const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';        
+const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
+
+// anti-spam très simple (mémoire du process)
+let lastSendAt = 0; // ms
+
+export async function POST() {
+  const now = Date.now();
+  if (now - lastSendAt < 5000) { // max 1 appel / 5 s
+    return Response.json({ ok: false, skipped: 'rate_limited' });
+  }
+  lastSendAt = now;
+
+  // 1) Dernier token
+  const { data, error } = await supabase
+    .from('push_tokens')
+    .select('token')
+    .order('last_seen_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) return new Response(JSON.stringify({ ok:false, supabase_error: error.message }), { status: 500 });
+  if (!data?.length) return new Response(JSON.stringify({ ok:false, error:'no token in DB' }), { status: 404 });
+
+  const token = data[0].token;
+
+  // 2) Envoi "data-only" (une seule bannière)
+  const title = 'PEPS (BDD)';
+  const body  = 'Envoi depuis la base ✅';
+  const url   = 'https://www.peps-foot.com/';
+  const icon  = '/icon-512x512.png';
+  const tag   = 'peps-latest';
+
+  await messaging.send({
+    token,
+    webpush: {
+      headers: { Urgency: 'high', TTL: '10', Topic: 'peps-latest' },
+      data: { title, body, url, icon, tag },
+      fcmOptions: { link: url },
+    },
+  });
+
+  return Response.json({ ok: true, at: new Date().toISOString() });
+}

@@ -1,0 +1,62 @@
+export const runtime = 'nodejs';
+import 'server-only';
+import { createClient } from '@supabase/supabase-js';
+import { messaging } from '../../../../lib/firebaseAdmin';
+
+// ⬇️ TES valeurs
+const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';        
+const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
+
+export async function POST() {
+  // 1) Récupérer tous les tokens
+  const { data, error } = await supabase
+    .from('push_tokens')
+    .select('token')
+    .order('last_seen_at', { ascending: false, nullsFirst: false });
+
+  if (error) return new Response(JSON.stringify({ ok:false, supabase_error: error.message }), { status: 500 });
+  const tokens = (data || []).map((r) => r.token);
+  if (!tokens.length) return new Response(JSON.stringify({ ok:false, error:'no tokens' }), { status: 404 });
+
+  // 2) Envoyer (petits lots) + collecter les tokens invalides
+  const toDelete = new Set<string>();
+  const BATCH = 50;
+
+  const sendOne = async (t: string) => {
+    try {
+      await messaging.send({
+        token: t,
+        webpush: {
+          headers: { Urgency: 'high', TTL: '10', Topic: 'peps-latest' },
+          notification: { title: 'PEPS (tous)', body: 'Coucou tout le monde 👋', icon: '/icon-512x512.png' },
+          data: { url: 'https://www.peps-foot.com/' },
+          fcmOptions: { link: 'https://www.peps-foot.com/' },
+        },
+      });
+      return true;
+    } catch (e: any) {
+      const code = e?.errorInfo?.code || e?.code || e?.message || '';
+      // tokens expirés/invalides → on les supprime de la BDD
+      if (String(code).includes('registration-token-not-registered') || String(code).includes('invalid-argument')) {
+        toDelete.add(t);
+      }
+      return false;
+    }
+  };
+
+  for (let i = 0; i < tokens.length; i += BATCH) {
+    const slice = tokens.slice(i, i + BATCH);
+    await Promise.all(slice.map(sendOne));
+  }
+
+  // 3) Nettoyage des tokens invalides
+  if (toDelete.size) {
+    await supabase.from('push_tokens').delete().in('token', Array.from(toDelete));
+  }
+
+  return Response.json({ ok: true, sent_to: tokens.length, removed: toDelete.size });
+}

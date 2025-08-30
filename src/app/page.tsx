@@ -8,7 +8,8 @@ import Image from "next/image";
 type Competition = {
   id: string;
   name: string;
-  description: string;
+  description: string | null; // selon ta BDD ça peut être null
+  icon?: string | null;       // <-- nouveau champ (optionnel)
 };
 
 export default function Home() {
@@ -42,7 +43,7 @@ export default function Home() {
 
   useEffect(() => {
     const fetchCompetitions = async () => {
-      const { data, error } = await supabase.from('competitions').select('id, name, description');
+      const { data, error } = await supabase.from('competitions').select('id, name, description, icon');
       if (!error && data) {
         setCompetitions(data);
       } else {
@@ -84,30 +85,31 @@ export default function Home() {
     </div>
 
     {/* Liste des compétitions */}
-      {competitions.map((comp) => (
-        <div
-          key={comp.id}
-          onClick={() => router.push(`/${comp.id}`)}
-          className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between"
-        >
-          <div className="flex items-center space-x-3">
-            <Image
-              src="/images/compet/ligue1.png"
-              alt="Ligue 1"
-              width={48}
-              height={48}
-              className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
-            />
-            <div>
-              <p className="text-green-600 font-bold">{comp.name}</p>
-              <p className="text-sm text-gray-800">{comp.description}</p>
-            </div>
-          </div>
-          <div className="border border-black px-4 py-1 bg-white">
-            JOUER
+    {competitions.map((comp) => (
+      <div
+        key={comp.id}
+        onClick={() => router.push(`/${comp.id}`)}
+        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-4"
+      >
+        <div className="flex items-center space-x-3">
+          <Image
+            src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
+            alt={comp.name}
+            width={48}
+            height={48}
+            className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+          />
+          <div>
+            <p className="text-green-600 font-bold">{comp.name}</p>
+            <p className="text-sm text-gray-800">{comp.description}</p>
           </div>
         </div>
-      ))}
+        <div className="border border-black px-4 py-1 bg-white">
+          JOUER
+        </div>
+      </div>
+    ))}
+
     </main>
   );
 }

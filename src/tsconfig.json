@@ -28,7 +28,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-  ],
+, "app/api/push/send-latest/route.ts.bak", "app/api/push/send-all/route.ts.bak", "app/api/push/send/route.ts.bak"  ],
   "exclude": [
     "node_modules"
   ]
