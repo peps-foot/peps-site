@@ -37,7 +37,7 @@ export default function PepsPlusPage() {
       {/* <NotificationsSettings /> */}
       <p className="flex items-center space-x-2 text-gray-600">
         <Construction className="w-5 h-5 text-yellow-600" />
-        <span>En chantier...</span>
+        <span>En chantier.</span>
       </p>       
       </RuleSection>
     </main>
