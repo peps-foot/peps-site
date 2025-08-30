@@ -15,6 +15,8 @@
     "cookie": "^1.0.2",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
+    "firebase": "^12.1.0",
+    "firebase-admin": "^13.4.0",
     "lucide-react": "^0.534.0",
     "next": "15.3.1",
     "react": "^19.0.0",
