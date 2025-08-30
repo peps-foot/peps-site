@@ -32,7 +32,7 @@ export default function PepsPlusPage() {
       </RuleSection>
 
       <RuleSection title="Notifications" iconSrc="/images/regles/notif.png" type="default">
-        <p>Cette fonctionnalité est en chantier. Les notifications push seront disponibles prochainement !</p>
+        <p>Cette fonctionnalité est en chantier. Les notifications push seront disponibles prochainement.</p>
       </RuleSection>
     </main>
   );
