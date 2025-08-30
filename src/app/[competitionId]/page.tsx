@@ -44,6 +44,7 @@ const bonusLogos: Record<string,string> = {
   "RIBERY": '/images/ribery.png',
   "ZLATAN": '/images/zlatan.png',
   "INFO" : '/images/info.png',
+  "BIELSA" : '/images/bonus/bielsa.png',
 };
 
 export default function HomePage() {
