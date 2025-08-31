@@ -77,7 +77,7 @@ export default function ReglesConnexion() {
         <ul className="list-disc pl-5 space-y-2 text-justify">
           <li><strong>Règle 1 :</strong> Seul le score à la fin du temps réglementaire compte (pas de prolongations, ni de tirs au but).</li>
           <li><strong>Règle 2 :</strong> Une seule croix par match, sauf si un bonus est joué.</li>
-          <li><strong>Règle 3 :</strong> Un seul bonus peut être utilisé par grille, pour l'instant...</li>
+          <li><strong>Règle 3 :</strong> Tu peux jouer au max un seul bonus à chaque grille, pour l'instant...</li>
           <li><strong>Règle 4 :</strong> Tu peux changer ton choix jusqu'au coup d’envoi.</li>
         </ul>
       </RuleSection>

@@ -1,6 +1,6 @@
 'use client';
 import RuleSection from '../../components/RuleSection';
-import NotificationsSettings from '../../components/NotificationsSettings';
+//import NotificationsSettings from '../../components/NotificationsSettings.tsx.bak';
 import { Construction } from "lucide-react";
 
 export default function PepsPlusPage() {
