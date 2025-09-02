@@ -43,8 +43,8 @@ const bonusLogos: Record<string,string> = {
   "KANTE": '/images/kante.png',
   "RIBERY": '/images/ribery.png',
   "ZLATAN": '/images/zlatan.png',
-  "INFO" : '/images/info.png',
   "BIELSA" : '/images/bonus/bielsa.png',
+  "INFO" : '/images/info.png',  
 };
 
 export default function HomePage() {
@@ -697,6 +697,7 @@ const matchesToCheck =
   openedBonus.code === 'RIBERY' ? [popupMatch1, popupMatch0] :
   openedBonus.code === 'ZLATAN' ? [popupMatch1] :
   openedBonus.code === 'KANTE' ? [popupMatch1] :
+  openedBonus.code === 'BIELSA'  ? [popupMatch1] :
   [];
 
 if (matchesToCheck.length === 0 || matchesToCheck.includes('')) {
@@ -757,6 +758,13 @@ for (const matchId of matchesToCheck) {
             pick: popupPick
           };
           break;
+
+        case 'BIELSA': {
+          if (!popupMatch1) return alert('Match requis pour Bielsa');
+          payload.match_id = popupMatch1;        // ← explicite, comme ZLATAN
+          payload.parameters = { pick: popupPick }; // '1' | 'N' | '2'
+          break;
+        }
 
         default:
           return alert('Bonus non reconnu : ' + openedBonus.code);
@@ -892,6 +900,26 @@ for (const matchId of matchesToCheck) {
   // // 🧠 Aide bonus : savoir si un bonus a été joué, et lequel
   const isPlayed = gridBonuses.length>0;
   const playedBonusCode = bonusDefs.find(b=>b.id===gridBonuses[0]?.bonus_definition)?.code;
+  // pour savoir quel bonus affiché dans la zone bonus
+const allowedIds = (grid?.allowed_bonuses ?? null) as string[] | null;
+
+const visibleBonusDefs =
+  allowedIds === null
+    ? null                               // => "Pas de bonus pour cette grille"
+    : bonusDefs.filter(b => allowedIds.includes(b.id));
+
+const noBonusForThisGrid = visibleBonusDefs === null;
+
+// BIELSA déjà posé ?
+const bielsaMatchId =
+  gridBonuses.find(gb => bonusDefs.find(d => d.id === gb.bonus_definition)?.code === 'BIELSA')
+    ?.match_id ?? null;
+
+// Y a-t-il au moins 1 match non-NS qui a déjà une croix ?
+const hasStartedPickedMatch = matches.some(m =>
+  !!m.pick && (m.status?.toUpperCase?.() !== 'NS')
+);
+
 
 return (
       <>
@@ -1116,6 +1144,13 @@ return (
                   const matchWin = (params as Partial<{ match_win: string }>).match_win ?? '';
                   const matchZero = (params as Partial<{ match_zero: string }>).match_zero ?? '';
 
+                  // 1bis) Pour le bonus BIELSA
+                  const paramsPick = (params as { pick?: '1' | 'N' | '2' }).pick;
+                  const isBielsaActive = bonusCode === 'BIELSA' && !!bielsaMatchId;
+                  const isMutedByBielsa = isBielsaActive && m.id !== bielsaMatchId;
+                  const isBielsaThis   = isBielsaActive && m.id === bielsaMatchId;
+                  const isBielsaOther  = isBielsaActive && m.id !== bielsaMatchId;
+
                   // 2) Prépare picks et disabled
                   let picksForThisMatch: string[] =
                     bonusEntry && bonusCode
@@ -1125,6 +1160,19 @@ return (
                   let isDisabled = false;
                   if (upperStatus !== 'NS' || ['SUSP', 'INT', 'PST'].includes(upperStatus) || m.is_locked) {
                     isDisabled = true;
+                  }
+                  if (isBielsaOther) isDisabled = true; // grise les 8 autres
+
+                  // 2bis Affichage BIELSA
+                  if (bonusCode === 'BIELSA' && bielsaMatchId) {
+                    if (m.id === bielsaMatchId) {
+                      // Sur le match BIELSA : afficher la croix choisie dans la pop-up
+                      if (paramsPick) picksForThisMatch = [paramsPick];
+                    } else {
+                      // Tous les autres matchs : non jouables + aucune croix visible
+                      isDisabled = true;
+                      picksForThisMatch = [];
+                    }
                   }
 
                   if (bonusEntry && bonusCode) {
@@ -1190,7 +1238,10 @@ return (
                     {/* Boutons 1/N/2 */}
                     <div className="grid grid-cols-3 gap-[16px] justify-items-center">
                       {(['1', 'N', '2'] as const).map((opt) => {
-                        const isX = picksForThisMatch.includes(opt);
+                        const isX = isBielsaThis
+                          ? (opt === paramsPick)  // match BIELSA → croix = pick du popup (grid_bonus.parameters.pick)
+                          : (!isBielsaOther && picksForThisMatch.includes(opt)); // autres cas → logique normale
+
                         return (
                           <div
                             key={opt}
@@ -1313,19 +1364,23 @@ return (
         {/* ── BONUS ── */}
         <div className="w-full lg:w-1/3">
           <div className="border rounded-lg p-4 space-y-4">
+            
             {/* En-tête */}
-            <div className="font-medium">
-              {gridBonuses.length > 0
-                ? `Tu as déjà joué 1 bonus :`
-                : `Joue 1 des ${bonusDefs.length} bonus :`}
-            </div>
+<div className="font-medium">
+  {noBonusForThisGrid
+    ? 'Pas de bonus pour cette grille'
+    : (gridBonuses.length > 0
+        ? 'Tu as déjà joué 1 bonus :'
+        : `Joue 1 des ${visibleBonusDefs!.length} bonus :`)}
+</div>
+
 
             {/* Liste des defs */}
-            {bonusDefs.map(b => {
-              const isPlayed = gridBonuses.some(
-                gb => gb.bonus_definition === b.id
-              )
-              const hasPlayedAny = gridBonuses.length > 0
+              {(visibleBonusDefs ?? []).map(b => {
+                const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
+                const hasPlayedAny = gridBonuses.length > 0;
+                const isBielsa = b.code === 'BIELSA';
+                const canPlayBielsa = !bielsaMatchId && !hasStartedPickedMatch; // BIELSA jouable ?
 
               return (
                 <div
@@ -1351,14 +1406,26 @@ return (
 
                   {/* Bouton : si aucun bonus joué → JOUER ; si c'est celui-ci joué → MODIFIER */}
                   <div>
-                    {!hasPlayedAny && (
-                      <button
-                        onClick={() => setOpenedBonus(b)}
-                        className="px-3 py-1 border rounded hover:bg-gray-100"
-                      >
-                        JOUER
-                      </button>
-                    )}
+{!hasPlayedAny && (
+  isBielsa
+    ? (canPlayBielsa ? (
+        <button
+          onClick={() => setOpenedBonus(b)}
+          className="px-3 py-1 border rounded hover:bg-gray-100"
+        >
+          JOUER
+        </button>
+      ) : null) // => bouton caché si BIELSA non jouable
+    : (
+        <button
+          onClick={() => setOpenedBonus(b)}
+          className="px-3 py-1 border rounded hover:bg-gray-100"
+        >
+          JOUER
+        </button>
+      )
+)}
+
                     {isPlayed && (() => {
                       const bonusEntry = gridBonuses.find(gb => gb.bonus_definition === b.id);
                       const bonusMatch = matches.find(m => m.id === bonusEntry?.match_id);
@@ -1650,7 +1717,7 @@ return (
                     </select>
                   </label>
                 </>
-              ) : openedBonus.code === 'ZLATAN' ? (
+              ) : (openedBonus.code === 'ZLATAN' || openedBonus.code === 'BIELSA') ? (
                 <>
                   <label className="block mb-3">
                     Match

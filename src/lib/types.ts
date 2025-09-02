@@ -62,7 +62,7 @@ export type GridWithItems = Grid & {
 // Bonus
 export type BonusDef = {
   id: string;
-  code: 'KANTE' | 'RIBERY' | 'ZLATAN';
+  code: 'KANTE' | 'RIBERY' | 'ZLATAN' | 'BIELSA';
   description: string;
   parameters?: BonusParameters;
 };
