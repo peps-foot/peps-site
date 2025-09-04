@@ -128,7 +128,7 @@ export default function ReglesPage() {
       </RuleSection>
 
       <RuleSection title="Le bonus BIELSA" iconSrc="/images//bonus/bielsa.png" type="bonus_grille">
-        <p className="mt-2 text-justify"><strong>Description :</strong> Un petit coup de folie ? Comme El loco tu veux tenter le tout pour le tout ? Si tu joues ce bonus, tu ne pourras parier que sur un match et les points seront multipliés par 5 !!!!! Alors, all-in ?</p>
+        <p className="mt-2 text-justify"><strong>Description :</strong> Un petit coup de folie ? Comme El loco tu veux tenter le tout pour le tout ? Si tu joues ce bonus, tu ne pourras mettre qu'une seule croix dans ta grille et les points seront multipliés par 5 !!!!! Alors, all-in ?</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> Une chance sur trois de marquer beaucoup de points d'un coup.</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Deux chances sur trois de faire un zéro pointé !</p>
         <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
