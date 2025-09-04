@@ -100,7 +100,7 @@ export default function ReglesConnexion() {
         </p>
       </RuleSection>
 
-      <RuleSection title="Le bonus KANTÉ" iconSrc="/images/kante.png" type="bonus">
+      <RuleSection title="Le bonus KANTÉ" iconSrc="/images/kante.png" type="bonus_match">
         <p className="mt-2 text-justify"><strong>Description :</strong> Quand N’golo joue dans ton équipe c’est comme si tu avais deux joueurs en un. Ici c’est pareil, il te permet de cocher deux croix pour un match. Au lotofoot, c’est comme un double : 1-N, N-2 ou 1-2.</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> 2 chances sur 3 de marquer des points.</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Tu ne gagnes que les points associés au pronostic avec la plus petite cote.</p>
@@ -112,7 +112,7 @@ export default function ReglesConnexion() {
           Si Rennes gagne ou fait match nul, tu gagnes 7 points. Si Rennes perd, tu ne gagnes pas de points ! </p>
       </RuleSection>
 
-      <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus">
+      <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus_match">
         <p className="mt-2 text-justify"><strong>Description :</strong> On a demandé à Francky de jouer une Kanté mais il n’a pas tout compris. Il a bien rajouté une croix supplémentaire sur la grille mais il a oublié de parier sur un match. Au lotofoot, c’est un triple : 1-N-2</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> T'es sûr de marquer des points.</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Ça te fait un match en moins à parier.</p>
@@ -129,7 +129,7 @@ export default function ReglesConnexion() {
           Pour le derby du nord Lille - Lens, jamais facile à pronostiquer, tu es sûr de marquer 0 point.</p>
       </RuleSection>
 
-      <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus">
+      <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus_match">
         <p className="mt-2 text-justify"><strong>Description :</strong> T’es aussi confiant que lui ? T’es sûr du résultat final d’un match ? Ce bonus te permet de doubler les points mis en jeu.</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> Si tu sens le bon coup, tu peux zlatanner les autres</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Si tu te trompes... bah... 0 fois 2, ça fait toujours 0 hein !</p>
@@ -139,6 +139,16 @@ export default function ReglesConnexion() {
         </div>
         <p className="mt-2 text-justify">
           Si Toulouse gagne, tu gagnes 2 x 5 = 10 points. Sinon, tu ne gagnes pas de points. </p>
+      </RuleSection>
+
+      <RuleSection title="Le bonus BIELSA" iconSrc="/images/bonus/bielsa.png" type="bonus_grille">
+        <p className="mt-2 text-justify"><strong>Description :</strong> Un petit coup de folie ? Comme El loco tu veux tenter le tout pour le tout ? Si tu joues ce bonus, tu ne pourras parier que sur un match et les points seront multipliés par 5 !!!!! Alors, all-in ?</p>            <p className="mt-2 text-justify"><strong>Avantage :</strong> Une chance sur trois de marquer beaucoup de points d'un coup.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Deux chances sur trois de faire un zéro pointé !</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
+        <div className="flex justify-center my-4">
+           <img src="/images/regles/ex_resume.png" alt="Exemple bielsa" className="w-full max-w-lg rounded-lg border" />
+        </div>
+        <p className="mt-2 text-justify">Si le classico OM-PSG se termine par un match nul, tu marques 5 x 11 = 55 points pour toute la grille. Si il n'y a pas match nul, ça te fait 0 point pour toute la grille.</p>
       </RuleSection>
     </main>
   )
