@@ -1306,7 +1306,9 @@ return (
                               console.error('get_match_picks error:', error);
                               return;
                             }
+                            console.log('get_match_picks rows:', data?.length, data); // 👈
                             setOtherPicks((data ?? []) as MatchPickRow[]);
+                            console.log('otherPicks bonus codes:', otherPicks.map(p => p.username + '→' + p.bonus_code));
                             setSortMode('rank');
                           }}
                           className="focus:outline-none"
