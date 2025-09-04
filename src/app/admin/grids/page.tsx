@@ -193,73 +193,53 @@ export default function AdminGridsPage() {
   const handleCompetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessageCompet(null);
-    try {
-      let compId = editingCompetId;
+try {
+  let compId = editingCompetId;
 
-      if (compId) {
-        // 🔄 Mise à jour compétition existante
-        await supabase
-          .from('competitions')
-          .update({ name: competName })
-          .eq('id', compId);
+  if (compId) {
+    const { error: updErr } = await supabase
+      .from('competitions')
+      .update({ name: competName })
+      .eq('id', compId);
+    if (updErr) throw new Error('competitions.update: ' + updErr.message);
 
-        await supabase
-          .from('competition_grids')
-          .delete()
-          .eq('competition_id', compId);
+    const { error: delErr } = await supabase
+      .from('competition_grids')
+      .delete()
+      .eq('competition_id', compId);
+    if (delErr) throw new Error('competition_grids.delete: ' + delErr.message);
 
-        setComps(cs =>
-          cs.map(c =>
-            c.id === compId ? { ...c, name: competName } : c
-          )
-        );
-      } else {
-        // ➕ Nouvelle compétition
-        const { data: comp, error: compErr } = await supabase
-          .from('competitions')
-          .insert([{ name: competName }])
-          .select('id,name,created_at')
-          .single();
+  } else {
+    const { data: comp, error: compErr } = await supabase
+      .from('competitions')
+      .insert([{ name: competName }])
+      .select('id,name,created_at')
+      .single();
+    if (compErr) throw new Error('competitions.insert: ' + compErr.message);
+    compId = comp.id;
+    setComps(cs => [{ id: comp.id, name: comp.name, created_at: comp.created_at }, ...cs]);
+  }
 
-        if (compErr) throw compErr;
-        compId = comp.id;
+  if (selCompetGrids.length && compId) {
+    const links = selCompetGrids.map(grid_id => ({ competition_id: compId!, grid_id }));
+    const { error: linkErr } = await supabase.from('competition_grids').insert(links);
+    if (linkErr) throw new Error('competition_grids.insert: ' + linkErr.message);
+  }
 
-        setComps(cs => [
-          { id: comp.id, name: comp.name, created_at: comp.created_at },
-          ...cs
-        ]);
-      }
+  if (compId) {
+    const { error: regenErr } = await supabase.rpc('regenerate_grid_matches_for_competition', { p_compet_id: compId });
+    if (regenErr) throw new Error('rpc.regenerate_grid_matches_for_competition: ' + regenErr.message);
+  }
 
-      // 🔗 Association des grilles à la compétition
-      if (selCompetGrids.length && compId) {
-        const links = selCompetGrids.map(grid_id => ({
-          competition_id: compId!,
-          grid_id
-        }));
-
-        const { error: linkErr } = await supabase
-          .from('competition_grids')
-          .insert(links);
-        if (linkErr) throw linkErr;
-      }
-
-      // 🔥 Mise à jour des grid_matches
-      if (compId) {
-        const { error: regenErr } = await supabase.rpc(
-          'regenerate_grid_matches_for_competition',
-          { p_compet_id: compId }
-        );
-        if (regenErr) throw regenErr;
-      }
-
-      setMessageCompet(editingCompetId ? '✅ Compétition modifiée' : '✅ Compétition créée');
-      setCompetName('');
-      setSelCompetGrids([]);
-      setEditingCompetId(null);
-    } catch (err: unknown) {
-  console.error('Erreur compétition :', err);
-  setMessageCompet('❌ ' + (err instanceof Error ? err.message : 'Erreur'));
+  setMessageCompet(editingCompetId ? '✅ Compétition modifiée' : '✅ Compétition créée');
+  setCompetName('');
+  setSelCompetGrids([]);
+  setEditingCompetId(null);
+} catch (err: any) {
+  console.error('Erreur compétition :', err?.message || err);
+  setMessageCompet('❌ ' + (err?.message || 'Erreur'));
 }
+
   };
 
   return (

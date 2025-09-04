@@ -388,11 +388,12 @@ const goToPage = (i: number) => {
       // 3) Liste finale + tri (identique)
       finalGrids = Object.values(groupedByGrid)
         .map((entry) => ({ grid: entry.grid as GridWithItems, matches: entry.matches }))
-        .sort((a, b) => {
-          const numA = parseInt(a.grid.title.split(' ')[1]);
-          const numB = parseInt(b.grid.title.split(' ')[1]);
-          return numA - numB;
-        });
+        .sort((a, b) => a.grid.title.localeCompare(b.grid.title, 'fr', { numeric: true, sensitivity: 'base' }));
+//        .sort((a, b) => {
+//          const numA = parseInt(a.grid.title.split(' ')[1]);
+//          const numB = parseInt(b.grid.title.split(' ')[1]);
+//          return numA - numB;
+//        });
 
       const firstGridId = finalGrids[0]?.grid.id;
       const firstMatches = (groupedByGrid[firstGridId]?.matches ?? [])
