@@ -59,28 +59,19 @@ export default function Home() {
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Bandeau d'info */}
+    {/* Bandeau d'info */}<div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
+      {/* Bandeau d'info */}<p className="text-sm sm:text-base leading-relaxed">
+        {/* Bandeau d'info */}<span className="mr-2">🏆</span>
+        {/* Bandeau d'info */}<span className="font-semibold">Pour la coupe d'été :</span> Le jeu comporte 9 grilles de 9 matchs. Le premier au classement général final remportera <span className="font-semibold">50 €</span> 💸
+      {/* Bandeau d'info */}</p>
+    {/* Bandeau d'info */}</div>
+
+    {/* Présentation */}
     <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
       <p className="text-sm sm:text-base leading-relaxed">
-        <span className="mr-2">🏆</span>
-        <span className="font-semibold">Pour la coupe d'été :</span> Le jeu comporte 9 grilles de 9 matchs. Le premier au classement général final remportera <span className="font-semibold">50 €</span> 💸
-      </p>
-    </div>
-
-    {/* Bandeau de recrutement testeurs */}
-    <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-justify">
-      <p className="text-sm sm:text-base leading-relaxed">
-        <span className="mr-2">📱</span>
-        <span className="font-semibold">Tester l’application PEPS :</span>{' '}
-        Participez à la phase de test et aidez-nous à améliorer le jeu (si votre adresse mail playstore a été utlisée pour créer votre compte PEPS)&nbsp;!
-        <br />
-        <a
-          href="https://play.google.com/apps/testing/com.peps_foot.www.twa"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block mx-auto mt-2 px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded text-center"
-        >
-          📥 Télécharger l’app Android
-        </a>
+        <span className="font-semibold">
+          Sélectionne ta compet, mets ta croix sur chaque match et joue ton bonus pour faire la diff ! ⚽🔥
+        </span>
       </p>
     </div>
 

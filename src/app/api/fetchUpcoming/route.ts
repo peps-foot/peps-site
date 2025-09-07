@@ -12,7 +12,7 @@ export async function GET() {
 
   logs.push('🟠 Lancement de fetchUpcoming');
 
-  const leagueIds = [34,32,29];
+  const leagueIds = [61];
   const allFixtures: any[] = [];
 
   for (const leagueId of leagueIds) {
