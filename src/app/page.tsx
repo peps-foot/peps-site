@@ -59,12 +59,38 @@ export default function Home() {
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Bandeau d'info */}
-    {/* Bandeau d'info */}<div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
-      {/* Bandeau d'info */}<p className="text-sm sm:text-base leading-relaxed">
-        {/* Bandeau d'info */}<span className="mr-2">🏆</span>
-        {/* Bandeau d'info */}<span className="font-semibold">Pour la coupe d'été :</span> Le jeu comporte 9 grilles de 9 matchs. Le premier au classement général final remportera <span className="font-semibold">50 €</span> 💸
-      {/* Bandeau d'info */}</p>
-    {/* Bandeau d'info */}</div>
+    <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
+      <div className="space-y-6">
+        {/* Coupe d'été */}
+        <div>
+          <h2 className="text-center font-semibold">
+            🏆 Pour la coupe d'été :
+          </h2>
+          <p className="mt-2 text-sm sm:text-base leading-relaxed text-justify">
+            Le jeu comporte 9 grilles de 9 matchs. Le vainqueur remportera <span className="font-semibold">50 €</span> 💸
+          </p>
+        </div>
+
+        {/* Coupe d'Europe */}
+        <div>
+          <h2 className="text-center font-semibold">
+            🏆 Pour la coupe d'Europe :
+          </h2>
+          <p className="mt-2 text-sm sm:text-base leading-relaxed text-justify">
+            Le jeu se termine avec la finale de la ligue des champions. Les trois premiers se partageront <span className="font-semibold">50 €</span> 💸 et le joueur qui fera la meilleure grille remportera un maillot au choix du site{" "}
+            <a
+              href="https://laf1nte.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 font-semibold hover:underline"
+            >
+              LAF1NTE
+            </a>
+          </p>
+        </div>
+      </div>
+
+    </div>
 
     {/* Présentation */}
     <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">

@@ -19,7 +19,16 @@ export default function PepsPlusPage() {
       </RuleSection>
 
       <RuleSection title="Application mobile" iconSrc="/images/regles/mobile.png" type="default">
-        <p><strong>Android :</strong> à venir très bientôt...</p>
+        <p><strong>Android :</strong>{" "}
+          <a 
+            href="https://play.google.com/store/apps/details?id=com.peps_foot.www.twa" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-blue-600 hover:underline"
+          >
+            Téléchargez ici
+          </a>
+        </p>
         <p><strong>iOS :</strong> à venir plus tard, utilisez l'appli web ci-dessous</p>
       </RuleSection>
 
