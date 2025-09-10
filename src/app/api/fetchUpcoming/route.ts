@@ -207,12 +207,14 @@ logs.push(`ℹ️ Exclues: non-NS=${exclNonNS}, passées=${exclPasse}, teams_man
         const oN = pickOdd(values, ['Draw', 'X']);
         const o2 = pickOdd(values, ['Away', '2']);
 
-        if ([o1, oN, o2].every(Number.isFinite)) {
+        if (o1 != null && oN != null && o2 != null) {
           triplets.push({
             id: bmId,
             name: bmName,
-            o1, oN, o2,
-            rank: priorityRank(bmId)
+            o1,
+            oN,
+            o2,
+            rank: priorityRank(bmId),
           });
         }
       }
