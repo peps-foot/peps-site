@@ -1026,6 +1026,16 @@ return (
   />
               </button>
             </div>
+
+            {/* C) DESCRIPTION (texte seul) */}
+            {Boolean(currentGrid?.description?.trim()) && (
+              <div className="border rounded-lg p-4 flex items-center justify-center md:col-span-2">
+                <p className="text-center whitespace-pre-line">
+                  {currentGrid!.description}
+                </p>
+              </div>
+            )}
+            
           </div>
         </section>
 
