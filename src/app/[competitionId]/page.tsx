@@ -63,7 +63,7 @@ export default function HomePage() {
   // 👉 Grille actuellement sélectionnée (par index ou en navigation)
   const [grid, setGrid] = useState<GridWithItems | null>(null);
   // 👉 Liste des matchs de la grille active
-  const [matches, setMatches] = useState<MatchWithState[]>([]);
+  const [matches, setMatches] = useState<(MatchWithState & { grid_id?: string | number })[]>([]);
   // 👉 Définition complète des bonus disponibles (ex: KANTÉ, ZLATAN...)
   const [bonusDefs, setBonusDefs] = useState<BonusDef[]>([]);
   // 👉 Liste des bonus joués pour la grille active
@@ -157,6 +157,8 @@ const goToPage = (i: number) => {
     if (s === 'PST') return { label: 'Reporté', color: 'text-red-600' };
 
     // Tous les statuts post-temps réglementaire = considéré comme terminé
+    // ET=prolongations, BT=pause avant prolongations, AET=terminé après prolongations
+    // P=pénaltis, AET=terminé après pénaltis. FT=full time.
     if (['ET', 'BT', 'P', 'FT', 'AET', 'PEN'].includes(s)) {
       return { label: 'Terminé', color: 'text-gray-700' };
     }
@@ -166,6 +168,7 @@ const goToPage = (i: number) => {
       return { label: 'Suspendu', color: 'text-orange-600' };
     }
     // Statuts d'annulation d'un match
+    // CANC=annulé, ABD=abandonné, AWD=tapis vert, WO=forfait
     if (['CANC', 'ABD', 'AWD', 'WO'].includes(s)) {
       return { label: 'Annulé', color: 'text-red-600' };
     }
@@ -272,22 +275,63 @@ const goToPage = (i: number) => {
   }, [grid?.id, user?.id]);
 
   // 🍀 Initialise la grille avec des matchs à venir (ou la dernière)
-  useEffect(() => {
-    if (grids.length > 0 && matches.length === 0) {
-      const now = new Date();
+const LIVE_CODES = new Set(['1H', 'HT', '2H']);
 
-      const firstPlayableGridIdx = (grids as GridWithItems[]).findIndex(grid =>
-        Array.isArray(grid.grid_items) &&
-        grid.grid_items.some(item => {
-          const match = matches.find(m => m.id === item.match_id);
-          return match?.status === 'NS' && new Date(match.date) > now;
-        })
-      );
+function normStatus(s?: string) {
+  return String(s ?? '').trim().toUpperCase();
+}
 
-      const idx = firstPlayableGridIdx >= 0 ? firstPlayableGridIdx : 0;
-      setCurrentIdx(idx); // ne déclenche pas un effet en chaîne
-    }
-  }, [grids]);
+useEffect(() => {
+  if (grids.length === 0 || matches.length === 0) return;
+
+  const nowTs = Date.now();
+  const matchById = new Map(matches.map(m => [m.id, m])); // id = uuid
+
+  const hasLiveInGrid = (grid: GridWithItems) =>
+    Array.isArray(grid.grid_items) &&
+    grid.grid_items.some(item => {
+      const m = matchById.get(item.match_id); // match_id = uuid
+      return m && LIVE_CODES.has(normStatus(m.status));
+    });
+
+  const hasNextNSInGrid = (grid: GridWithItems) =>
+    Array.isArray(grid.grid_items) &&
+    grid.grid_items.some(item => {
+      const m = matchById.get(item.match_id);
+      if (!m || normStatus(m.status) !== 'NS') return false;
+      const t = Date.parse(m.date);
+      return Number.isFinite(t) && t > nowTs;
+    });
+
+  // --- DIAGNOSTIC COURT ---
+  // Combien d'items de grilles pointent vers un match effectivement présent dans `matches` ?
+  const allItems = (grids as GridWithItems[]).flatMap(g => g.grid_items ?? []);
+  const covered = allItems.filter(it => matchById.has(it.match_id)).length;
+  if (covered === 0) {
+    console.log('⚠️ Aucun grid_item ne matche un match présent dans `matches` à cet instant.');
+    return; // surtout ne pas forcer idx=0
+  }
+  // -------------------------
+
+  // 1) priorité aux grilles avec un match live
+  const liveIdx = (grids as GridWithItems[]).findIndex(hasLiveInGrid);
+  if (liveIdx >= 0) {
+    setCurrentIdx(liveIdx);
+    return;
+  }
+
+  // 2) sinon première grille avec un match NS à venir
+  const nsIdx = (grids as GridWithItems[]).findIndex(hasNextNSInGrid);
+  if (nsIdx >= 0) {
+    setCurrentIdx(nsIdx);
+    return;
+  }
+
+  // 3) rien trouvé → ne change pas l’index courant (évite le retour à 0)
+  console.log('ℹ️ Pas de live ni de NS futur détecté pour les grilles couvertes.');
+}, [grids, matches]);
+
+
 
   // 🔁 Au premier chargement : on récupère l'utilisateur connecté et ses grilles
   useEffect(() => {
@@ -525,20 +569,58 @@ const goToPage = (i: number) => {
     })();
   }, [currentIdx, grids]);
 
-  // MAJ de la page toutes les minutes si match en cours 
-  useEffect(() => {
-    const hasLiveMatch = matches.some((match) =>
-      ['1H', 'HT', '2H', 'ET', 'P', 'LIVE'].includes(match.status)
-    );
+  function getStatus(m: any) {
+    const raw = m?.status ?? m?.status_short ?? m?.statusShort ?? m?.state ?? '';
+    return String(raw).trim().toUpperCase();
+  }
+  function isLive(m: any) {
+    return LIVE_CODES.has(getStatus(m));
+  }
+  function getTime(m: any) {
+    const d = m?.date ?? m?.kickoff ?? m?.utc_date ?? null;
+    const t = d ? Date.parse(d) : NaN;
+    return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
+  }
 
-    if (!hasLiveMatch) return;
+  // 1) Scroll/affiche TOUJOURS la grille du match en cours (priorité à la grid_id mémorisée)
+  useEffect(() => {
+    if (!matches?.length) return;
+
+    const liveMatches = [...matches].filter(isLive).sort((a, b) => getTime(a) - getTime(b));
+
+    // si on a mémorisé une grid_id au précédent refresh, on la privilégie
+    const stored = sessionStorage.getItem('focusGridId');
+    let target = stored
+      ? liveMatches.find(m => String(m.grid_id) === stored) ?? null
+      : null;
+
+    // sinon, on prend le premier live (le plus proche temporellement)
+    if (!target) target = liveMatches[0] ?? null;
+
+    if (target?.grid_id) {
+      // on remet à jour la mémoire pour rester cohérent aux prochains refresh
+      sessionStorage.setItem('focusGridId', String(target.grid_id));
+      document.getElementById(`grid-${target.grid_id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [matches]);
+
+  // 2) Auto-refresh toutes les 30s UNIQUEMENT s’il y a du live
+  useEffect(() => {
+    const liveNow = matches?.filter(isLive).sort((a, b) => getTime(a) - getTime(b)) ?? [];
+    if (liveNow.length === 0) return;
 
     const interval = setInterval(() => {
+      // avant de recharger, on mémorise la grid du match live prioritaire
+      const current = liveNow[0];
+      if (current?.grid_id) {
+        sessionStorage.setItem('focusGridId', String(current.grid_id));
+      }
       window.location.reload();
-    }, 60_000); // toutes les 60 sec
+    }, 120_000); // 120s
 
     return () => clearInterval(interval);
   }, [matches]);
+
 
   if (loadingGrids) {
     return (
@@ -1035,7 +1117,7 @@ return (
                 </p>
               </div>
             )}
-            
+
           </div>
         </section>
 
