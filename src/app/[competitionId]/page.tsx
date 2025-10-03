@@ -37,6 +37,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { useSupabase } from '../../components/SupabaseProvider'
 import { useRouter, useSearchParams, useParams} from 'next/navigation';
+import { usePlayerGate } from '../../hooks/usePlayerGate';
 import supabase from '../../lib/supabaseBrowser';
 
 const bonusLogos: Record<string,string> = {
@@ -45,6 +46,14 @@ const bonusLogos: Record<string,string> = {
   "ZLATAN": '/images/zlatan.png',
   "BIELSA" : '/images/bonus/bielsa.png',
   "INFO" : '/images/info.png',  
+};
+
+const ELIM_IMAGES: Record<string, string> = {
+  shark: '/images/elimine/shark.png',
+  totem: '/images/elimine/totem.png',
+  terminator: '/images/elimine/terminator.png',
+  spectateur: '/images/elimine/spectateur.png',
+  default: '/images/elimine/default.png',
 };
 
 export default function HomePage() {
@@ -103,7 +112,45 @@ export default function HomePage() {
   const router        = useRouter();
   const params = useParams();
   const competitionId = params?.competitionId as string;
+  const [competition, setCompetition] = useState<{ id: string; name: string; mode: string } | null>(null);
+  const [competitionReady, setCompetitionReady] = useState(false);
   console.log("🔍 competitionId reçu :", competitionId);
+
+  //pour afficher zones GRILLES/BONUS suivant le mode CLASSIC/TOURNOI
+  // 1) Charger name + mode depuis la table competitions
+useEffect(() => {
+  if (!competitionId) return;
+  console.time('[competitions] fetch');
+  console.log('[competitions] start', competitionId);
+
+  (async () => {
+    const { data, error } = await supabase
+      .from('competitions')
+      .select('id,name,mode')
+      .eq('id', competitionId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[competitions] ERROR', error.message);
+      setCompetition(null);
+    } else if (!data) {
+      console.log('[competitions] NOT_FOUND');
+      setCompetition(null);
+    } else {
+      console.log('[competitions] OK', { id: data.id, mode: data.mode });
+      setCompetition(data);
+      console.log('[competitions] fetched', {
+  id: data?.id,
+  name: data?.name,
+  rawMode: `‹${data?.mode}›`
+});
+    }
+    setCompetitionReady(true);
+    console.timeEnd('[competitions] fetch');
+  })();
+  // dep: seulement competitionId (l'instance supabase est stable)
+}, [competitionId]);
+
 
   const [showOffside, setShowOffside] = useState(false);
   const pathname = '/' + competitionId;
@@ -124,10 +171,7 @@ const goToPage = (i: number) => {
   const nextGrid = () => {
     if (currentIdx < grids.length - 1) goToPage(currentIdx + 1); // → vers grille suivante
   };
-  const currentGrid: GridWithItems | null = grid ?? null;
-  // et pour l’affichage:
-  const title = currentGrid?.title ?? '';
-  const description = currentGrid?.description ?? '';
+
   const [lastMatchData, setLastMatchData] = useState<RawMatchRow[]>([]);
 
   const [showPopup, setShowPopup] = useState(false);
@@ -137,6 +181,57 @@ const goToPage = (i: number) => {
   // 👉 Pour les tris du pop-up pronos des autres
   const [sortMode, setSortMode] = useState<'rank' | 'alpha'>('rank');
 
+  // prend la grille sélectionnée, sinon celle pointée par l’index d’URL, sinon la première
+  const currentGrid: GridWithItems | null = grid ?? grids[currentIdx] ?? grids[0] ?? null;
+
+  // et pour l’affichage:
+  const title = currentGrid?.title ?? '';
+  const description = currentGrid?.description ?? '';
+
+  // 1) IDs pour le "gate"
+  const userId = user?.id ?? null;
+  const gridId = currentGrid?.id ? String(currentGrid.id) : null;
+
+  // 2) Déduire le mode + variante image
+const modeRaw = String(competition?.mode ?? '');
+const mode: 'CLASSIC' | 'TOURNOI' = modeRaw.trim().toUpperCase() === 'TOURNOI' ? 'TOURNOI' : 'CLASSIC';
+console.log('[mode]', { raw: `‹${modeRaw}›`, normalized: mode });
+console.log('[mode-check]', {
+  routeId: competitionId,
+  compId: competition?.id,
+  raw: `‹${modeRaw}›`,
+  normalized: mode
+});
+
+  const elimVariant = getElimVariant(competition?.name ?? '');
+
+  // 6) Gate
+  const gate = usePlayerGate(userId, competitionId, gridId, mode);
+  console.log('[gate] state=', gate.state, 'reason=', gate.reason);
+
+  let early: null | string = null;
+  if (!competitionReady) early = 'COMPET_LOADING';
+  else if (loadingGrids && grids.length === 0) early = 'GRIDS_LOADING';
+  else if (!gridId) early = 'NO_GRID';
+  else if (gate.state === 'loading') early = 'GATE_LOADING';
+
+  console.log('[early]', { early, loadingGrids, gridsLen: grids.length, gridId, gate: gate.state });
+
+// après chargement complet, déterminer l’affichage
+if (!loadingGrids && grids.length === 0) {
+  return <div className="p-6 text-center">Aucune grille disponible pour cette compétition.</div>;
+}
+if (!loadingGrids && grids.length > 0 && !gridId) {
+  console.log('[page] no gridId yet but grids loaded, waiting index selection…');
+  return <div>Initialisation de la grille…</div>;
+}
+
+  // joueur ? sinon tout devient lecture seule
+  const isReadOnly = gate.state !== 'joueur';
+
+  console.log('[gate] mode=', mode, 'comp=', competition?.id, 'gridId=', gridId);
+  console.log('[gate] grids loaded?', !loadingGrids, 'count=', grids.length, 'currentIdx=', currentIdx);
+  console.log('[gate] userId=', userId);
 
   // 👉 Format FR pour la date
   const fmtDate = (d: string) =>
@@ -177,7 +272,7 @@ const goToPage = (i: number) => {
     return { label: s, color: 'text-gray-400' };
   };
 
-  //pour l'affichage des classements
+  // pour l'affichage des classements
   async function fetchGeneralLeaderboard() {
     if (!competitionId) return;
     setLbLoading(true); setLbRows([]); setMyRank(null);
@@ -214,46 +309,22 @@ const goToPage = (i: number) => {
     setMyRank(rows.find(r => r.user_id === user?.id)?.rank ?? null);
   }
 
+  // pour afficher l'image éliminé dans le mode TOURNOI
+  function getElimVariant(competitionName: string) {
+    const n = (competitionName || '').toLowerCase();
+    if (n.includes('shark')) return 'shark';
+    if (n.includes('totem')) return 'totem';
+    if (n.includes('terminator')) return 'terminator';
+    return 'default';
+  }
+
   //Gestion de la view
-  useEffect(() => {
-    if (view === 'rankGeneral') fetchGeneralLeaderboard();
-    if (view === 'rankGrid')    fetchLeaderboardByGrid();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, competitionId, currentIdx, grids]);
-
-  // ✅ Redirection vers la bonne compet
-  useEffect(() => {
-    const fetchGrids = async () => {
-      const { data, error } = await supabase
-        .from('competition_grids')
-        .select('grids!inner(id, title, description, allowed_bonuses)')
-        .eq('competition_id', competitionId);
-
-      if (error) {
-        console.error('Erreur fetch grids:', error);
-      } else {
-  const mappedGrids: GridWithItems[] = (data ?? [])
-    .map((entry) => {
-      const g = entry.grids as unknown as Grid;
-
-      return {
-        id: g.id,
-        title: g.title,
-        description: g.description,
-        allowed_bonuses: g.allowed_bonuses ?? [],
-        grid_items: [],
-      } satisfies GridWithItems;
-    });
-
-
-
-        setGrids(mappedGrids);
-        console.log('✅ Grilles chargées :', mappedGrids);
-      }
-    };
-
-    fetchGrids();
-  }, [competitionId]);
+useEffect(() => {
+  if (!competitionReady) return;                  // ✅ évite le run en CLASSIC par défaut
+  if (view === 'rankGeneral' && mode !== 'TOURNOI') fetchGeneralLeaderboard();
+  if (view === 'rankGrid')                          fetchLeaderboardByGrid();
+  console.log('[rank] effect run', { view, mode });
+}, [view, competitionId, currentIdx, grids, mode, competitionReady]);
 
   // ✅ Mise à jour unique des points au premier affichage
   useEffect(() => {
@@ -334,76 +405,86 @@ useEffect(() => {
 
 
   // 🔁 Au premier chargement : on récupère l'utilisateur connecté et ses grilles
-  useEffect(() => {
-    if (hasRun.current) return;
-    hasRun.current = true;
+useEffect(() => {
+  console.log('[init] guard', { competitionId, hasRun: hasRun.current });
+  if (!competitionId) return;
+  if (hasRun.current) return;
+  hasRun.current = true;
 
-    const initAndLoad = async () => {
-      setLoadingGrids(true);
+  (async () => {
+    console.log('[init] start');
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user ?? null);
 
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (user) setUser(user);
-      if (error || !user) {
-        setError("Utilisateur non connecté.");
-        setLoadingGrids(false);
-        return;
-      }
-
-      setUser(user); // ✅ On stocke le user proprement
-      await loadUserGrids(user.id, competitionId); // 🎯 Charge les grilles de l'utilisateur (avec picks et points)
-    };
-
-    initAndLoad();
-  }, []);
+    console.log('[init] call loadUserGrids');
+    await loadUserGrids(user?.id ?? '__PUBLIC__', competitionId); // ✅ toujours
+  })();
+}, [competitionId]);
 
   // 📦 Charge toutes les grilles et matchs d’un joueur, LIMITÉ à la compétition active
-  async function loadUserGrids(userId: string, competitionId: string, initialIdx?: number) {
-    let finalGrids: { grid: GridWithItems; matches: MatchWithState[] }[] = [];
-    try {
-      setLoadingGrids(true);
+async function loadUserGrids(userId: string, competitionId: string, initialIdx?: number) {
+  console.log('[lug] start', { userId, competitionId });
+  let finalGrids: { grid: GridWithItems; matches: MatchWithState[] }[] = [];
+  try {
+    setLoadingGrids(true);
+    console.log('[lug] fetch competition_grids…');
 
-      // 0) IDs des grilles de la compétition
-      const { data: cgIds, error: cgErr } = await supabase
-        .from('competition_grids')
-        .select('grid_id')
-        .eq('competition_id', competitionId);
+    // 0) IDs des grilles de la compétition
+    const { data: cgIds, error: cgErr } = await supabase
+      .from('competition_grids')
+      .select('grid_id')
+      .eq('competition_id', competitionId);
+      console.log('[lug] competition_grids =>', { len: cgIds?.length, err: !!cgErr, cgErr });
 
-      if (cgErr || !cgIds?.length) {
-        setError("Aucune grille pour cette compétition.");
-        setLoadingGrids(false);
-        return;
-      }
-      const gridIds = cgIds.map(g => g.grid_id);
+    if (cgErr || !cgIds?.length) {
+      setError("Aucune grille pour cette compétition.");
+      return; // le finally remettra loadingGrids=false
+    }
+    const gridIds = cgIds.map(g => g.grid_id);
+    console.log('[lug] fetch grids meta…');
 
-      // 1) grid_matches du joueur, mais UNIQUEMENT pour ces grilles 🔒
-      const { data: matchData, error: matchError } = await supabase
-        .from("grid_matches")
-        .select(`
-          grid_id,
-          match_id,
-          pick,
-          points,
-          matches (
-            id, date, home_team, away_team, fixture_id, league_id,
-            base_1_points, base_n_points, base_2_points,
-            score_home, score_away, status, is_locked,
-            odd_1_snapshot, odd_n_snapshot, odd_2_snapshot,
-            short_name_home, short_name_away
-          ),
-          grids ( id, title, description, allowed_bonuses )
-        `)
-        .eq("user_id", userId)
-        .in("grid_id", gridIds);   // ✅ filtre compétition
+    // 0bis) Récupère TOUJOURS les métadonnées des grilles (pour afficher même sans pick)
+    const { data: gridMeta, error: gridErr } = await supabase
+      .from('grids')
+      .select('id, title, description, allowed_bonuses, grid_items(match_id)')
+      .in('id', gridIds);
+      console.log('[lug] grids meta =>', { len: gridMeta?.length, err: !!gridErr, gridErr });
+    if (gridErr) {
+      setError("Erreur chargement des grilles.");
+      return;
+    }
+    console.log('[lug] fetch grid_matches…');
 
-      setLastMatchData(matchData as RawMatchRow[]);
+    // 1) grid_matches du joueur (peut être vide si pas encore joué)
+    const { data: matchData, error: matchError } = await supabase
+      .from("grid_matches")
+      .select(`
+        grid_id,
+        match_id,
+        pick,
+        points,
+        matches (
+          id, date, home_team, away_team, fixture_id, league_id,
+          base_1_points, base_n_points, base_2_points,
+          score_home, score_away, status, is_locked,
+          odd_1_snapshot, odd_n_snapshot, odd_2_snapshot,
+          short_name_home, short_name_away
+        ),
+        grids ( id, title, description, allowed_bonuses, grid_items(match_id) )
+      `)
+      .eq("user_id", userId)
+      .in("grid_id", gridIds);
+      console.log('[lug] grid_matches =>', { len: matchData?.length, err: !!matchError, matchError });
 
-      if (matchError || !matchData) {
-        setError("Erreur chargement grilles.");
-        setLoadingGrids(false);
-        return;
-      }
+    if (matchError) {
+      setError("Erreur chargement grilles.");
+      return;
+    }
 
-      // 2) Regrouper par grille (identique à ton code)
+    setLastMatchData(matchData as RawMatchRow[]);
+
+    // 2) Regrouper par grille si on a des picks
+    if (matchData && matchData.length > 0) {
       const groupedByGrid: Record<string, { grid: Grid; matches: MatchWithState[] }> = {};
       for (const row of matchData) {
         const gridId = row.grid_id;
@@ -429,41 +510,69 @@ useEffect(() => {
         });
       }
 
-      // 3) Liste finale + tri (identique)
       finalGrids = Object.values(groupedByGrid)
-        .map((entry) => ({ grid: entry.grid as GridWithItems, matches: entry.matches }))
+        .map(({ grid, matches }) => ({
+          grid: { ...grid, grid_items: (grid as any).grid_items ?? [] } as GridWithItems,
+          matches
+        }))
         .sort((a, b) => a.grid.title.localeCompare(b.grid.title, 'fr', { numeric: true, sensitivity: 'base' }));
-//        .sort((a, b) => {
-//          const numA = parseInt(a.grid.title.split(' ')[1]);
-//          const numB = parseInt(b.grid.title.split(' ')[1]);
-//          return numA - numB;
-//        });
 
+      // matches de la première grille triés par date
       const firstGridId = finalGrids[0]?.grid.id;
-      const firstMatches = (groupedByGrid[firstGridId]?.matches ?? [])
+      const firstMatches = (Object
+        .values(groupedByGrid)
+        .find(({ grid }) => grid.id === firstGridId)?.matches ?? [])
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      // 4) Mise à jour du state
       setGrids(finalGrids.map(f => f.grid));
       setMatches(firstMatches);
+    } else {
+      const cleanGrids: GridWithItems[] = (gridMeta ?? [])
+        .map(g => ({
+          id: g.id,
+          title: g.title,
+          description: g.description,
+          allowed_bonuses: g.allowed_bonuses ?? [],
+          grid_items: [],              // ✅ ajoute ce champ pour satisfaire GridWithItems
+        }))
+        .sort((a, b) => a.title.localeCompare(b.title, 'fr', { numeric: true, sensitivity: 'base' }));
 
-    } catch (e) {
-      setError("Erreur lors du chargement des grilles");
-    } finally {
-      // Sélection de la grille (identique)
+      setGrids(cleanGrids);
+      setMatches([]); // pas de picks ⇒ pas de matches enrichis
+      finalGrids = cleanGrids.map(g => ({ grid: g, matches: [] }));
+    }
+
+  } catch (e) {
+    console.error('[lug] error', e);
+    setError("Erreur lors du chargement des grilles");
+  } finally {
+    // ✅ Toujours arrêter le spinner AVANT la navigation
+    console.log('[lug] finally: setLoadingGrids(false)');
+    setLoadingGrids(false);
+
+    // Sélection de la grille (sans page -1)
+    try {
+      let chosenIdx: number | null = null;
+
       if (typeof initialIdx === 'number') {
-        if (initialIdx !== currentIdx) goToPage(initialIdx);
-      } else {
+        chosenIdx = initialIdx;
+      } else if (finalGrids.length > 0) {
         const now = new Date();
-        let chosenIdx = finalGrids.findIndex(({ matches }) =>
+        const idx = finalGrids.findIndex(({ matches }) =>
           matches.some(m => m.status === 'NS' && new Date(m.date) > now)
         );
-        if (chosenIdx === -1) chosenIdx = finalGrids.length - 1;
-        if (chosenIdx !== currentIdx) goToPage(chosenIdx);
+        chosenIdx = (idx === -1) ? 0 : idx; // ← fallback à 0, pas -1
       }
-      setLoadingGrids(false);
+
+      if (chosenIdx !== null && chosenIdx !== currentIdx) {
+        goToPage(chosenIdx);
+      }
+    } catch (e) {
+      console.warn('[loadUserGrids] page selection skipped:', e);
     }
   }
+}
+
 
   // 🧩 Charge la grille active + les matchs + picks + points + bonus
   useEffect(() => {
@@ -652,7 +761,7 @@ useEffect(() => {
 
     const match = matches.find(m => m.id === match_id);
     if (!match) return;
-    console.log('Match reçu dans handlePick :', match);
+    console.log('[pick] click', { mode, gridId: grid.id, match_id, pick, beforeLen: matches.length });
 
     const matchTime = new Date(match.date).getTime(); //début du match
     const now = Date.now();
@@ -680,7 +789,7 @@ useEffect(() => {
           pick
         }],
         {
-          onConflict: 'user_id,grid_id,match_id'
+          onConflict: 'user_id,grid_id,match_id,bonus_definition'
         }
       );
 
@@ -695,22 +804,35 @@ useEffect(() => {
         ? { ...m, pick, points: m.points ?? 0 }
         : m
     );
+    console.log('[pick] saved ok', { gridId: grid.id, match_id });
     setMatches(updatedMatches);
     
-    const activeGrid = grids.find((g) => g.id === grid.id);
-    if (activeGrid && activeGrid.grid_items) {
-      const matchIds = activeGrid.grid_items.map((gi) => gi.match_id);
-      const refreshedMatches = lastMatchData
-        .filter((row) => matchIds.includes(row.match_id))
-        .map((row) => ({
-          ...(row.matches as Match),
-          pick: row.pick ?? undefined,
-          points: row.points ?? 0,
-        }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+const activeGrid = grids.find((g) => g.id === grid.id);
+if (activeGrid && activeGrid.grid_items) {
+  const matchIds = activeGrid.grid_items.map((gi) => gi.match_id);
 
-      setMatches(refreshedMatches);
-    }
+  // LOG court
+  console.log('[pick] refresh src', { lastLen: lastMatchData.length, ids: matchIds.length });
+
+  const refreshedMatches = lastMatchData
+    .filter((row) => matchIds.includes(row.match_id))
+    .map((row) => ({
+      ...(row.matches as Match),
+      pick: row.pick ?? undefined,
+      points: row.points ?? 0,
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  console.log('[pick] refresh built', refreshedMatches.length);
+
+  // ✅ ne pas écraser si vide
+  if (refreshedMatches.length > 0) {
+    setMatches(refreshedMatches);
+  } else {
+    console.warn('[pick] refresh skipped (empty) — keep optimistic state');
+  }
+}
+
   };
 
   // 🎯 handleBonusValidate : applique ou modifie un bonus pour la grille active
@@ -1004,7 +1126,10 @@ const hasStartedPickedMatch = matches.some(m =>
 );
 
 
-return (
+// Début du JSX
+return early ? (
+  <div>Chargement… ({early})</div>
+) : (
       <>
     <main className="w-full px-2 sm:px-4 py-8">
       {/* 1) ZONE D’INFORMATION PLEIN LARGEUR */}
@@ -1073,6 +1198,7 @@ return (
               </div>
 
               {/* 3) Classement GÉNÉRAL */}
+              {mode === 'CLASSIC' && (
               <button
                 onClick={() => setViewAndURL('rankGeneral')}
                 aria-pressed={view==='rankGeneral'}
@@ -1081,14 +1207,15 @@ return (
                             ${view==='rankGeneral' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
                 title="Classement général"
               >
-  <Image
-    src="/images/icons/podium.png"   // ton PNG (sans cercle noir)
-    alt="Podium"
-    width={40}
-    height={40}
-    className="rounded-full object-cover"
-  />
+              <Image
+                src="/images/icons/podium.png"   // ton PNG (sans cercle noir)
+                alt="Podium"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
               </button>
+              )}
 
               {/* 4) Classement de la GRILLE */}
               <button
@@ -1169,7 +1296,7 @@ return (
         </div>
       )}
 
-      {view === 'rankGeneral' && (
+      {mode === 'CLASSIC' && view === 'rankGeneral' && (
         <div className="w-full">
           {lbLoading && <p className="text-center text-sm text-gray-500 my-4">Chargement…</p>}
               <h2 className="text-center text-lg font-semibold text-gray-800 mb-3">
@@ -1215,8 +1342,6 @@ return (
         </div>
       )}
 
-
-
       {/* 2) CONTENU PRINCIPAL : GRILLE (2/3) & BONUS (1/3) */}
       <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'grid' ? 'hidden' : ''}`}>
         {/* ── GRILLE ── */}
@@ -1251,10 +1376,17 @@ return (
                       : m.pick ? [m.pick] : [];
 
                   let isDisabled = false;
+
+                  // règles normales
                   if (upperStatus !== 'NS' || ['SUSP', 'INT', 'PST'].includes(upperStatus) || m.is_locked) {
                     isDisabled = true;
                   }
                   if (isBielsaOther) isDisabled = true; // grise les 8 autres
+
+                  // règle supplémentaire : spectateur / éliminé → tout désactivé
+                  if (isReadOnly) {
+                    isDisabled = true;
+                  }
 
                   // 2bis Affichage BIELSA
                   if (bonusCode === 'BIELSA' && bielsaMatchId) {
@@ -1460,15 +1592,28 @@ return (
         <div className="w-full lg:w-1/3">
           <div className="border rounded-lg p-4 space-y-4">
             
+        {/* Gate sur le BONUS */}
+        {gate.state === 'elimine' && (
+          <>
+            <img src={ELIM_IMAGES[elimVariant]} alt="Éliminé" className="mx-auto max-w-[240px]" />
+            <p className="text-center text-sm text-gray-600">Tu es éliminé de cette compétition.</p>
+          </>
+        )}
+        {gate.state === 'elimine' ? null : gate.state === 'spectateur' ? (
+          <>
+            <img src={ELIM_IMAGES['spectateur']} alt="Spectateur" className="mx-auto max-w-[240px]" />
+            <p className="text-center text-sm text-gray-600">Mode spectateur : bonus indisponibles.</p>
+          </>
+        ) : (
+          <>
             {/* En-tête */}
-<div className="font-medium">
-  {noBonusForThisGrid
-    ? 'Pas de bonus pour cette grille'
-    : (gridBonuses.length > 0
-        ? 'Tu as déjà joué 1 bonus :'
-        : `Joue 1 des ${visibleBonusDefs!.length} bonus :`)}
-</div>
-
+            <div className="font-medium">
+              {noBonusForThisGrid
+                ? 'Pas de bonus pour cette grille'
+                : (gridBonuses.length > 0
+                    ? 'Tu as déjà joué 1 bonus :'
+                    : `Joue 1 des ${visibleBonusDefs!.length} bonus :`)}
+            </div>
 
             {/* Liste des defs */}
               {(visibleBonusDefs ?? []).map(b => {
@@ -1548,10 +1693,12 @@ return (
                     })()}
                   </div>
                 </div>
-              )
+              );
             })}
-          </div>
-        </div>
+          </>
+        )}
+      </div>
+    </div>
 
         {/* ── message d'erreur si un joueur parie trop tard = hors jeu ── */}
         {showOffside && (

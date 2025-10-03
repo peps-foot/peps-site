@@ -61,32 +61,11 @@ export default function Home() {
     {/* Bandeau d'info */}
     <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
       <div className="space-y-6">
-        {/* Coupe d'été */}
-        <div>
-          <h2 className="text-center font-semibold">
-            🏆 Pour la coupe d'été :
-          </h2>
-          <p className="mt-2 text-sm sm:text-base leading-relaxed text-justify">
-            Le jeu comporte 9 grilles de 9 matchs. Le vainqueur remportera <span className="font-semibold">50 €</span> 💸
-          </p>
-        </div>
-
-        {/* Coupe d'Europe */}
-        <div>
-          <h2 className="text-center font-semibold">
-            🏆 Pour la coupe d'Europe :
-          </h2>
-          <p className="mt-2 text-sm sm:text-base leading-relaxed text-justify">
-            Le jeu se termine avec la finale de la ligue des champions. Les trois premiers se partageront <span className="font-semibold">50 €</span> 💸 et le joueur qui fera la meilleure grille remportera un maillot au choix du site{" "}
-            <a
-              href="https://laf1nte.fr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 font-semibold hover:underline"
-            >
-              LAF1NTE
-            </a>
-          </p>
+        <div className="space-y-2 text-left">
+          <p>🏆 La<strong> Coupe d'Été</strong> se termine le 26 octobre.</p>
+          <p>🏆 La<strong> Coupe d'Automne</strong> commence le 29 octobre.</p>
+          <p></p>
+          <p>🦈 Le<strong> Shark Game</strong> est un tournoi à éliminations qui commence dès le 3 octobre, ça va saigner !!</p>
         </div>
       </div>
 
