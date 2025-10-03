@@ -206,7 +206,7 @@ console.log('[mode-check]', {
   const elimVariant = getElimVariant(competition?.name ?? '');
 
   // 6) Gate
-  const gate = usePlayerGate(userId, competitionId, gridId, mode);
+  const gate = usePlayerGate(userId, competitionId, gridId || '', mode);
   console.log('[gate] state=', gate.state, 'reason=', gate.reason);
 
   let early: null | string = null;
