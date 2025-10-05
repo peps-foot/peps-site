@@ -409,6 +409,7 @@ useEffect(() => {
   console.log('[init] guard', { competitionId, hasRun: hasRun.current });
   if (!competitionId) return;
   if (hasRun.current) return;
+
   hasRun.current = true;
 
   (async () => {
@@ -416,8 +417,14 @@ useEffect(() => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user ?? null);
 
+    // 🔴 Ne PAS appeler loadUserGrids si on n'a pas encore d'user
+    if (!user) {
+      console.log('[init] no user yet → skip loadUserGrids to avoid user_id=__PUBLIC__');
+      return;
+    }
+
     console.log('[init] call loadUserGrids');
-    await loadUserGrids(user?.id ?? '__PUBLIC__', competitionId); // ✅ toujours
+    await loadUserGrids(user.id, competitionId);
   })();
 }, [competitionId]);
 
@@ -789,7 +796,7 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
           pick
         }],
         {
-          onConflict: 'user_id,grid_id,match_id,bonus_definition'
+          onConflict: 'user_id,grid_id,match_id'
         }
       );
 
@@ -1124,7 +1131,6 @@ const bielsaMatchId =
 const hasStartedPickedMatch = matches.some(m =>
   !!m.pick && (m.status?.toUpperCase?.() !== 'NS')
 );
-
 
 // Début du JSX
 return early ? (
@@ -1519,21 +1525,14 @@ return early ? (
 
                             setShowPopup(true);
 
-                            if (status === 'NS') return;
+// Charge les autres pronos via la RPC simple (grille + match)
+const { data, error } = await supabase.rpc('get_other_picks_basic', {
+  p_grid_id: grid.id,
+  p_match_id: m.id,
+  p_competition_id: competitionId,
+});
+setOtherPicks(data ?? []);
 
-                            const { data, error } = await supabase.rpc('get_match_picks', {
-                              p_match_id: m.id,
-                              p_competition_id: competitionId,
-                              p_grid_id: null, // on veut tous les joueurs de la compet
-                            });
-                            if (error) {
-                              console.error('get_match_picks error:', error);
-                              return;
-                            }
-                            console.log('get_match_picks rows:', data?.length, data); // 👈
-                            setOtherPicks((data ?? []) as MatchPickRow[]);
-                            console.log('otherPicks bonus codes:', otherPicks.map(p => p.username + '→' + p.bonus_code));
-                            setSortMode('rank');
                           }}
                           className="focus:outline-none"
                         >
@@ -1791,9 +1790,18 @@ return early ? (
     <div className="mx-auto w-full max-w-[520px]">
       <ul className="flex flex-col gap-0">
         {(sortMode === 'alpha'
-          ? [...otherPicks].sort((a: any, b: any) => (a.username ?? '').localeCompare(b.username ?? ''))
-          : otherPicks
-        ).map((p: any) => {
+            ? [...otherPicks].sort((a: any, b: any) => (a.username ?? '').localeCompare(b.username ?? '', 'fr', {sensitivity:'base'}))
+            : otherPicks
+          ).map((p: any) => {
+
+  // 1) normalise depuis p.pick si les flags n'existent pas
+  const pickVal = String(p.pick ?? '').toUpperCase();
+  const pick1 = p.pick_1 ?? (pickVal === '1');
+  const pickN  = p.pick_n ?? (pickVal === 'N');
+  const pick2 = p.pick_2 ?? (pickVal === '2');
+  
+  console.log('[others:picks]', p.username, { pickVal, pick1, pickN, pick2 });
+
           const Square = ({ label, active }: { label: '1'|'N'|'2'; active: boolean }) => (
             <span
               role="button"
@@ -1848,21 +1856,21 @@ return early ? (
               {/* 4 : 1 */}
               <div className="col-span-1 h-full">
                 <div className="flex h-full items-center justify-center">
-                  <Square label="1" active={!!p.pick_1} />
+                  <Square label="1" active={pick1} />
                 </div>
               </div>
 
               {/* 5 : N */}
               <div className="col-span-1 h-full">
                 <div className="flex h-full items-center justify-center">
-                  <Square label="N" active={!!p.pick_n} />
+                  <Square label="N" active={pickN} />
                 </div>
               </div>
 
               {/* 6 : 2 */}
               <div className="col-span-1 h-full">
                 <div className="flex h-full items-center justify-center">
-                  <Square label="2" active={!!p.pick_2} />
+                  <Square label="2" active={pick2} />
                 </div>
               </div>
 
