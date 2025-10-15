@@ -92,7 +92,12 @@ export type MatchWithState = Match & {
   points?: number;
 };
 
+export type CompetitionMode = "CLASSIC" | "TOURNOI";
+
 export type Competition = {
   id: string;
   name: string;
+  description: string | null;
+  icon?: string | null;
+  mode: CompetitionMode; // ← ajouté
 };

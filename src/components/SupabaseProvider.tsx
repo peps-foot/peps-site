@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo } from 'react'
 import supabase from '../lib/supabaseBrowser'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-console.log('[SupabaseProvider] rendu');
+//console.log('[SupabaseProvider] rendu');
 
 const SupabaseContext = createContext<SupabaseClient | null>(null)
 
@@ -15,11 +15,11 @@ export const useSupabase = () => {
 }
 
 export default function SupabaseProvider({ children }: { children: React.ReactNode }) {
-  console.log('📦 SupabaseProvider loaded')
+  //console.log('📦 SupabaseProvider loaded')
 
   const supabaseClient = useMemo(() => {
     if (typeof window === 'undefined') {
-      console.warn('⚠️ SupabaseProvider loaded on server — skipping client init')
+      //console.warn('⚠️ SupabaseProvider loaded on server — skipping client init')
       return null
     }
 

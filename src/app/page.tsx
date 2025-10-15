@@ -2,20 +2,23 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import CompetitionStatusBadge from "../components/CompetitionStatusBadge";
 import supabase from '../lib/supabaseBrowser';
 import Image from "next/image";
-
-type Competition = {
-  id: string;
-  name: string;
-  description: string | null; // selon ta BDD ça peut être null
-  icon?: string | null;       // <-- nouveau champ (optionnel)
-};
+import { CompetitionMode, Competition } from '../lib/types';
+import { groupCompetitionsForHome } from "../lib/competitionStatus";
+import RandomPromo from '../components/RandomPromo';
 
 export default function Home() {
   const router = useRouter();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [groups, setGroups] = useState<{mine: Competition[]; toJoin: Competition[]; history: Competition[]}>({
+    mine: [], toJoin: [], history: []
+  });
+  const [statuses, setStatuses] = useState<Map<string, {label: string; color: "blue"|"green"|"gray"; isActiveRank: boolean}>>(new Map());
+  const [ready, setReady] = useState(false);
+  const { mine, toJoin, history } = groups;
 
   useEffect(() => {
     const check = async () => {
@@ -43,7 +46,15 @@ export default function Home() {
 
   useEffect(() => {
     const fetchCompetitions = async () => {
-      const { data, error } = await supabase.from('competitions').select('id, name, description, icon');
+      const { data, error } = await supabase
+      .from('competitions')
+      .select('id, name, description, icon, mode');
+
+      const competitions: Competition[] = (data ?? []).map((c) => ({
+        ...c,
+        mode: (c.mode ?? "CLASSIC") as CompetitionMode,
+      }));
+
       if (!error && data) {
         setCompetitions(data);
       } else {
@@ -54,38 +65,45 @@ export default function Home() {
     if (sessionChecked) fetchCompetitions();
   }, [sessionChecked]);
 
+  useEffect(() => {
+    const run = async () => {
+      if (!sessionChecked) return;
+      if (competitions.length === 0) { setGroups({ mine: [], toJoin: [], history: [] }); setReady(true); return; }
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const slim = competitions.map(c => ({ id: c.id, mode: c.mode }));
+      const res = await groupCompetitionsForHome(slim, user.id);
+
+      setGroups({
+        mine: competitions.filter(c => res.mine.some(x => x.id === c.id)),
+        toJoin: competitions.filter(c => res.toJoin.some(x => x.id === c.id)),
+        history: competitions.filter(c => res.history.some(x => x.id === c.id)),
+      });
+      setReady(true);
+    };
+    run();
+  }, [sessionChecked, competitions]);
+
   if (!sessionChecked) return null;
 
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
-    {/* Bandeau d'info */}
-    <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
-      <div className="space-y-6">
-        <div className="space-y-2 text-left">
-          <p>🏆 La<strong> Coupe d'Été</strong> se termine le 26 octobre.</p>
-          <p>🏆 La<strong> Coupe d'Automne</strong> commence le 29 octobre.</p>
-          <p></p>
-          <p>🦈 Le<strong> Shark Game</strong> est un tournoi à éliminations qui commence dès le 3 octobre, ça va saigner !!</p>
-        </div>
-      </div>
-
-    </div>
-
-    {/* Présentation */}
-    <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 p-4 text-justify">
-      <p className="text-sm sm:text-base leading-relaxed">
-        <span className="font-semibold">
-          Sélectionne ta compet, mets ta croix sur chaque match et joue ton bonus pour faire la diff ! ⚽🔥
-        </span>
-      </p>
-    </div>
+    {/* Pub PEPS aléatoire */}
+    <RandomPromo />
 
     {/* Liste des compétitions */}
-    {competitions.map((comp) => (
+{/* MES COMPÉT' */}
+<details open className="mb-4 rounded-md border">
+  <summary className="cursor-pointer select-none px-4 py-2 font-semibold">MES COMPÉT'</summary>
+  <div className="p-2">
+    {mine.length === 0 && <p className="px-2 py-1 text-sm text-gray-600">Aucune pour le moment.</p>}
+    {mine.map((comp) => (
       <div
         key={comp.id}
         onClick={() => router.push(`/${comp.id}`)}
-        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-4"
+        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
       >
         <div className="flex items-center space-x-3">
           <Image
@@ -100,11 +118,72 @@ export default function Home() {
             <p className="text-sm text-gray-800">{comp.description}</p>
           </div>
         </div>
-        <div className="border border-black px-4 py-1 bg-white">
-          JOUER
-        </div>
+        <CompetitionStatusBadge competitionId={comp.id} mode={comp.mode} />
       </div>
     ))}
+  </div>
+</details>
+
+{/* À REJOINDRE */}
+<details open className="mb-4 rounded-md border">
+  <summary className="cursor-pointer select-none px-4 py-2 font-semibold">À REJOINDRE</summary>
+  <div className="p-2">
+    {toJoin.length === 0 && <p className="px-2 py-1 text-sm text-gray-600">Rien à rejoindre pour l’instant.</p>}
+    {toJoin.map((comp) => (
+      <div
+        key={comp.id}
+        onClick={() => router.push(`/${comp.id}`)}
+        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
+      >
+        <div className="flex items-center space-x-3">
+          <Image
+            src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
+            alt={comp.name}
+            width={48}
+            height={48}
+            className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+          />
+          <div>
+            <p className="text-green-600 font-bold">{comp.name}</p>
+            <p className="text-sm text-gray-800">{comp.description}</p>
+          </div>
+        </div>
+        <CompetitionStatusBadge competitionId={comp.id} mode={comp.mode} />
+      </div>
+    ))}
+  </div>
+</details>
+
+{/* HISTORIQUE */}
+<details className="mb-4 rounded-md border">
+  <summary className="cursor-pointer select-none px-4 py-2 font-semibold">HISTORIQUE</summary>
+  <div className="p-2">
+    {history.length === 0 && <p className="px-2 py-1 text-sm text-gray-600">Aucune compétition terminée.</p>}
+    {history.map((comp) => (
+      <div
+        key={comp.id}
+        onClick={() => router.push(`/${comp.id}`)}
+        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
+      >
+        <div className="flex items-center space-x-3">
+          <Image
+            src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
+            alt={comp.name}
+            width={48}
+            height={48}
+            className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+          />
+          <div>
+            <p className="text-green-600 font-bold">{comp.name}</p>
+            <p className="text-sm text-gray-800">{comp.description}</p>
+          </div>
+        </div>
+        <CompetitionStatusBadge competitionId={comp.id} mode={comp.mode} />
+      </div>
+    ))}
+  </div>
+</details>
+
 
     </main>
   );
