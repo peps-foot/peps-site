@@ -6,6 +6,8 @@ const PROMOS = [
   { src: '/images/pubs/peps_pub1.png', alt: 'Affiche PEPS 1' },
   { src: '/images/pubs/peps_pub2.png', alt: 'Affiche PEPS 2' },
   { src: '/images/pubs/peps_pub3.png', alt: 'Affiche PEPS 3' },
+  { src: '/images/pubs/peps_pub4.png', alt: 'Affiche PEPS 4' },
+  { src: '/images/pubs/peps_pub5.png', alt: 'Affiche PEPS 5' },
 ];
 
 export default function RandomPromo() {
