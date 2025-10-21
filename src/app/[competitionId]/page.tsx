@@ -986,7 +986,7 @@ for (const matchId of matchesToCheck) {
       const { data, error: be } = await supabase
         .from('grid_bonus')
         .upsert([payload], {
-          onConflict: 'user_id,grid_id'
+          onConflict: 'user_id,grid_id,category_id',
         });
 
       // 6) Recharge les bonus pour la grille actuelle
