@@ -62,9 +62,11 @@ export type GridWithItems = Grid & {
 // Bonus
 export type BonusDef = {
   id: string;
-  code: 'KANTE' | 'RIBERY' | 'ZLATAN' | 'BIELSA';
+  code: 'KANTE' | 'RIBERY' | 'ZLATAN' | 'BIELSA' | 'BUTS' | 'ECART' | 'CLEAN SHEET' | 'CLEAN_SHEET' | 'BOOST_1' | 'BOOST_2' | 'BOOST_3';
   description: string;
+  category_id: string;      // 👈 ajoute ça
   parameters?: BonusParameters;
+  rule: string | null;
 };
 
 export type GridBonus = {

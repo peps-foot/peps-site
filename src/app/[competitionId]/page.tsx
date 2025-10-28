@@ -1,9 +1,16 @@
 'use client';
 
-type BonusParameters =
-  | { picks: string[] }         // Kanté
-  | { match_win: string; match_zero: string } // Ribéry
-  | { pick: string };           // Zlatan
+type BonusPick = '1' | 'N' | '2';
+
+type BonusParameters = {
+  // communs
+  pick?: BonusPick;                // 1 seul pick (ZLATAN, BIELSA, BUTS, CLEAN_SHEET, ECART, BOOST_x…)
+  picks?: BonusPick[];             // plusieurs picks (KANTÉ)
+  match_win?: string;              // RIBÉRY : match avec 3 croix
+  match_zero?: string;             // RIBÉRY : match avec 0 croix
+  // tolérant pour l’avenir
+  [k: string]: any;
+};
 
 type LeaderboardRow = {
   user_id: string;
@@ -31,6 +38,14 @@ type PopupMatch = {
   base2: number | null;
 };
 
+type CroixCode = 'KANTE' | 'RIBERY' | 'ZLATAN' | 'BIELSA';
+
+function isCroixCode(code: BonusDef['code']): code is CroixCode {
+  return (['KANTE','RIBERY','ZLATAN','BIELSA'] as const).includes(code as CroixCode);
+}
+type RiberyParams = { match_win?: string; match_zero?: string };
+const isRibery = (code?: string) => code === 'RIBERY';
+
 import type { User } from '@supabase/supabase-js';
 import type { Grid, Match, GridBonus, BonusDef, GridWithItems, MatchWithState, RawMatchRow } from '../../lib/types';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -38,6 +53,13 @@ import Image from 'next/image';
 import { useSupabase } from '../../components/SupabaseProvider'
 import { useRouter, useSearchParams, useParams} from 'next/navigation';
 import { usePlayerGate } from '../../hooks/usePlayerGate';
+import { handleBonusValidateCroix }     from "../../features/bonus/handlersCroix";
+import { handleBonusValidateScore }     from "../../features/bonus/handlersScore";
+import { handleBonusValidateSpeciaux }  from "../../features/bonus/handlersSpeciaux";
+// pour la gestion des cases 1N2 quand il y a un bonus
+import { computeOverlay } from '../../features/bonus/computeOverlay';
+import type { OverlayEntry } from '../../features/bonus/computeOverlay';
+
 import supabase from '../../lib/supabaseBrowser';
 
 const bonusLogos: Record<string,string> = {
@@ -45,6 +67,14 @@ const bonusLogos: Record<string,string> = {
   "RIBERY": '/images/ribery.png',
   "ZLATAN": '/images/zlatan.png',
   "BIELSA" : '/images/bonus/bielsa.png',
+  "BUTS" : '/images/bonus/buts.png',
+  "CLEAN SHEET" : '/images/bonus/CS.png',
+  "CLEAN SHEET DOM" : '/images/bonus/CS1.png',
+  "CLEAN SHEET EXT" : '/images/bonus/CS2.png',
+  "ECART" : '/images/bonus/ecart.png',
+  "BOOST_1" : '/images/bonus/boost_1.png',
+  "BOOST_2" : '/images/bonus/boost_2.png',
+  "BOOST_3" : '/images/bonus/boost_3.png',
   "INFO" : '/images/info.png',  
 };
 
@@ -92,6 +122,8 @@ export default function HomePage() {
   // 👉 Gestion de navigation entre les grilles
   const searchParams  = useSearchParams();
   type View = 'grid' | 'rankGrid' | 'rankGeneral';
+  // accordéon pour la grille
+  const [openGrille, setOpenGrille] = useState(true); // ouverte par défaut
 
   const viewParam = (searchParams?.get('view') as View) || 'grid';
   const [view, setView] = useState<View>(viewParam);
@@ -188,6 +220,385 @@ const goToPage = (i: number) => {
   const title = currentGrid?.title ?? '';
   const description = currentGrid?.description ?? '';
 
+  // pour savoir quel bonus affiché dans la zone bonus
+  const allowedIds = (grid?.allowed_bonuses ?? null) as string[] | null;
+
+  const visibleBonusDefs =
+    allowedIds === null
+      ? null                               // => "Pas de bonus pour cette grille"
+      : bonusDefs.filter(b => allowedIds.includes(b.id));
+
+  const noBonusForThisGrid = visibleBonusDefs === null;
+
+  //pour les 3 zones bonus
+  const CROIX_CODES   = new Set(['KANTE','RIBERY','ZLATAN','BIELSA']);
+  const SCORE_CODES   = new Set(['BUTS','CLEAN SHEET','ECART']);
+  const SPECIAL_CODES = new Set(['BOOST_1','BOOST_2','BOOST_3']);
+
+  function getCatName(b: any) {
+    return b?.category?.name
+      || (CROIX_CODES.has(b.code) ? 'CROIX'
+      : SCORE_CODES.has(b.code) ? 'SCORE'
+      : SPECIAL_CODES.has(b.code) ? 'SPECIAL'
+      : 'SPECIAL');
+  }
+
+  const defsCroix = React.useMemo(
+    () => (visibleBonusDefs ?? []).filter(b => getCatName(b) === 'CROIX'),
+    [visibleBonusDefs]
+  );
+  const defsScore = React.useMemo(
+    () => (visibleBonusDefs ?? []).filter(b => getCatName(b) === 'SCORE'),
+    [visibleBonusDefs]
+  );
+  const defsSpecial = React.useMemo(
+    () => (visibleBonusDefs ?? []).filter(b => getCatName(b) === 'SPECIAL'),
+    [visibleBonusDefs]
+  );
+
+  // Pour le POP-UP BONUS
+
+  // Pour retirer les match NS et les match ayant déjà un bonus des listes pop-ups
+    // Rendu d'une ligne BONUS
+// map id -> {code, category_id}
+const bonusDefById = React.useMemo(() => {
+  const m: Record<string, { code: string; category_id: string }> = {};
+  for (const d of bonusDefs ?? []) m[d.id] = { code: d.code, category_id: d.category_id };
+  return m;
+}, [bonusDefs]);
+
+// liste des codes joués sur la grille
+const codesPlayed: string[] = React.useMemo(
+  () =>
+    gridBonuses
+      .map(gb => bonusDefById[gb.bonus_definition]?.code)
+      .filter(Boolean) as string[],
+  [gridBonuses, bonusDefById]
+);
+  // ids des matches déjà pris (toutes catégories confondues)
+type RiberyParams = { match_win?: string; match_zero?: string };
+
+const takenMatchIds = React.useMemo(() => {
+  const s = new Set<string>();
+  for (const gb of gridBonuses ?? []) {
+    if (gb.match_id) s.add(String(gb.match_id));
+
+    // Sécurise RIBERY : ajoute match_win et match_zero
+    const def  = bonusDefById[gb.bonus_definition];
+    const code = def?.code;
+    if (code === 'RIBERY') {
+      const rp = gb.parameters as RiberyParams | undefined;
+      const win  = rp?.match_win  ? String(rp.match_win)  : '';
+      const zero = rp?.match_zero ? String(rp.match_zero) : '';
+      if (win)  s.add(win);
+      if (zero) s.add(zero);
+    }
+  }
+  return s;
+}, [gridBonuses, bonusDefById]);
+
+
+
+// Helper commun : match visible si NS, pas locké, et pas déjà pris
+const isMatchSelectable = (m:any) =>
+  (String(m.status ?? '').toUpperCase() === 'NS') &&
+  !m.is_locked &&
+  !takenMatchIds.has(String(m.id));
+
+  // 1) Typage
+  type PopupKind = 'CROIX' | 'SCORE' | 'SPECIAL' | null;
+
+  const popupKind: PopupKind = React.useMemo(() => {
+    const code = openedBonus?.code;
+    if (!code) return null;
+    if (['KANTE','RIBERY','ZLATAN','BIELSA'].includes(code)) return 'CROIX';
+    if (['BUTS','CLEAN SHEET','ECART'].includes(code))       return 'SCORE';
+    if (['BOOST_1','BOOST_2','BOOST_3'].includes(code))      return 'SPECIAL';
+    return null;
+  }, [openedBonus]);
+
+  // 2) Applique ou modifie un bonus CROIX pour la grille active
+  const handleBonusValidateCroixLocal = async () => {
+    if (!openedBonus || !isCroixCode(openedBonus.code)) {
+      // sécurité : si jamais on arrive ici avec un non-CROIX, on ne fait rien
+      return;
+    }
+
+    await handleBonusValidateCroix({
+      user,
+      grid,
+      matches,
+      gridBonuses,
+      openedBonus: { id: openedBonus.id, code: openedBonus.code }, // ← désormais typé CroixCode
+      popupMatch1,
+      popupMatch0,
+      popupPair,
+      popupPick,
+      setShowOffside,
+      setOpenedBonus,
+      setPopupMatch1,
+      setPopupMatch0,
+      setGridBonuses,
+    });
+  };
+
+  // 3) Applique ou modifie un bonus SCORE pour la grille active
+  const handleBonusValidateScoreLocal = async () => {
+    await handleBonusValidateScore({
+      user,
+      grid,
+      matches,
+      gridBonuses,
+      openedBonus: openedBonus as any, // 'BUTS' | 'CLEAN_SHEET' | 'ECART'
+      popupMatch1,
+      popupPick,
+      setShowOffside,
+      setOpenedBonus,
+      setPopupMatch1,
+      setGridBonuses,
+    });
+  };
+
+  // 4) Applique ou modifie un bonus SPECIAL pour la grille active
+  const handleBonusValidateSpeciauxLocal = async () => {
+    await handleBonusValidateSpeciaux({
+      user,
+      grid,
+      matches,
+      gridBonuses,
+      openedBonus: openedBonus as any, // 'BOOST_1' | 'BOOST_2' | 'BOOST_3'
+      popupMatch1,
+      popupPick,
+      setShowOffside,
+      setOpenedBonus,
+      setPopupMatch1,
+      setGridBonuses,
+    });
+  };
+
+  // 5) Utilisation des handlers dans la pop-up
+  const onValidateBonus = React.useCallback(async () => {
+    if (!popupKind) return;
+    if (popupKind === 'CROIX')   return handleBonusValidateCroixLocal();
+    if (popupKind === 'SCORE')   return handleBonusValidateScoreLocal();
+    if (popupKind === 'SPECIAL') return handleBonusValidateSpeciauxLocal();
+  }, [popupKind, handleBonusValidateCroixLocal, handleBonusValidateScoreLocal, handleBonusValidateSpeciauxLocal]);
+
+// 6) Choix d'un match dans une pop-up Bonus
+  function MatchDropdown({
+    value,
+    onChange,
+    label = "Match",
+    // si on MODIFIE un bonus, on autorise le match déjà utilisé
+    allowCurrentId,
+    // optionnel : exclure un match précis (RIBÉRY: exclure match_win dans le select match_zero)
+    excludeId,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    label?: string;
+    allowCurrentId?: string | null;
+    excludeId?: string | null;
+  }) {
+    return (
+      <label className="block mb-3">
+        {label}
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="mt-1 block w-full border rounded p-2"
+        >
+          <option value="">— Choisir match —</option>
+          {matches
+            .filter((m) => {
+              const mid = String(m.id);
+              const nsFree = isMatchSelectable(m); // NS, pas locké, pas déjà pris
+              const isCurrent = allowCurrentId ? mid === String(allowCurrentId) : false;
+              const notExcluded = excludeId ? mid !== String(excludeId) : true;
+              return (nsFree || isCurrent) && notExcluded;
+            })
+            .map((m) => (
+              <option key={m.id} value={String(m.id)}>
+                {m.home_team} vs {m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
+              </option>
+            ))}
+        </select>
+      </label>
+    );
+  }
+
+  // 7) Choix des picks dans une pop-up Bonus
+  function PickDropdown({
+    value, onChange, options,
+    label = "Pronostic",
+  }: {
+    value: '1' | 'N' | '2';
+    onChange: (v: '1' | 'N' | '2') => void;
+    options: Array<'1' | 'N' | '2'>;
+    label?: string;
+  }) {
+    return (
+      <label className="block mb-6">
+        {label}
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value as '1' | 'N' | '2')}
+          className="mt-1 block w-full border rounded p-2"
+        >
+          {options.map(o => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  // 8) 6+7 pour affichage complet
+  function renderPopupContent() {
+    const code = openedBonus?.code as string | undefined;
+    const existing = gridBonuses.find(gb => gb.bonus_definition === openedBonus?.id);
+    const existingForOpened = gridBonuses.find(gb => gb.bonus_definition === openedBonus?.id);
+    const currentMatchId = existingForOpened ? String(existingForOpened.match_id) : null;
+    const currentZeroId = isRibery(openedBonus?.code)
+      ? String(((existingForOpened?.parameters as RiberyParams | undefined)?.match_zero) ?? '')
+      : null;
+    if (!code) return null;
+
+    // —— ZONE CROIX ——
+    if (code === 'RIBERY') {
+      return (
+        <>
+          <MatchDropdown
+            label="Match à 3 croix"
+            value={popupMatch1}
+            onChange={setPopupMatch1}
+            allowCurrentId={currentMatchId}
+          />
+          <MatchDropdown
+            label="Match à 0 croix"
+            value={popupMatch0}
+            onChange={setPopupMatch0}
+            allowCurrentId={currentZeroId}
+            excludeId={popupMatch1}
+          />
+        </>
+      );
+    }
+    if (code === 'KANTE') {
+      return (
+        <>
+          <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
+          <label className="block mb-6">
+            Paire de croix
+            <select
+              value={popupPair}
+              onChange={(e) => setPopupPair(e.target.value as '1-N'|'N-2'|'1-2')}
+              className="mt-1 block w-full border rounded p-2"
+            >
+              <option value="1-N">1 N</option>
+              <option value="N-2">N 2</option>
+              <option value="1-2">1 2</option>
+            </select>
+          </label>
+        </>
+      );
+    }
+    if (code === 'ZLATAN' || code === 'BIELSA') {
+      return (
+        <>
+          <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} />
+        </>
+      );
+    }
+
+    // —— ZONE SCORE ——
+    if (code === 'BUTS') {
+      return (
+        <>
+          <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1', 'N', '2']}
+          />
+        </>
+      );
+    }
+
+    if (code === 'ECART') {
+      // Match + pick limité à 1 ou 2
+      return (
+        <>
+          <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','2']} />
+        </>
+      );
+    }
+    if (code === 'CLEAN SHEET' || code === 'CLEAN_SHEET') {
+      return (
+        <>
+          <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} />
+        </>
+      );
+    }
+
+    // —— ZONE SPÉCIAUX (BOOSTS) ——
+    if (code === 'BOOST_1' || code === 'BOOST_2' || code === 'BOOST_3') {
+      return (
+        <>
+          <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} />
+        </>
+      );
+    }
+
+    return null;
+  }
+
+// états d'ouverture des zones BONUS
+const [openCroix, setOpenCroix] = useState(false);
+const [openScore, setOpenScore] = useState(false);
+const [openSpecial, setOpenSpecial] = useState(false);
+
+// pour ne pas écraser un clic utilisateur pour zone bonus
+const [touched, setTouched] = useState(false);
+
+type InventoryRow = {
+  user_id: string;
+  competition_id: string;
+  bonus_definition: string; // uuid de la définition
+  quantity: number;
+};
+
+const [userInventory, setUserInventory] = useState<InventoryRow[]>([]);
+
+useEffect(() => {
+  if (!user?.id || !competition?.id) return;
+  supabase
+    .from('bonus_inventory')
+    .select('user_id, competition_id, bonus_definition, quantity')
+    .eq('user_id', user.id)
+    .eq('competition_id', competition.id)
+    .gt('quantity', 0)
+    .then(({ data, error }) => setUserInventory(error ? [] : (data ?? [])));
+}, [user?.id, competition?.id]);
+
+// cas spécial des bonus spéciaux
+const specialsForUser = (defsSpecial ?? []).filter(def =>
+  userInventory.some(inv => inv.bonus_definition === def.id)
+);
+
+// auto-ouverture des zones bonus
+const hasCroix   = (defsCroix?.length ?? 0) > 0;
+const hasScore   = (defsScore?.length ?? 0) > 0;
+const hasSpecial = (specialsForUser?.length ?? 0) > 0;
+useEffect(() => {
+  if (touched) return;           // ne pas écraser un clic utilisateur
+  setOpenCroix(hasCroix);
+  setOpenScore(hasScore);
+  setOpenSpecial(hasSpecial);
+}, [hasCroix, hasScore, hasSpecial, touched]);
+
+
   // 1) IDs pour le "gate"
   const userId = user?.id ?? null;
   const gridId = currentGrid?.id ? String(currentGrid.id) : null;
@@ -195,27 +606,17 @@ const goToPage = (i: number) => {
   // 2) Déduire le mode + variante image
 const modeRaw = String(competition?.mode ?? '');
 const mode: 'CLASSIC' | 'TOURNOI' = modeRaw.trim().toUpperCase() === 'TOURNOI' ? 'TOURNOI' : 'CLASSIC';
-console.log('[mode]', { raw: `‹${modeRaw}›`, normalized: mode });
-console.log('[mode-check]', {
-  routeId: competitionId,
-  compId: competition?.id,
-  raw: `‹${modeRaw}›`,
-  normalized: mode
-});
 
   const elimVariant = getElimVariant(competition?.name ?? '');
 
   // 6) Gate
   const gate = usePlayerGate(userId, competitionId, gridId || '', mode);
-  console.log('[gate] state=', gate.state, 'reason=', gate.reason);
 
   let early: null | string = null;
   if (!competitionReady) early = 'COMPET_LOADING';
   else if (loadingGrids && grids.length === 0) early = 'GRIDS_LOADING';
   else if (!gridId) early = 'NO_GRID';
   else if (gate.state === 'loading') early = 'GATE_LOADING';
-
-  console.log('[early]', { early, loadingGrids, gridsLen: grids.length, gridId, gate: gate.state });
 
 // après chargement complet, déterminer l’affichage
 if (!loadingGrids && grids.length === 0) {
@@ -229,16 +630,18 @@ if (!loadingGrids && grids.length > 0 && !gridId) {
   // joueur ? sinon tout devient lecture seule
   const isReadOnly = gate.state !== 'joueur';
 
-  console.log('[gate] mode=', mode, 'comp=', competition?.id, 'gridId=', gridId);
-  console.log('[gate] grids loaded?', !loadingGrids, 'count=', grids.length, 'currentIdx=', currentIdx);
-  console.log('[gate] userId=', userId);
+  // pour gérer l'affichage des cases 1N2 quand un bonus est joué.
+  const { globalDisabled, byMatch } = React.useMemo(
+    () => computeOverlay(bonusDefs, gridBonuses),
+    [bonusDefs, gridBonuses]
+  );
 
-  // 👉 Format FR pour la date
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleString('fr-FR',{
-      day:'2-digit', month:'2-digit',
-      hour:'2-digit', minute:'2-digit'
-    }).replace(/\u202F/g,' ');
+    // 👉 Format FR pour la date
+    const fmtDate = (d: string) =>
+      new Date(d).toLocaleString('fr-FR',{
+        day:'2-digit', month:'2-digit',
+        hour:'2-digit', minute:'2-digit'
+      }).replace(/\u202F/g,' ');
 
   // 👉 Format FR pour le status des matchs
   const getMatchLabelAndColor = (status: string) => {
@@ -673,9 +1076,18 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
         // 7) Fetch des définitions de bonus
         const { data: bd, error: be } = await supabase
           .from('bonus_definition')
-          .select('id, code, description');
+          .select('id, code, description, category_id,rule');
         if (be) throw be;
-        setBonusDefs(bd || []);
+        // si Supabase ne déduit pas le type, on normalise
+        setBonusDefs(
+          (bd ?? []).map(d => ({
+            id: d.id,
+            code: d.code as BonusDef['code'],
+            description: d.description,
+            category_id: d.category_id,
+            rule: d.rule,
+          }))
+        );
 
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : String(e));
@@ -697,6 +1109,73 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
     const t = d ? Date.parse(d) : NaN;
     return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
   }
+
+
+
+const hasBielsaAlready = codesPlayed.includes('BIELSA');
+const hasAnyNotButs    = codesPlayed.some(c => c !== 'BUTS'); // couvre CROIX≠BIELSA, SCORE (ECART/CLEAN SHEET), SPECIAL (BOOST_x), etc.
+
+
+  function renderBonusRow(b: BonusDef) {
+    const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
+
+    // y a-t-il déjà un bonus dans **cette catégorie** ?
+    const hasPlayedInCategory = gridBonuses.some(
+      gb => bonusDefById[gb.bonus_definition]?.category_id === b.category_id
+    );
+
+    const isBielsa = b.code === 'BIELSA';
+    const canPlayBielsa = !hasBielsaAlready && !hasAnyNotButs; // JOUER BIELSA seulement si aucun bonus ou seul BUTS joué
+    // 👉 règle unique “peut-on afficher JOUER pour CE bonus ?”
+const canPlayThis =
+  isBielsa
+    // BIELSA jouable seulement si aucun bonus, ou si le seul bonus déjà joué est BUTS
+    ? (!hasBielsaAlready && !hasAnyNotButs)
+    // Si BIELSA est déjà posé → seul BUTS reste jouable (et seulement s’il n’est pas déjà joué)
+    : (hasBielsaAlready ? (b.code === 'BUTS' && !hasPlayedInCategory)
+                        : !hasPlayedInCategory);
+
+    return (
+      <div key={b.id} className="border rounded-lg p-3 bg-blue-50 flex items-center justify-between">
+        <div className="flex items-center">
+          <Image src={bonusLogos[b.code]} alt={b.code} width={40} height={40} className="rounded-full" />
+          <div className="ml-3">
+            <div className="text-lg font-bold text-green-600">{b.code}</div>
+            <div className="text-sm">{b.description}</div>
+          </div>
+        </div>
+
+        <div>
+{canPlayThis && (
+  <button onClick={() => setOpenedBonus(b)} className="px-3 py-1 border rounded hover:bg-gray-100">
+    JOUER
+  </button>
+)}
+
+
+          {isPlayed && (() => {
+            const bonusEntry  = gridBonuses.find(gb => gb.bonus_definition === b.id);
+            const bonusMatch  = matches.find(m => m.id === bonusEntry?.match_id);
+            const bonusLocked = bonusEntry && (bonusMatch?.status?.toUpperCase?.() !== 'NS' || bonusMatch?.is_locked);
+
+            if (bonusLocked) {
+              return (
+                <div className="px-3 py-1 border rounded text-gray-500 flex items-center gap-2 cursor-not-allowed">
+                  <span>🔒</span><span>EN JEU</span>
+                </div>
+              );
+            }
+            return (
+              <button onClick={() => setOpenedBonus(b)} className="px-3 py-1 border rounded hover:bg-gray-100">
+                MODIFIER
+              </button>
+            );
+          })()}
+        </div>
+      </div>
+    );
+  }
+
 
   // 1) Scroll/affiche TOUJOURS la grille du match en cours (priorité à la grid_id mémorisée)
   useEffect(() => {
@@ -841,286 +1320,65 @@ if (activeGrid && activeGrid.grid_items) {
 }
 
   };
+   
 
-  // 🎯 handleBonusValidate : applique ou modifie un bonus pour la grille active
-  const handleBonusValidate = async () => {
-    if (!openedBonus || !user) return;
+// 🧨 Suppression d’un bonus (base via RPC + reload + reset UI)
+const handleBonusDelete = async () => {
+  if (!openedBonus || !user) return;
 
-    try {
-      // 1) Log initial
-      console.log('🔥 handleBonusValidate start', {
-        bonusCode: openedBonus.code,
-        popupMatch1, popupMatch0, popupPair, popupPick
-      });
+  // 🔍 La ligne grid_bonus à supprimer (celle du bonus ouvert)
+  const placedBonus = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
+  if (!placedBonus) return;
 
-      // 2) Préparation du payload
-      const payload: {
-        user_id: string;
-        grid_id: string;
-        bonus_definition: string;
-        match_id: string;
-        parameters: BonusParameters;
-      } = {
-        user_id: user.id,
-        grid_id: grid.id,
-        bonus_definition: openedBonus.id,
-        match_id: popupMatch1,
-        parameters: { picks: [] },
-      };
+  // ⏱ Sécurité horaire : on interdit la suppression trop proche du coup d’envoi
+  const margin = 60 * 1000; // 60s
+  const p = (placedBonus.parameters ?? {}) as any;
 
-console.log('📦 Payload préparé pour upsert', payload);
-
-const bonusExistant = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
-if (bonusExistant) {
-  const margin = 60 * 1000;
-  let matchIdsToCheck: string[] = [];
-
-  if (
-    openedBonus.code === 'RIBERY' &&
-    'match_win' in bonusExistant.parameters &&
-    'match_zero' in bonusExistant.parameters
-  ) {
-    matchIdsToCheck = [
-      bonusExistant.parameters.match_win,
-      bonusExistant.parameters.match_zero
-    ];
-  } else {
-    matchIdsToCheck = [bonusExistant.match_id];
-  }
+  // RIBERY a potentiellement 2 matchs (win/zero) à contrôler
+  const matchIdsToCheck: string[] =
+    openedBonus.code === 'RIBERY' && p.match_win && p.match_zero
+      ? [p.match_win, p.match_zero]
+      : [placedBonus.match_id];
 
   for (const matchId of matchIdsToCheck) {
-    const m = matches.find(m => m.id === matchId);
+    const m = matches.find(m => String(m.id) === String(matchId));
     if (!m || !('date' in m)) continue;
-
-    const matchTime = new Date(m.date).getTime();
-    const now = Date.now();
-
-    if (now > matchTime - margin) {
-      console.log('🚫 Bonus déjà validé et un des matchs est commencé → modification interdite', matchId);
+    const matchTime = new Date(m.date as any).getTime();
+    if (Date.now() > matchTime - margin) {
       setShowOffside(true);
       return;
     }
   }
-}
 
+  try {
+    // 1) Suppression atomique côté base (+1 rendu à l’inventaire si SPECIAL)
+    const res = await supabase.rpc('revoke_bonus', {
+      p_user_id: user.id,
+      p_grid_bonus_id: placedBonus.id,
+    });
+    if (res.error) throw res.error;
 
-      // 3) Vérifie si le match concerné par le bonus est déjà commencé
-const matchesToCheck =
-  openedBonus.code === 'RIBERY' ? [popupMatch1, popupMatch0] :
-  openedBonus.code === 'ZLATAN' ? [popupMatch1] :
-  openedBonus.code === 'KANTE' ? [popupMatch1] :
-  openedBonus.code === 'BIELSA'  ? [popupMatch1] :
-  [];
+    // 2) Rechargement propre des bonus de la grille
+    const { data: gbs, error: gbe } = await supabase
+      .from('grid_bonus')
+      .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
+      .eq('grid_id', grid.id);
 
-if (matchesToCheck.length === 0 || matchesToCheck.includes('')) {
-  console.log('⛔ Match manquant pour la vérification du bonus', openedBonus.code);
-  return;
-}
+    if (gbe) throw gbe;
+    setGridBonuses(gbs || []);
 
-for (const matchId of matchesToCheck) {
-  const m = matches.find(m => m.id === matchId);
-  if (!m || !('date' in m)) return;
-
-  const matchTime = new Date(m.date).getTime();
-  const now = Date.now();
-  const margin = 60 * 1000;
-
-  console.log('⏱ Vérification Ribéry :', {
-    match_id: matchId,
-    kickoff: m.date,
-    now: new Date(),
-    parsed: matchTime
-  });
-
-  if (now > matchTime - margin) {
-    console.log('⛔ Match trop tardif détecté : ', matchId, new Date(m.date));
-    setShowOffside(true);
-    console.log('✅ Match encore valide : ', matchId);
-    return;
+    // 3) Reset pop-up / états
+    setOpenedBonus(null);
+    setPopupMatch1('');
+    setPopupMatch0('');
+  } catch (e: any) {
+    alert('Erreur suppression bonus : ' + (e?.message ?? String(e)));
   }
-}
-
-      // 4) Logique spécifique à chaque bonus
-      switch (openedBonus.code) {
-        case 'KANTE':
-          if (!popupMatch1) return alert('Match requis pour Kanté');
-          payload.parameters = {
-            picks:
-              popupPair === '1-N' ? ['1', 'N']
-            : popupPair === 'N-2' ? ['N', '2']
-            : ['1', '2']
-          };
-          break;
-
-        case 'RIBERY':
-          if (!popupMatch1 || !popupMatch0)
-            return alert('Sélectionnez 2 matchs différents pour Ribéry');
-          if (popupMatch1 === popupMatch0)
-            return alert('Les 2 matchs doivent être différents');
-          payload.match_id = popupMatch1 ?? '';
-          payload.parameters = {
-            match_win: popupMatch1,
-            match_zero: popupMatch0
-          };
-          break;
-
-        case 'ZLATAN':
-          if (!popupMatch1) return alert('Match requis pour Zlatan');
-          payload.parameters = {
-            pick: popupPick
-          };
-          break;
-
-        case 'BIELSA': {
-          if (!popupMatch1) return alert('Match requis pour Bielsa');
-          payload.match_id = popupMatch1;        // ← explicite, comme ZLATAN
-          payload.parameters = { pick: popupPick }; // '1' | 'N' | '2'
-          break;
-        }
-
-        default:
-          return alert('Bonus non reconnu : ' + openedBonus.code);
-      }
-
-      // 5) Envoi Supabase
-      const { data, error: be } = await supabase
-        .from('grid_bonus')
-        .upsert([payload], {
-          onConflict: 'user_id,grid_id,category_id',
-        });
-
-      // 6) Recharge les bonus pour la grille actuelle
-      const { data: gbs, error: gbe } = await supabase
-        .from('grid_bonus')
-        .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
-        .eq('grid_id', grid.id);
-      console.log('🧾 Résultat upsert Supabase :', { data, error: be });
-
-      if (gbe) throw gbe;
-
-      setGridBonuses(gbs || []);
-
-      if (be) throw be;
-
-      // 7) Update local
-      setGridBonuses(gbs => [
-        ...gbs.filter(b => b.bonus_definition !== openedBonus.id),
-        {
-          id: crypto.randomUUID(),       
-          grid_id: grid.id,               
-          user_id: user.id,     
-          bonus_definition: openedBonus.id,
-          match_id: payload.match_id,
-          parameters: payload.parameters
-        }
-      ]);
-
-      // 8) Fermeture du popup
-      setOpenedBonus(null);
-      setPopupMatch1('');
-      setPopupMatch0('');
-    }
-    catch (e: unknown) {
-      alert('Erreur Supabase : ' + (e instanceof Error ? e.message : String(e)));
-    }
-  };
-   
-  // 🧨 Suppression d’un bonus (base + front + points)
-  const handleBonusDelete = async () => {
-    if (!openedBonus || !user) return;
-
-    // 🔍 Récupère le bonus posé pour cette grille
-    const placedBonus = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
-    if (!placedBonus) return;
-
-    const margin = 60 * 1000;
-    let matchIdsToCheck: string[] = [];
-
-    // 🧠 Cas particulier RIBERY
-    if (
-      openedBonus.code === 'RIBERY' &&
-      'match_win' in placedBonus.parameters &&
-      'match_zero' in placedBonus.parameters
-    ) {
-      matchIdsToCheck = [
-        placedBonus.parameters.match_win,
-        placedBonus.parameters.match_zero
-      ];
-    } else {
-      matchIdsToCheck = [placedBonus.match_id];
-    }
-
-    // 🔎 Vérifie l'heure de tous les matchs concernés
-    for (const matchId of matchIdsToCheck) {
-      const m = matches.find(m => m.id === matchId);
-      if (!m || !('date' in m)) continue;
-
-      const matchTime = new Date(m.date).getTime();
-      const now = Date.now();
-
-      console.log('⏱ Test horaire dans handleBonusDelete :', {
-        bonus: openedBonus.code,
-        match_id: matchId,
-        kickoff: m.date,
-        now: new Date(),
-        parsed: matchTime
-      });
-
-      if (now > matchTime - margin) {
-        setShowOffside(true);
-        console.log('🚫 pop-up OFFSIDE déclenché (delete bonus) !');
-        return;
-      }
-    }
-
-    try {
-      // 1) Supprimer côté base
-      const { error: de } = await supabase
-        .from('grid_bonus')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('grid_id', grid.id)
-        .eq('bonus_definition', openedBonus.id);
-
-      if (de) throw de;
-
-      // 2) Supprimer côté front
-      setGridBonuses(gbs =>
-        gbs.filter(x => x.bonus_definition !== openedBonus.id)
-      );
-
-      // 3) Recharge les bonus pour la grille actuelle
-      const { data: gbs, error: gbe } = await supabase
-        .from('grid_bonus')
-        .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
-        .eq('grid_id', grid.id);
-
-      if (gbe) throw gbe;
-
-      setGridBonuses(gbs || []);
-
-      // 4) Reset popup
-      setOpenedBonus(null);
-      setPopupMatch1('');
-      setPopupMatch0('');
-    }
-    catch (e: unknown) {
-      alert('Erreur suppression bonus : ' + (e instanceof Error ? e.message : String(e)));
-    }
-  };
+};
 
   // // 🧠 Aide bonus : savoir si un bonus a été joué, et lequel
   const isPlayed = gridBonuses.length>0;
   const playedBonusCode = bonusDefs.find(b=>b.id===gridBonuses[0]?.bonus_definition)?.code;
-  // pour savoir quel bonus affiché dans la zone bonus
-const allowedIds = (grid?.allowed_bonuses ?? null) as string[] | null;
-
-const visibleBonusDefs =
-  allowedIds === null
-    ? null                               // => "Pas de bonus pour cette grille"
-    : bonusDefs.filter(b => allowedIds.includes(b.id));
-
-const noBonusForThisGrid = visibleBonusDefs === null;
 
 // BIELSA déjà posé ?
 const bielsaMatchId =
@@ -1352,135 +1610,88 @@ return early ? (
       <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'grid' ? 'hidden' : ''}`}>
         {/* ── GRILLE ── */}
         <div className="w-full lg:w-2/3">
-          <div className="w-full border rounded-lg space-y-2">
-            <div className="space-y-1">
-              {loadingGrid ? (
-                <div className="p-6 text-center">🔄 Chargement de la grille…</div>
-              ) : (
-                matches.map((m) => {
-                  const upperStatus = m.status?.toUpperCase?.() ?? '';
+          <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setOpenGrille(!openGrille)}
+                  className="w-full flex items-center justify-between px-4 py-3"
+                >
+                  <span className="font-semibold text-center w-full">Fais tes pronos !</span>
+                  <span className="text-xl">{openGrille ? '▲' : '▼'}</span>
+                </button>
+                    {openGrille && (
+                      <div className="px-4 pb-4 space-y-2">
+                        <div className="space-y-1">
+                          {loadingGrid ? (
+                            <div className="p-6 text-center">🔄 Chargement de la grille…</div>
+                          ) : (
+                            matches.map((m) => {
+                              const upperStatus = m.status?.toUpperCase?.() ?? '';
 
-                  // 1) Bonus actif
-                  const bonusEntry = gridBonuses[0];
-                  const bonusDef = bonusDefs.find(d => d.id === bonusEntry?.bonus_definition);
-                  const bonusCode = bonusDef?.code || '';
-                  const params = bonusEntry?.parameters || {};
-                  const matchWin = (params as Partial<{ match_win: string }>).match_win ?? '';
-                  const matchZero = (params as Partial<{ match_zero: string }>).match_zero ?? '';
+                              // 1) Bonus actif
+                              const bonusEntry = gridBonuses[0];
+                              const bonusDef = bonusDefs.find(d => d.id === bonusEntry?.bonus_definition);
+                              const bonusCode = bonusDef?.code || '';
+                              const params = bonusEntry?.parameters || {};
+                              //const matchWin = (params as Partial<{ match_win: string }>).match_win ?? '';
+                              //const matchZero = (params as Partial<{ match_zero: string }>).match_zero ?? '';
 
-                  // 1bis) Pour le bonus BIELSA
-                  const paramsPick = (params as { pick?: '1' | 'N' | '2' }).pick;
-                  const isBielsaActive = bonusCode === 'BIELSA' && !!bielsaMatchId;
-                  const isMutedByBielsa = isBielsaActive && m.id !== bielsaMatchId;
-                  const isBielsaThis   = isBielsaActive && m.id === bielsaMatchId;
-                  const isBielsaOther  = isBielsaActive && m.id !== bielsaMatchId;
+                              // 1bis) Pour le bonus BIELSA
+                              //const paramsPick = (params as { pick?: '1' | 'N' | '2' }).pick;
+                              //const isBielsaActive = bonusCode === 'BIELSA' && !!bielsaMatchId;
+                              //const isMutedByBielsa = isBielsaActive && m.id !== bielsaMatchId;
+                              //const isBielsaThis   = isBielsaActive && m.id === bielsaMatchId;
+                              //const isBielsaOther  = isBielsaActive && m.id !== bielsaMatchId;
 
-                  // 2) Prépare picks et disabled
-                  let picksForThisMatch: string[] =
-                    bonusEntry && bonusCode
-                      ? [] // sera écrasé dans le switch bonus
-                      : m.pick ? [m.pick] : [];
+            const overlay: OverlayEntry = byMatch[String(m.id)] ?? { disabled: false, picks: undefined, codes: [] };
+            const entry = byMatch[String(m.id)];
+            const disabledByOverlay = globalDisabled || Boolean(entry?.disabled);
+            const picksFromOverlay = entry?.picks as ('1'|'N'|'2')[] | undefined;
+            const codesHere = entry?.codes ?? [];
+            const hasRiberyHere = codesHere.includes('RIBERY');
+            const hasAnyBonusHere = codesHere.length > 0;
+            const firstCode = hasRiberyHere ? 'RIBERY' : codesHere[0]; // un seul code par match, sauf RIBERY qui peut marquer 2 matchs
 
-                  let isDisabled = false;
+            // 2) Version unifiée basée sur l'overlay
+            let picksForThisMatch: string[] = globalDisabled
+              ? (picksFromOverlay ?? [])              // BIELSA actif → n’afficher des croix que si l’overlay en met (BIELSA)
+              : (picksFromOverlay ?? (m.pick ? [m.pick] : []));  // cas normal → fallback sur le pick de la grille
 
-                  // règles normales
-                  if (upperStatus !== 'NS' || ['SUSP', 'INT', 'PST'].includes(upperStatus) || m.is_locked) {
-                    isDisabled = true;
-                  }
-                  if (isBielsaOther) isDisabled = true; // grise les 8 autres
+            let isDisabled =
+              disabledByOverlay ||                       // overlay (bonus posé / BIELSA global)
+              upperStatus !== 'NS' ||                    // match démarré
+              ['SUSP','INT','PST'].includes(upperStatus) ||
+              !!m.is_locked ||                           // verrou interne
+              isReadOnly;                                // spectateur / éliminé
 
-                  // règle supplémentaire : spectateur / éliminé → tout désactivé
-                  if (isReadOnly) {
-                    isDisabled = true;
-                  }
 
-                  // 2bis Affichage BIELSA
-                  if (bonusCode === 'BIELSA' && bielsaMatchId) {
-                    if (m.id === bielsaMatchId) {
-                      // Sur le match BIELSA : afficher la croix choisie dans la pop-up
-                      if (paramsPick) picksForThisMatch = [paramsPick];
-                    } else {
-                      // Tous les autres matchs : non jouables + aucune croix visible
-                      isDisabled = true;
-                      picksForThisMatch = [];
-                    }
-                  }
+                              return (
+                                <div
+                                  key={m.id}
+                                  className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_11%] gap-2 items-center"
+                                >
+                                {/* LIGNE 1 */}
+                                <div className="text-center text-sm">{fmtDate(m.date)}</div>
 
-                  if (bonusEntry && bonusCode) {
-                    switch (bonusCode) {
-                      case 'RIBERY': {
-                        if ('match_win' in params && 'match_zero' in params) {
-                          if (m.id === params.match_win) {
-                            picksForThisMatch = ['1', 'N', '2'];
-                            isDisabled = true;
-                          } else if (m.id === params.match_zero) {
-                            picksForThisMatch = [];
-                            isDisabled = true;
-                          } else {
-                            picksForThisMatch = m.pick ? [m.pick] : [];
-                          }
-                        }
-                        break;
-                      }
+                                {/* Nom équipe domicile : short sur mobile, complet sur PC */}
+                                <div className="text-center font-medium">
+                                  <span className="sm:hidden">{m.short_name_home}</span>
+                                  <span className="hidden sm:inline">{m.home_team}</span>
+                                </div>
 
-                      case 'KANTE': {
-                        const matchK = bonusEntry.match_id;
-                        if (m.id === matchK && 'picks' in params && Array.isArray(params.picks)) {
-                          picksForThisMatch = params.picks;
-                          isDisabled = true;
-                        } else {
-                          picksForThisMatch = m.pick ? [m.pick] : [];
-                        }
-                        break;
-                      }
-
-                      case 'ZLATAN': {
-                        const matchZ = bonusEntry.match_id;
-                        if (m.id === matchZ && 'pick' in params && typeof params.pick === 'string') {
-                          picksForThisMatch = [params.pick];
-                          isDisabled = true;
-                        } else {
-                          picksForThisMatch = m.pick ? [m.pick] : [];
-                        }
-                        break;
-                      }
-
-                      default: {
-                        picksForThisMatch = m.pick ? [m.pick] : [];
-                        break;
-                      }
-                    }
-                  }
-
-                  return (
-                    <div
-                      key={m.id}
-                      className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_11%] gap-2 items-center"
-                    >
-                    {/* LIGNE 1 */}
-                    <div className="text-center text-sm">{fmtDate(m.date)}</div>
-
-                    {/* Nom équipe domicile : short sur mobile, complet sur PC */}
-                    <div className="text-center font-medium">
-                      <span className="sm:hidden">{m.short_name_home}</span>
-                      <span className="hidden sm:inline">{m.home_team}</span>
-                    </div>
-
-                    {/* Boutons 1/N/2 */}
-                    <div className="grid grid-cols-3 gap-[16px] justify-items-center">
-                      {(['1', 'N', '2'] as const).map((opt) => {
-                        const isX = isBielsaThis
-                          ? (opt === paramsPick)  // match BIELSA → croix = pick du popup (grid_bonus.parameters.pick)
-                          : (!isBielsaOther && picksForThisMatch.includes(opt)); // autres cas → logique normale
-
-                        return (
-                          <div
-                            key={opt}
-                            onClick={() => !isDisabled && handlePick(m.id, opt)}
-                            className={`w-7 h-6 border rounded flex items-center justify-center text-sm ${
-                              isDisabled ? 'opacity-50' : 'cursor-pointer'
-                            }`}
-                          >
+                                {/* Boutons 1/N/2 */}
+            {/* Boutons 1/N/2 */}
+            <div className="grid grid-cols-3 gap-[16px] justify-items-center">
+              {(['1', 'N', '2'] as const).map((opt) => {
+                const isX = picksForThisMatch.includes(opt);   // croix décidée par l’overlay
+                return (
+                  <div
+                    key={opt}
+                    onClick={() => !isDisabled && handlePick(m.id, opt)}
+                    className={`w-7 h-6 border rounded flex items-center justify-center text-sm ${
+                      isDisabled ? 'opacity-50' : 'cursor-pointer'
+                    }`}
+                  >
                     {isX ? (
                       <div className="relative w-6 sm:w-8 h-6 sm:h-8">
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -1493,211 +1704,201 @@ return early ? (
                     ) : (
                       opt
                     )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
-                    <div className="text-center font-medium">
-                      <span className="sm:hidden">{m.short_name_away}</span>
-                      <span className="hidden sm:inline">{m.away_team}</span>
-                    </div>
-                    
-                    {/* BONUS */}
-                      <div className="flex justify-center">
-                        <button
-                          onClick={async () => {
-                            setOtherPicks([]);
-
-                            const status = String(m.status ?? '').trim().toUpperCase();
-                            setPopupMatchStatus(status === 'NS' ? 'NS' : 'OTHER');
-
-                            // ⬇️ capture toutes les infos d’en-tête du match cliqué
-                            setPopupMatch({
-                              id: String(m.id),
-                              home: m.short_name_home || m.home_team || 'Équipe A',
-                              away: m.short_name_away || m.away_team || 'Équipe B',
-                              base1: m.base_1_points ?? null,
-                              baseN: m.base_n_points ?? null,
-                              base2: m.base_2_points ?? null,
-                            });
-
-                            setShowPopup(true);
-
-// Charge les autres pronos via la RPC simple (grille + match)
-const { data, error } = await supabase.rpc('get_other_picks_basic', {
-  p_grid_id: grid.id,
-  p_match_id: m.id,
-  p_competition_id: competitionId,
-});
-setOtherPicks(data ?? []);
-
-                          }}
-                          className="focus:outline-none"
-                        >
-                          {/* ton rendu d'icône bonus inchangé */}
-                          {bonusEntry ? (
-                            bonusCode === 'RIBERY' ? (
-                              (m.id === matchWin || m.id === matchZero) ? (
-                                <Image src={bonusLogos['RIBERY']} alt="RIBERY bonus" width={32} height={32} className="rounded-full"/>
-                              ) : (
-                                <Image src={bonusLogos['INFO']} alt="bonus inconnu" width={32} height={32} className="rounded-full"/>
-                              )
-                            ) : m.id === bonusEntry.match_id ? (
-                              <Image src={bonusLogos[bonusCode!]} alt={`${bonusCode} bonus`} width={32} height={32} className="rounded-full"/>
-                            ) : (
-                              <Image src={bonusLogos['INFO']} alt="bonus inconnu" width={32} height={32} className="rounded-full"/>
-                            )
-                          ) : (
-                            <Image src={bonusLogos['INFO']} alt="bonus inconnu" width={32} height={32} className="rounded-full"/>
-                          )}
-                        </button>
-                      </div>
-
-
-                      {/* LIGNE 2 */}
-                      {(() => {
-                        const { label, color } = getMatchLabelAndColor(m.status ?? '');
-                        return (
-                          <div className={`text-center text-xs ${color}`}>
-                            {label}
-                          </div>
-                        );
-                      })()}
-                      <div className="text-center font-semibold">
-                        {m.score_home != null ? m.score_home : ''}
-                      </div>
-                      <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
-                        <div>{m.base_1_points ?? '-'}</div>
-                        <div>{m.base_n_points ?? '-'}</div>
-                        <div>{m.base_2_points ?? '-'}</div>
-                      </div>
-                      <div className="text-center font-semibold">
-                        {m.score_away != null ? m.score_away : ''}
-                      </div>
-                      <div className="text-center text-sm">
-                        {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
-                      </div>
-                    </div>
-                  )
-                })
-              )}
+                  </div>
+                );
+              })}
             </div>
+
+
+                                {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
+                                <div className="text-center font-medium">
+                                  <span className="sm:hidden">{m.short_name_away}</span>
+                                  <span className="hidden sm:inline">{m.away_team}</span>
+                                </div>
+                                
+                                {/* BONUS */}
+                                  <div className="flex justify-center">
+                                    <button
+                                      onClick={async () => {
+                                        setOtherPicks([]);
+
+                                        const status = String(m.status ?? '').trim().toUpperCase();
+                                        setPopupMatchStatus(status === 'NS' ? 'NS' : 'OTHER');
+
+                                        // ⬇️ capture toutes les infos d’en-tête du match cliqué
+                                        setPopupMatch({
+                                          id: String(m.id),
+                                          home: m.short_name_home || m.home_team || 'Équipe A',
+                                          away: m.short_name_away || m.away_team || 'Équipe B',
+                                          base1: m.base_1_points ?? null,
+                                          baseN: m.base_n_points ?? null,
+                                          base2: m.base_2_points ?? null,
+                                        });
+
+                                        setShowPopup(true);
+
+            // Charge les autres pronos via la RPC simple (grille + match)
+            const { data, error } = await supabase.rpc('get_other_picks_basic', {
+              p_grid_id: grid.id,
+              p_match_id: m.id,
+              p_competition_id: competitionId,
+            });
+            setOtherPicks(data ?? []);
+
+                                      }}
+                                      className="focus:outline-none"
+                                    >
+                                      {/* ton rendu d'icône bonus inchangé */}
+            {hasAnyBonusHere ? (
+                  <Image
+                    src={bonusLogos[firstCode]}
+                    alt={`${firstCode} bonus`}
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <Image
+                    src={bonusLogos['INFO']}
+                    alt="bonus inconnu"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                )}
+              </button>
+            </div>
+
+
+                                  {/* LIGNE 2 */}
+                                  {(() => {
+                                    const { label, color } = getMatchLabelAndColor(m.status ?? '');
+                                    return (
+                                      <div className={`text-center text-xs ${color}`}>
+                                        {label}
+                                      </div>
+                                    );
+                                  })()}
+                                  <div className="text-center font-semibold">
+                                    {m.score_home != null ? m.score_home : ''}
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
+                                    <div>{m.base_1_points ?? '-'}</div>
+                                    <div>{m.base_n_points ?? '-'}</div>
+                                    <div>{m.base_2_points ?? '-'}</div>
+                                  </div>
+                                  <div className="text-center font-semibold">
+                                    {m.score_away != null ? m.score_away : ''}
+                                  </div>
+                                  <div className="text-center text-sm">
+                                    {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
+                                  </div>
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
           </div>
         </div>
 
         {/* ── BONUS ── */}
-        <div className="w-full lg:w-1/3">
-          <div className="border rounded-lg p-4 space-y-4">
-            
-        {/* Gate sur le BONUS */}
-        {gate.state === 'elimine' && (
-          <>
-            <img src={ELIM_IMAGES[elimVariant]} alt="Éliminé" className="mx-auto max-w-[240px]" />
-            <p className="text-center text-sm text-gray-600">Tu es éliminé de cette compétition.</p>
-          </>
-        )}
-        {gate.state === 'elimine' ? null : gate.state === 'spectateur' ? (
-          <>
-            <img src={ELIM_IMAGES['spectateur']} alt="Spectateur" className="mx-auto max-w-[240px]" />
-            <p className="text-center text-sm text-gray-600">Mode spectateur : bonus indisponibles.</p>
-          </>
-        ) : (
-          <>
-            {/* En-tête */}
-            <div className="font-medium">
-              {noBonusForThisGrid
-                ? 'Pas de bonus pour cette grille'
-                : (gridBonuses.length > 0
-                    ? 'Tu as déjà joué 1 bonus :'
-                    : `Joue 1 des ${visibleBonusDefs!.length} bonus :`)}
-            </div>
+        <div className="w-full lg:w-1/3 space-y-4">
+            {/* Gate sur le BONUS */}
+            {gate.state !== 'joueur' ? (
+              <>
+                <img
+                  src={
+                    gate.state === 'elimine'
+                      ? ELIM_IMAGES[elimVariant]
+                      : ELIM_IMAGES['spectateur']
+                  }
+                  alt={gate.state === 'elimine' ? 'Éliminé' : 'Spectateur'}
+                  className="mx-auto max-w-[240px]"
+                />
+                <p className="text-center text-sm text-gray-600">
+                  {gate.state === 'elimine'
+                    ? 'Tu es éliminé de cette compétition.'
+                    : 'Mode spectateur : bonus indisponibles.'}
+                </p>
+              </>
+            ) : (
+              <>
 
-            {/* Liste des defs */}
-              {(visibleBonusDefs ?? []).map(b => {
-                const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
-                const hasPlayedAny = gridBonuses.length > 0;
-                const isBielsa = b.code === 'BIELSA';
-                const canPlayBielsa = !bielsaMatchId && !hasStartedPickedMatch; // BIELSA jouable ?
-
-              return (
-                <div
-                  key={b.id}
-                  className="border rounded-lg p-3 bg-blue-50 flex items-center justify-between"
-                >
-                  {/* Icône + libellé */}
-                  <div className="flex items-center">
-                    <Image
-                      src={bonusLogos[b.code]}
-                      alt={b.code}
-                      width={40}
-                      height={40}
-                      className="rounded-full"
-                    />
-                    <div className="ml-3">
-                      <div className="text-lg font-bold text-green-600">
-                        {b.code}
-                      </div>
-                      <div className="text-sm">{b.description}</div>
+                {/* Accordéon CROIX */}
+                <div className="border rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => { setTouched(true); setOpenCroix(!openCroix); }}
+                    className="w-full flex items-center justify-between px-4 py-3"
+                  >
+                    <span className="font-semibold text-center w-full">Choisis ton bonus CROIX</span>
+                    <span className="text-xl">{openCroix ? '▲' : '▼'}</span>
+                  </button>
+                  {openCroix && (
+                    <div className="px-4 pb-4 space-y-3">
+                      {defsCroix.length === 0 ? (
+                        <div className="text-sm text-gray-500">Pas de bonus croix pour cette grille.</div>
+                      ) : (
+                        defsCroix.map(renderBonusRow)
+                      )}
                     </div>
-                  </div>
-
-                  {/* Bouton : si aucun bonus joué → JOUER ; si c'est celui-ci joué → MODIFIER */}
-                  <div>
-{!hasPlayedAny && (
-  isBielsa
-    ? (canPlayBielsa ? (
-        <button
-          onClick={() => setOpenedBonus(b)}
-          className="px-3 py-1 border rounded hover:bg-gray-100"
-        >
-          JOUER
-        </button>
-      ) : null) // => bouton caché si BIELSA non jouable
-    : (
-        <button
-          onClick={() => setOpenedBonus(b)}
-          className="px-3 py-1 border rounded hover:bg-gray-100"
-        >
-          JOUER
-        </button>
-      )
-)}
-
-                    {isPlayed && (() => {
-                      const bonusEntry = gridBonuses.find(gb => gb.bonus_definition === b.id);
-                      const bonusMatch = matches.find(m => m.id === bonusEntry?.match_id);
-                      const bonusIsLocked = bonusEntry && (
-                        bonusMatch?.status?.toUpperCase?.() !== 'NS' || bonusMatch?.is_locked
-                      );
-
-                      if (bonusIsLocked) {
-                        return (
-                          <div className="px-3 py-1 border rounded text-gray-500 flex items-center gap-2 cursor-not-allowed">
-                            <span>🔒</span>
-                            <span>EN JEU</span>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <button
-                          onClick={() => setOpenedBonus(b)}
-                          className="px-3 py-1 border rounded hover:bg-gray-100"
-                        >
-                          MODIFIER
-                        </button>
-                      );
-                    })()}
-                  </div>
+                  )}
                 </div>
-              );
-            })}
-          </>
-        )}
-      </div>
-    </div>
+
+                {/* Accordéon SCORE */}
+                <div className="border rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => { setTouched(true); setOpenScore(!openScore); }}
+                    className="w-full flex items-center justify-between px-4 py-3"
+                  >
+                    <span className="font-semibold text-center w-full">Choisis ton bonus SCORE</span>
+                    <span className="text-xl">{openScore ? '▲' : '▼'}</span>
+                  </button>
+                  {openScore && (
+                    <div className="px-4 pb-4 space-y-3">
+                      {defsScore.length === 0 ? (
+                        <div className="text-sm text-gray-500">Pas de bonus score pour cette grille.</div>
+                      ) : (
+                        defsScore.map(renderBonusRow)
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Accordéon SPÉCIAUX */}
+                <div className="border rounded-lg">
+<button
+  type="button"
+  onClick={() => {
+    if (specialsForUser.length === 0) return; // rien à ouvrir
+    setTouched(true);
+    setOpenSpecial(!openSpecial);
+  }}
+  className="w-full flex items-center justify-between px-4 py-3"
+>
+  <span className="font-semibold text-center w-full">
+    {specialsForUser.length > 0 ? 'Choisis ton bonus SPÉCIAL' : 'Pas de bonus SPÉCIAL'}
+  </span>
+  <span className="text-xl">{openSpecial ? '▲' : '▼'}</span>
+</button>
+
+{openSpecial && (
+  <div className="px-4 pb-4 space-y-3">
+    {specialsForUser.length === 0 ? (
+      <div className="text-sm text-gray-500">Pas de bonus spécial pour cette grille.</div>
+    ) : (
+      specialsForUser.map(renderBonusRow)
+    )}
+  </div>
+)}
+                </div>
+              </>
+            )}
+        </div>
+
 
         {/* ── message d'erreur si un joueur parie trop tard = hors jeu ── */}
         {showOffside && (
@@ -1915,141 +2116,11 @@ setOtherPicks(data ?? []);
               <h2 className="text-2xl font-bold mb-2">
                 {openedBonus.code}
               </h2>
-              <p className="mb-4">
-                {openedBonus.description}
-              </p>
+<p className="mb-4 text-sm text-gray-700">{openedBonus.rule ?? openedBonus.description}</p>
+
 
               {/* Contenu selon bonus */}
-              {openedBonus.code === 'RIBERY' ? (
-                <>
-                  <label className="block mb-3">
-                    Match à 3 croix
-                    <select
-                      value={popupMatch1}
-                      onChange={(e) =>
-                        setPopupMatch1(e.target.value)
-                      }
-                      className="mt-1 block w-full border rounded p-2"
-                    >
-                      <option value="">
-                        — Choisir match —
-                      </option>
-                      {matches.filter(m => m.status?.toUpperCase?.() === 'NS' && !m.is_locked).map((m) => (
-                        <option
-                          key={m.id}
-                          value={String(m.id)}
-                        >
-                          {m.home_team} vs {m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block mb-6">
-                    Match à 0 croix
-                    <select
-                      value={popupMatch0}
-                      onChange={(e) =>
-                        setPopupMatch0(e.target.value)
-                      }
-                      className="mt-1 block w-full border rounded p-2"
-                    >
-                      <option value="">
-                        — Choisir match —
-                      </option>
-                      {matches.filter(m => m.status?.toUpperCase?.() === 'NS' && !m.is_locked).map((m) => (
-                        <option
-                          key={m.id}
-                          value={String(m.id)}
-                        >
-                          {m.home_team} vs {m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </>
-              ) : (openedBonus.code === 'ZLATAN' || openedBonus.code === 'BIELSA') ? (
-                <>
-                  <label className="block mb-3">
-                    Match
-                      {(() => {
-                      console.log("🟡 Liste matches bonus :", matches.map(m => ({
-                        id: m.id,
-                        status: m.status,
-                        is_locked: m.is_locked
-                      })));
-                      return null;
-                    })()}
-                    <select
-                      value={popupMatch1}
-                      onChange={(e) =>
-                        setPopupMatch1(e.target.value)
-                      }
-                      className="mt-1 block w-full border rounded p-2"
-                    >
-                      <option value="">
-                        — Choisir match —
-                      </option>
-                      {matches.filter(m => m.status?.toUpperCase?.() === 'NS' && !m.is_locked).map((m) => (
-                        <option
-                          key={m.id}
-                          value={String(m.id)}
-                        >
-                          {m.home_team} vs {m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block mb-6">
-                    Pronostic
-                    <select
-                      value={popupPick}
-                      onChange={(e) => setPopupPick(e.target.value as '1' | 'N' | '2')}
-                      className="mt-1 block w-full border rounded p-2"
-                    >
-                      <option value="1">1</option>
-                      <option value="N">N</option>
-                      <option value="2">2</option>
-                    </select>
-                  </label>
-                </>
-              ) : (
-                <>
-                  <label className="block mb-3">
-                    Match
-                    <select
-                      value={popupMatch1}
-                      onChange={(e) =>
-                        setPopupMatch1(e.target.value)
-                      }
-                      className="mt-1 block w-full border rounded p-2"
-                    >
-                      <option value="">
-                        — Choisir match —
-                      </option>
-                      {matches.filter(m => m.status?.toUpperCase?.() === 'NS' && !m.is_locked).map((m) => (
-                        <option
-                          key={m.id}
-                          value={String(m.id)}
-                        >
-                          {m.home_team} vs {m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block mb-6">
-                    Paire de croix
-                    <select
-                      value={popupPair}
-                      onChange={(e) => setPopupPair(e.target.value as '1-N' | 'N-2' | '1-2')}
-                      className="mt-1 block w-full border rounded p-2"
-                    >
-                      <option value="1-N">1 N</option>
-                      <option value="N-2">N 2</option>
-                      <option value="1-2">1 2</option>
-                    </select>
-                  </label>
-                </>
-              )}
+              {renderPopupContent()}
               <div className="flex justify-between">
                 {gridBonuses.some(
                   (b) => b.bonus_definition === openedBonus.id
@@ -2062,7 +2133,7 @@ setOtherPicks(data ?? []);
                   </button>
                 )}
                 <button
-                  onClick={handleBonusValidate}
+                  onClick={onValidateBonus}
                   className="px-4 py-2 bg-green-500 text-white rounded"
                 >
                   Valider

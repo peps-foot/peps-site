@@ -5,18 +5,21 @@ interface RuleSectionProps {
   title: string;
   children: React.ReactNode;
   iconSrc?: string;
-  type?: 'default' | 'bonus_match' | 'bonus_grille';
+  type?: 'default' | 'bonus_match' | 'bonus_grille'| 'bonus_score'| 'bonus_boost';
 }
 
 export default function RuleSection({ title, children, iconSrc, type = 'default' }: RuleSectionProps) {
   const [open, setOpen] = useState(false);
 
-  const theme =
-    {
-      default:      { bg: 'bg-white',      text: 'text-black', border: 'border-gray-300',  contentBg: 'bg-white' },
-      bonus_match:  { bg: 'bg-blue-200',   text: 'text-black', border: 'border-blue-400',  contentBg: 'bg-blue-50' },
-      bonus_grille: { bg: 'bg-yellow-200', text: 'text-black', border: 'border-yellow-400', contentBg: 'bg-yellow-50' },
-    }[type];
+const theme =
+  {
+    default:      { bg: 'bg-white',      text: 'text-black', border: 'border-gray-300',   contentBg: 'bg-white' },
+    bonus_match:  { bg: 'bg-blue-200',   text: 'text-black', border: 'border-blue-400',   contentBg: 'bg-blue-50' },
+    bonus_grille: { bg: 'bg-yellow-200', text: 'text-black', border: 'border-yellow-400', contentBg: 'bg-yellow-50' },
+    bonus_score:   { bg: 'bg-rose-200',   text: 'text-black', border: 'border-rose-400',   contentBg: 'bg-rose-50' },
+    bonus_boost: { bg: 'bg-orange-200', text: 'text-black', border: 'border-orange-400', contentBg: 'bg-orange-50' },
+  }[type];
+
 
   return (
     <div className="w-full flex justify-center">

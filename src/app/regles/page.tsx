@@ -33,8 +33,7 @@ export default function ReglesPage() {
         </p>
 
         <p className="mt-4 text-justify">
-          Pour rendre le jeu plus sympa, on a rajouté des bonus : KANTE, RIBERY et ZLATAN.
-          Ces bonus te permettront de pouvoir gagner plus de points. Les autres bonus viendront plus tard si tu motives les gens autour de toi...
+          Pour rendre le jeu plus sympa, on a rajouté des bonus qui te permettront de pouvoir gagner plus de points si tu les places bien.
         </p>
       </RuleSection>
 
@@ -51,7 +50,7 @@ export default function ReglesPage() {
             <li>L’équipe à gauche est celle qui joue à domicile, celle de droite joue à l’extérieur. Le score en live s’affiche quand le match est commencé.</li>
             <li>Tu peux cliquer sur les cases 1-N-2 pour y mettre tes croix (ton <strong>PRONO</strong>) sans avoir besoin d’enregistrer.</li>
             <li>Les valeurs en dessous correspondent aux <strong>POINTS</strong> à gagner.</li>
-            <li>En cliquant sur l’image de droite, tu verras les pronos des autres joueurs si le match a commencé.</li>
+            <li>En cliquant sur l’image VAR, tu verras les pronos des autres joueurs si le match a commencé.</li>
             <li>En dessous, tu verras en live les points que tu gagnes, de quoi vibrer pendant tout le match.</li>
           </ul>
 
@@ -63,7 +62,7 @@ export default function ReglesPage() {
         <ul className="list-disc pl-5 space-y-2 text-justify">
           <li><strong>Règle 1 :</strong> Seul le score à la fin du temps réglementaire compte (pas de prolongations, ni de tirs au but).</li>
           <li><strong>Règle 2 :</strong> Une seule croix par match, sauf si un bonus est joué.</li>
-          <li><strong>Règle 3 :</strong> Tu peux jouer au max un seul bonus à chaque grille, pour l'instant...</li>
+          <li><strong>Règle 3 :</strong> Si ce n'est pas affiché, le stock de chaque bonus est illimité.</li>
           <li><strong>Règle 4 :</strong> Tu peux changer ton choix jusqu'au coup d’envoi.</li>
         </ul>
       </RuleSection>
@@ -82,20 +81,23 @@ export default function ReglesPage() {
         </ul>
 
         <p className="mb-4 text-justify">
-          Le mode <strong>TOURNOI</strong> est en préparation, trois types de tournois à éliminations vous seront proposés…
+          Le mode <strong>TOURNOI</strong> permet d'éliminer des joueurs à chaque fin de grille...
         </p>
       </RuleSection>
 
       <RuleSection title="Le bonus KANTÉ" iconSrc="/images/kante.png" type="bonus_match">
         <p className="mt-2 text-justify"><strong>Description :</strong> Quand N’golo joue dans ton équipe c’est comme si tu avais deux joueurs en un. Ici c’est pareil, il te permet de cocher deux croix pour un match. Au lotofoot, c’est comme un double : 1-N, N-2 ou 1-2.</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> 2 chances sur 3 de marquer des points.</p>
-        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Tu ne gagnes que les points associés au pronostic avec la plus petite cote.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> 1 chance sur 3 de ne pas marquer de points.</p>
         <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_kante.png" alt="Exemple Kanté" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p className="mt-2 text-justify">
-          Si Rennes gagne ou fait match nul, tu gagnes 7 points. Si Rennes perd, tu ne gagnes pas de points ! </p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Si Rennes gagne, tu gagnes 7 points.</li>
+        <li>Si il y a match nul, tu gagnes 10 points.</li>
+        <li>Si Rennes perd, tu ne gagnes pas de points !</li>
+        </ul>
       </RuleSection>
 
       <RuleSection title="Le bonus RIBERY" iconSrc="/images/ribery.png" type="bonus_match">
@@ -109,10 +111,12 @@ export default function ReglesPage() {
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_ribery_2.png" alt="Exemple Ribery 2" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p className="mt-2 text-justify">
-          Si Metz gagne, tu gagnes 9 points. Si Metz fait match nul, tu gagnes 11 points. Si Nantes gagne, tu gagnes 8 points.</p>
-        <p className="mt-2 text-justify">
-          Pour le derby du nord Lille - Lens, jamais facile à pronostiquer, tu es sûr de marquer 0 point.</p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Si Metz gagne, tu gagnes 9 points.</li>
+        <li>Si il y a match nul, tu gagnes 11 points.</li>
+        <li>Si Nantes gagne, tu gagnes 8 points.</li>
+        <li>Pour Lille - Lens, tu es sûr de marquer 0 point.</li>        
+        </ul>
       </RuleSection>
 
       <RuleSection title="Le bonus ZLATAN" iconSrc="/images/zlatan.png" type="bonus_match">
@@ -123,11 +127,13 @@ export default function ReglesPage() {
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_zlatan.png" alt="Exemple zlatan" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p className="mt-2 text-justify">
-          Si Toulouse gagne, tu gagnes 2 x 5 = 10 points. Sinon, tu ne gagnes pas de points. </p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Si Toulouse gagne, tu gagnes 2 x 5 = 10 points.</li>
+        <li>Sinon, tu ne gagnes pas de points.</li>       
+        </ul>
       </RuleSection>
 
-      <RuleSection title="Le bonus BIELSA" iconSrc="/images//bonus/bielsa.png" type="bonus_grille">
+      <RuleSection title="Le bonus BIELSA" iconSrc="/images/bonus/bielsa.png" type="bonus_grille">
         <p className="mt-2 text-justify"><strong>Description :</strong> Un petit coup de folie ? Comme El loco tu veux tenter le tout pour le tout ? Si tu joues ce bonus, tu ne pourras mettre qu'une seule croix dans ta grille et les points seront multipliés par 5 !!!!! Alors, all-in ?</p>
         <p className="mt-2 text-justify"><strong>Avantage :</strong> Une chance sur trois de marquer beaucoup de points d'un coup.</p>
         <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Deux chances sur trois de faire un zéro pointé !</p>
@@ -135,7 +141,93 @@ export default function ReglesPage() {
         <div className="flex justify-center my-4">
           <img src="/images/regles/ex_resume.png" alt="Exemple bielsa" className="w-full max-w-lg rounded-lg border" />
         </div>
-        <p className="mt-2 text-justify">Si le classico OM-PSG se termine par un match nul, tu marques 5 x 11 = 55 points pour toute la grille. Si il n'y a pas match nul, ça te fait 0 point pour toute la grille.</p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Si le classico OM-PSG se termine par un match nul, tu marques 5 x 11 = 55 points.</li>
+        <li>Si il n'y a pas match nul, ça te fait 0 point.</li>       
+        </ul>
+        <p className="mt-4 mb-4 font-semibold text-justify">Remarques :</p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li> Ce bonus ne peut être joué une seule fois pas compétition.</li>
+        <li> Ce bonus peut être joué avec le bonus BUTS.</li>
+        </ul>  
+      </RuleSection>
+
+      <RuleSection title="Le bonus BUTS" iconSrc="/images/bonus/buts.png" type="bonus_score">
+        <p className="mt-2 text-justify"><strong>Description :</strong> Tu sens le match avec une attaque en feu et/ou une défense en carton ? Tu sens le gros score ? Ce bonus te fait gagner un point par but marqué dans le match.</p>
+        <p className="mt-2 text-justify"><strong>Avantage :</strong> Sauf un 0-0, t'es sûr de marquer au moins un point en plus.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> C'est dur de marquer beaucoup de points.</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
+        <div className="flex justify-center my-4">
+          <img src="/images/regles/ex_buts.png" alt="Exemple buts" className="w-full max-w-lg rounded-lg border" />
+        </div>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Score 2-2 : tu marques 12 + 2 + 2 = 16 points.</li>
+        <li>Score 3-1 : tu marques 0 + 3 + 1 = 4 points.</li>
+        <li>Score 0-2 : tu marques 0 + 0 + 2 = 2 points.</li>       
+        </ul>
+        <p className="mt-4 mb-4 font-semibold text-justify">Remarques :</p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li> Ce bonus marche même si ton prono est faux.</li>
+        <li> Ce bonus peut être joué avec le bonus BIELSA.</li>
+        </ul>       
+        
+      </RuleSection>
+
+      <RuleSection title="Le bonus CLEAN SHEET" iconSrc="/images/bonus/CS.png" type="bonus_score">
+        <p className="mt-2 text-justify"><strong>Description :</strong> Tu sens le match avec une attaque aux pieds carrés et/ou une défense en béton ? Ce bonus te fait gagner les points liés à ton prono si l'équipe ne prend pas de buts.</p>
+        <p className="mt-2 text-justify"><strong>Avantage :</strong> Tu peux doubler tes points sur le match.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Il suffit d'un but pour te faire perdre ton bonus.</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
+        <div className="flex justify-center my-4">
+          <img src="/images/regles/ex_CS.png" alt="Exemple CS" className="w-full max-w-lg rounded-lg border" />
+        </div>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Score 2-0 : tu marques 6 + 6 = 12 points.</li>
+        <li>Score 2-1 : tu marques 6 + 0 = 6 points.</li>
+        <li>Score 0-0 : tu marques 0 + 6 = 6 points.</li>       
+        </ul>
+        <p className="mt-4 mb-4 font-semibold text-justify">Remarques :</p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li> Ce bonus peut marcher même si ton prono est faux.</li>
+        <li> Ce bonus ne peut pas être joué avec le bonus BIELSA.</li>
+        <li> Si ton prono est N, il faut un 0-0 pour doubler tes points.</li>
+        </ul>
+      </RuleSection>
+
+      <RuleSection title="Le bonus ÉCART" iconSrc="/images/bonus/ecart.png" type="bonus_score">
+        <p className="mt-2 text-justify"><strong>Description :</strong> Parie sur une victoire à domicile ou à l’extérieur. Si tu as parié sur la bonne équipe et que l’écart de buts est de 2 ou plus, tu empoches les points de l’équipe qui a gagné.</p>
+        <p className="mt-2 text-justify"><strong>Avantage :</strong> Permet de doubler tes points.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Trouver la victoire ne suffit pas !</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
+        <div className="flex justify-center my-4">
+          <img src="/images/regles/ex_ecart.png" alt="Exemple ecart" className="w-full max-w-lg rounded-lg border" />
+        </div>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Score 3-0 : tu marques 4 + 4 = 8 points.</li>
+        <li>Score 2-1 : tu marques 4 + 0 = 4 points.</li>      
+        </ul>
+        <p className="mt-4 mb-4 font-semibold text-justify">Remarque :</p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li> Ce bonus ne peut pas être joué avec le bonus BIELSA.</li>
+        </ul>
+      </RuleSection>
+
+      <RuleSection title="Les bonus BOOST" iconSrc="/images/bonus/boost_3.png" type="bonus_boost">
+        <p className="mt-2 text-justify"><strong>Description :</strong> Ces bonus sont distribués aux joueurs finissant sur un podium du classement d'une grille. Ils peuvent rajouter 1, 2 ou 3 points à un futur prono dans une autre grille.</p>
+        <p className="mt-2 text-justify"><strong>Avantage :</strong> Permet de faire monter les côtes.</p>
+        <p className="mt-2 text-justify"><strong>Inconvénient :</strong> Si le prono est faux, tu le perds !</p>
+        <p className="mt-4 mb-4 font-semibold text-justify">Exemple :</p>
+        <div className="flex justify-center my-4">
+          <img src="/images/regles/ex_resume.png" alt="Exemple boost" className="w-full max-w-lg rounded-lg border" />
+        </div>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li>Si le classico OM-PSG se termine par un match nul, tu marques 11 + 3 = 14 points.</li>
+        <li>Si il n'y a pas match nul, ça te fait 0 point.</li>      
+        </ul>
+        <p className="mt-4 mb-4 font-semibold text-justify">Remarque :</p>
+        <ul className="list-disc pl-5 space-y-2 text-justify">
+        <li> Ce bonus ne peut pas être joué avec le bonus BIELSA.</li>
+        </ul>
       </RuleSection>
     </main>
   )

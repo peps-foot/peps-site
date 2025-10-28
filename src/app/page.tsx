@@ -19,6 +19,8 @@ export default function Home() {
   const [statuses, setStatuses] = useState<Map<string, {label: string; color: "blue"|"green"|"gray"; isActiveRank: boolean}>>(new Map());
   const [ready, setReady] = useState(false);
   const { mine, toJoin, history } = groups;
+  // état local (à mettre avec tes autres useState)
+  const [openTuto, setOpenTuto] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -92,6 +94,34 @@ export default function Home() {
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Pub PEPS aléatoire */}
     <RandomPromo />
+
+    {/* ── TUTO FLASH ── */}
+    <div className="border rounded-lg mb-4">
+      <button
+        type="button"
+        onClick={() => setOpenTuto(!openTuto)}
+        className="w-full flex items-center justify-between px-4 py-3"
+      >
+        <span className="font-semibold text-center w-full">
+          ⚡ TUTO FLASH ⚡
+        </span>
+        <span className="text-xl">{openTuto ? '▲' : '▼'}</span>
+      </button>
+
+      {openTuto && (
+        <div className="px-4 pb-4">
+          <ol className="list-decimal pl-5 space-y-2 text-sm leading-6">
+            <li>🏆 Choisis ta compet</li>
+            <li>✖️ Mets une croix par match</li>
+            <li>⭐ Joue ton bonus <span className="font-semibold">CROIX</span></li>
+            <li>🎯 Joue ton bonus <span className="font-semibold">SCORE</span></li>
+            <li>🚀 Joue un <span className="font-semibold">BOOST</span> si t’en as</li>
+            <li>⚽ Vibre en suivant la Ligue&nbsp;1</li>
+            <li>↗️ Les règles complètes en haut à droite</li>
+          </ol>
+        </div>
+      )}
+    </div>
 
     {/* Liste des compétitions */}
 {/* MES COMPÉT' */}
