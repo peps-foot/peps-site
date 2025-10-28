@@ -324,6 +324,12 @@ const isMatchSelectable = (m:any) =>
       return;
     }
 
+    if (!grid) {
+      // au choix: toast, console, return…
+      console.warn("Impossible de valider le bonus : grid est null.");
+      return;
+    }
+
     await handleBonusValidateCroix({
       user,
       grid,
