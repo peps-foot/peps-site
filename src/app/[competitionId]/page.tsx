@@ -1633,13 +1633,13 @@ return early ? (
                 <button
                   type="button"
                   onClick={() => setOpenGrille(!openGrille)}
-                  className="w-full flex items-center justify-between px-4 py-3"
+                  className="w-full flex items-center px-4 py-3"
                 >
-                  <span className="font-semibold text-center w-full">Fais tes pronos !</span>
-                  <span className="text-xl">{openGrille ? '▲' : '▼'}</span>
+                  <span className="font-semibold text-center flex-1">Fais tes pronos !</span>
+                  <span className="text-xl shrink-0">{openGrille ? '▲' : '▼'}</span>
                 </button>
                     {openGrille && (
-                      <div className="px-4 pb-4 space-y-2">
+                      <div className="-mx-4 px-4 pb-4 space-y-2">
                         <div className="space-y-1">
                           {loadingGrid ? (
                             <div className="p-6 text-center">🔄 Chargement de la grille…</div>
