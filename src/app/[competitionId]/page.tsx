@@ -326,7 +326,7 @@ const isMatchSelectable = (m:any) =>
 
     if (!grid) {
       // au choix: toast, console, return…
-      console.warn("Impossible de valider le bonus : grid est null.");
+      console.warn("Impossible de valider le bonus CROIX : grid est null.");
       return;
     }
 
@@ -374,6 +374,12 @@ const isMatchSelectable = (m:any) =>
 
   // 4) Applique ou modifie un bonus SPECIAL pour la grille active
   const handleBonusValidateSpeciauxLocal = async () => {
+
+  if (!grid) {
+    console.warn("Impossible de valider le bonus SPECIAL : grid est null.");
+    return;
+  }
+
     await handleBonusValidateSpeciaux({
       user,
       grid,
