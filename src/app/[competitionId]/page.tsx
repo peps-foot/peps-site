@@ -350,6 +350,13 @@ const isMatchSelectable = (m:any) =>
 
   // 3) Applique ou modifie un bonus SCORE pour la grille active
   const handleBonusValidateScoreLocal = async () => {
+
+  if (!grid) {
+    console.warn("Impossible de valider le bonus SCORE : grid est null.");
+    // tu peux aussi afficher un toast et fermer la popup si besoin
+    return;
+  }
+
     await handleBonusValidateScore({
       user,
       grid,
