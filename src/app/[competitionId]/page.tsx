@@ -69,8 +69,7 @@ const bonusLogos: Record<string,string> = {
   "BIELSA" : '/images/bonus/bielsa.png',
   "BUTS" : '/images/bonus/buts.png',
   "CLEAN SHEET" : '/images/bonus/CS.png',
-  "CLEAN SHEET DOM" : '/images/bonus/CS1.png',
-  "CLEAN SHEET EXT" : '/images/bonus/CS2.png',
+  "CLEAN_SHEET" : '/images/bonus/CS.png',
   "ECART" : '/images/bonus/ecart.png',
   "BOOST_1" : '/images/bonus/boost_1.png',
   "BOOST_2" : '/images/bonus/boost_2.png',
@@ -105,6 +104,10 @@ export default function HomePage() {
   const [matches, setMatches] = useState<(MatchWithState & { grid_id?: string | number })[]>([]);
   // 👉 Définition complète des bonus disponibles (ex: KANTÉ, ZLATAN...)
   const [bonusDefs, setBonusDefs] = useState<BonusDef[]>([]);
+  const specialDefs = React.useMemo(
+    () => bonusDefs.filter(d => d.category_id === 'SPECIAL' || d.code.startsWith('BOOST_')),
+    [bonusDefs]
+  );
   // 👉 Liste des bonus joués pour la grille active
   const [gridBonuses, setGridBonuses] = useState<GridBonus[]>([]);
   // 👉 Points affichés directement en base
@@ -602,9 +605,8 @@ useEffect(() => {
 }, [user?.id, competition?.id]);
 
 // cas spécial des bonus spéciaux
-const specialsForUser = (defsSpecial ?? []).filter(def =>
-  userInventory.some(inv => inv.bonus_definition === def.id)
-);
+const specialsForUser = (defsSpecial ?? []).filter(def => userInventory.some(inv => inv.bonus_definition === def.id));
+const specialsDefs = defsSpecial ?? [];
 
 // auto-ouverture des zones bonus
 const hasCroix   = (defsCroix?.length ?? 0) > 0;
@@ -1135,65 +1137,80 @@ const hasBielsaAlready = codesPlayed.includes('BIELSA');
 const hasAnyNotButs    = codesPlayed.some(c => c !== 'BUTS'); // couvre CROIX≠BIELSA, SCORE (ECART/CLEAN SHEET), SPECIAL (BOOST_x), etc.
 
 
-  function renderBonusRow(b: BonusDef) {
-    const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
+function renderBonusRow(b: BonusDef) {
+  // 1) États de base
+  const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
 
-    // y a-t-il déjà un bonus dans **cette catégorie** ?
-    const hasPlayedInCategory = gridBonuses.some(
-      gb => bonusDefById[gb.bonus_definition]?.category_id === b.category_id
-    );
+  // y a-t-il déjà un bonus dans **cette catégorie** ?
+  const hasPlayedInCategory = gridBonuses.some(
+    gb => bonusDefById[gb.bonus_definition]?.category_id === b.category_id
+  );
 
-    const isBielsa = b.code === 'BIELSA';
-    const canPlayBielsa = !hasBielsaAlready && !hasAnyNotButs; // JOUER BIELSA seulement si aucun bonus ou seul BUTS joué
-    // 👉 règle unique “peut-on afficher JOUER pour CE bonus ?”
-const canPlayThis =
-  isBielsa
-    // BIELSA jouable seulement si aucun bonus, ou si le seul bonus déjà joué est BUTS
-    ? (!hasBielsaAlready && !hasAnyNotButs)
-    // Si BIELSA est déjà posé → seul BUTS reste jouable (et seulement s’il n’est pas déjà joué)
-    : (hasBielsaAlready ? (b.code === 'BUTS' && !hasPlayedInCategory)
-                        : !hasPlayedInCategory);
+  const isBielsa = b.code === 'BIELSA';
 
-    return (
-      <div key={b.id} className="border rounded-lg p-3 bg-blue-50 flex items-center justify-between">
-        <div className="flex items-center">
-          <Image src={bonusLogos[b.code]} alt={b.code} width={40} height={40} className="rounded-full" />
-          <div className="ml-3">
-            <div className="text-lg font-bold text-green-600">{b.code}</div>
-            <div className="text-sm">{b.description}</div>
-          </div>
-        </div>
+  // 2) Stock pour les BOOST_x (on regarde l'inventaire utilisateur)
+  const hasStock =
+    b.code.startsWith('BOOST_')
+      ? userInventory.some(inv => inv.bonus_definition === b.id && (inv.quantity ?? 0) > 0)
+      : true;
 
-        <div>
-{canPlayThis && (
-  <button onClick={() => setOpenedBonus(b)} className="px-3 py-1 border rounded hover:bg-gray-100">
-    JOUER
-  </button>
-)}
+  // 3) Règles globales BIELSA (issues de ta logique existante)
+  const canPlayBielsa = !hasBielsaAlready && !hasAnyNotButs;
 
+  // 4) Peut-on afficher le bouton JOUER pour **ce** bonus ?
+  const canPlayThis =
+    !isPlayed &&                                  // pas déjà joué
+    (!b.code.startsWith('BOOST_') || hasStock) && // BOOST: nécessite du stock
+    (isBielsa ? canPlayBielsa : !hasPlayedInCategory); // règles BIELSA ou "un par catégorie"
 
-          {isPlayed && (() => {
-            const bonusEntry  = gridBonuses.find(gb => gb.bonus_definition === b.id);
-            const bonusMatch  = matches.find(m => m.id === bonusEntry?.match_id);
-            const bonusLocked = bonusEntry && (bonusMatch?.status?.toUpperCase?.() !== 'NS' || bonusMatch?.is_locked);
+  // 5) État verrouillé (match démarré ou verrouillé) pour l'affichage du bouton
+  const bonusEntry  = gridBonuses.find(gb => gb.bonus_definition === b.id);
+  const bonusMatch  = matches.find(m => m.id === bonusEntry?.match_id);
+  const bonusLocked =
+    !!bonusEntry &&
+    (String(bonusMatch?.status ?? '').toUpperCase() !== 'NS' || !!bonusMatch?.is_locked);
 
-            if (bonusLocked) {
-              return (
-                <div className="px-3 py-1 border rounded text-gray-500 flex items-center gap-2 cursor-not-allowed">
-                  <span>🔒</span><span>EN JEU</span>
-                </div>
-              );
-            }
-            return (
-              <button onClick={() => setOpenedBonus(b)} className="px-3 py-1 border rounded hover:bg-gray-100">
-                MODIFIER
-              </button>
-            );
-          })()}
+  // 6) Rendu
+  return (
+    <div key={b.id} className="border rounded-lg p-3 bg-blue-50 flex items-center justify-between">
+      <div className="flex items-center">
+        <Image src={bonusLogos[b.code]} alt={b.code} width={40} height={40} className="rounded-full" />
+        <div className="ml-3">
+          <div className="text-lg font-bold text-green-600">{b.code}</div>
+          <div className="text-sm">{b.description}</div>
         </div>
       </div>
-    );
-  }
+
+      <div>
+        {canPlayThis && (
+          <button
+            onClick={() => setOpenedBonus(b)}
+            className="px-3 py-1 border rounded hover:bg-gray-100"
+          >
+            JOUER
+          </button>
+        )}
+
+        {isPlayed && (
+          bonusLocked ? (
+            <div className="px-3 py-1 border rounded text-gray-500 flex items-center gap-2 cursor-not-allowed">
+              <span>🔒</span><span>EN JEU</span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setOpenedBonus(b)}
+              className="px-3 py-1 border rounded hover:bg-gray-100"
+            >
+              MODIFIER
+            </button>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
 
   // 1) Scroll/affiche TOUJOURS la grille du match en cours (priorité à la grid_id mémorisée)
@@ -1888,32 +1905,30 @@ return early ? (
                 </div>
 
                 {/* Accordéon SPÉCIAUX */}
-                <div className="border rounded-lg">
-<button
-  type="button"
-  onClick={() => {
-    if (specialsForUser.length === 0) return; // rien à ouvrir
-    setTouched(true);
-    setOpenSpecial(!openSpecial);
-  }}
-  className="w-full flex items-center justify-between px-4 py-3"
->
-  <span className="font-semibold text-center w-full">
-    {specialsForUser.length > 0 ? 'Choisis ton bonus SPÉCIAL' : 'Pas de bonus SPÉCIAL'}
-  </span>
-  <span className="text-xl">{openSpecial ? '▲' : '▼'}</span>
-</button>
+<div className="border rounded-lg">
+  <button
+    type="button"
+    onClick={() => {
+      // aucune condition ici : on ouvre/ferme uniquement au clic
+      setTouched(true);
+      setOpenSpecial(v => !v);
+    }}
+    className="w-full flex items-center justify-between px-4 py-3"
+  >
+    <span className="font-semibold text-center w-full">
+      Choisis ton bonus SPÉCIAL
+    </span>
+    <span className="text-xl">{openSpecial ? '▲' : '▼'}</span>
+  </button>
 
 {openSpecial && (
   <div className="px-4 pb-4 space-y-3">
-    {specialsForUser.length === 0 ? (
-      <div className="text-sm text-gray-500">Pas de bonus spécial pour cette grille.</div>
-    ) : (
-      specialsForUser.map(renderBonusRow)
-    )}
+    {specialsDefs.length === 0
+      ? <div className="text-sm text-gray-500">Aucun bonus spécial défini.</div>
+      : specialsDefs.map(renderBonusRow)}
   </div>
 )}
-                </div>
+</div>
               </>
             )}
         </div>
@@ -1938,7 +1953,7 @@ return early ? (
         {showPopup && popupMatch && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">
-              {/* close, plus gros */}
+              {/* close */}
               <button
                 onClick={() => setShowPopup(false)}
                 aria-label="Fermer"
@@ -2020,7 +2035,20 @@ return early ? (
   const pickN  = p.pick_n ?? (pickVal === 'N');
   const pick2 = p.pick_2 ?? (pickVal === '2');
   
-  console.log('[others:picks]', p.username, { pickVal, pick1, pickN, pick2 });
+  /* --- DEBUG BONUS (à coller ici) --- */
+const rawBonus = p?.bonus_code;
+const normBonus = typeof rawBonus === 'string'
+  ? rawBonus.trim().toUpperCase().replace(/\s+/g, '_')
+  : rawBonus;
+
+console.log('[popup] bonus for', p.username, {
+  raw: JSON.stringify(rawBonus),
+  norm: normBonus,
+  has_bonus: !!p?.has_bonus,
+  hit_raw: !!(rawBonus && bonusLogos[rawBonus as string]),
+  hit_norm: !!(normBonus && bonusLogos[normBonus as string]),
+});
+/* --- /DEBUG BONUS --- */
 
           const Square = ({ label, active }: { label: '1'|'N'|'2'; active: boolean }) => (
             <span
@@ -2052,6 +2080,8 @@ return early ? (
               : p.has_bonus
                 ? bonusLogos['INFO']
                 : null;
+                console.log('[popup] bonusLogos keys:', Object.keys(bonusLogos));
+
 
           // 🔸 surlignage “comme le classement”
           const isMe = p.user_id === user?.id; // <= même pattern que ton leaderboard
