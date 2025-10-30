@@ -1779,6 +1779,9 @@ return early ? (
               p_match_id: m.id,
               p_competition_id: competitionId,
             });
+            console.log('[popup][fetch] error =', error);
+console.log('[popup][fetch] Castelak =', JSON.parse(JSON.stringify((data ?? []).filter(r => r?.username === 'Castelak'))));
+
             setOtherPicks(data ?? []);
 
                                       }}
@@ -1869,7 +1872,7 @@ return early ? (
                     onClick={() => { setTouched(true); setOpenCroix(!openCroix); }}
                     className="w-full flex items-center justify-between px-4 py-3"
                   >
-                    <span className="font-semibold text-center w-full">Choisis ton bonus CROIX</span>
+                    <span className="font-semibold text-center w-full">Joue ton bonus CROIX</span>
                     <span className="text-xl">{openCroix ? '▲' : '▼'}</span>
                   </button>
                   {openCroix && (
@@ -1890,7 +1893,7 @@ return early ? (
                     onClick={() => { setTouched(true); setOpenScore(!openScore); }}
                     className="w-full flex items-center justify-between px-4 py-3"
                   >
-                    <span className="font-semibold text-center w-full">Choisis ton bonus SCORE</span>
+                    <span className="font-semibold text-center w-full">Joue ton bonus SCORE</span>
                     <span className="text-xl">{openScore ? '▲' : '▼'}</span>
                   </button>
                   {openScore && (
@@ -1916,7 +1919,7 @@ return early ? (
     className="w-full flex items-center justify-between px-4 py-3"
   >
     <span className="font-semibold text-center w-full">
-      Choisis ton bonus SPÉCIAL
+      Joue ton bonus SPÉCIAL
     </span>
     <span className="text-xl">{openSpecial ? '▲' : '▼'}</span>
   </button>
@@ -2028,6 +2031,15 @@ return early ? (
             ? [...otherPicks].sort((a: any, b: any) => (a.username ?? '').localeCompare(b.username ?? '', 'fr', {sensitivity:'base'}))
             : otherPicks
           ).map((p: any) => {
+            if (p?.username === 'Castelak') console.log('[popup][Castelak] record =', JSON.parse(JSON.stringify(p)));
+            if (p?.username === 'Castelak') console.log('[popup][Castelak] bonus fields =', {
+  has_bonus: p?.has_bonus,
+  bonus_code: p?.bonus_code,
+  bonus_name: p?.bonus_name,
+  kind: p?.kind,
+  details_json: p?.details_json,
+  bonus: p?.bonus,
+});
 
   // 1) normalise depuis p.pick si les flags n'existent pas
   const pickVal = String(p.pick ?? '').toUpperCase();
