@@ -1779,8 +1779,6 @@ return early ? (
               p_match_id: m.id,
               p_competition_id: competitionId,
             });
-            console.log('[popup][fetch] error =', error);
-console.log('[popup][fetch] Castelak =', JSON.parse(JSON.stringify((data ?? []).filter(r => r?.username === 'Castelak'))));
 
             setOtherPicks(data ?? []);
 
@@ -2031,15 +2029,6 @@ console.log('[popup][fetch] Castelak =', JSON.parse(JSON.stringify((data ?? []).
             ? [...otherPicks].sort((a: any, b: any) => (a.username ?? '').localeCompare(b.username ?? '', 'fr', {sensitivity:'base'}))
             : otherPicks
           ).map((p: any) => {
-            if (p?.username === 'Castelak') console.log('[popup][Castelak] record =', JSON.parse(JSON.stringify(p)));
-            if (p?.username === 'Castelak') console.log('[popup][Castelak] bonus fields =', {
-  has_bonus: p?.has_bonus,
-  bonus_code: p?.bonus_code,
-  bonus_name: p?.bonus_name,
-  kind: p?.kind,
-  details_json: p?.details_json,
-  bonus: p?.bonus,
-});
 
   // 1) normalise depuis p.pick si les flags n'existent pas
   const pickVal = String(p.pick ?? '').toUpperCase();
