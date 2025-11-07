@@ -129,10 +129,23 @@ export function NavBar() {
             <Link
               href="/"
               onClick={() => setShowLeftMenu(false)}
-              className="block px-4 py-2 hover:bg-gray-100 flex items-center justify-between gap-2"
+              className="block px-4 py-2 hover:bg-gray-100"
             >
-              <span className="truncate">ACCUEIL</span>
-              <span className="text-sm text-gray-400">›</span>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/images/empty-box.png"   // logo PEPS
+                  alt="Accueil"
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 rounded-full object-cover ring-1 ring-black/10"
+                />
+                <span
+                  className="h-2.5 w-2.5 rounded-full bg-orange-500"
+                  aria-hidden
+                />
+                <span className="flex-1 truncate">ACCUEIL</span>
+                <span className="text-sm text-gray-400">›</span>
+              </div>
             </Link>
 
             <div className="h-px bg-gray-200 my-1" />

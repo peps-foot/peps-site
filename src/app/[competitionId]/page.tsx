@@ -2182,12 +2182,14 @@ console.log('[popup] bonus for', p.username, {
                     Supprimer
                   </button>
                 )}
-                <button
-                  onClick={onValidateBonus}
-                  className="px-4 py-2 bg-green-500 text-white rounded"
-                >
-                  Valider
-                </button>
+                <div className="flex justify-center">
+                  <button
+                    onClick={onValidateBonus}
+                    className="px-4 py-2 bg-green-500 text-white rounded"
+                  >
+                    Valider
+                  </button>
+                </div>
               </div>
             </div>
           </div>

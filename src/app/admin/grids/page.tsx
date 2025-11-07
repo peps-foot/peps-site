@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../../components/SupabaseProvider'
 import AdminPushPanel from '../../../components/AdminPushPanel';
+import {addGridToCompetition,removeMatchFromGrid,removeGridFromCompetition,deleteGridEverywhere} from '../../../lib/adminGridActions';
+
 
 type BonusDef = { id: string; code: string; name: string };
 type Fixture = {
@@ -53,6 +55,8 @@ export default function AdminGridsPage() {
   const [dateTo, setDateTo] = useState(new Date().toISOString().slice(0, 10));
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
   const [selectedFixtures, setSelectedFixtures] = useState<number[]>([]);
+  const [initialFixtureIds, setInitialFixtureIds] = useState<number[]>([]);
+
   const [allowedBonuses, setAllowedBonuses] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -71,17 +75,24 @@ export default function AdminGridsPage() {
   useEffect(() => {
     (async () => {
       // Bonus defs
-      const { data: cat } = await supabase
+      const { data: cat, error: catErr } = await supabase
         .from('bonus_categories')
         .select('id')
         .eq('name', 'MATCH')
-        .single();
-      if (cat?.id) {
-        const { data: defs } = await supabase
+        .maybeSingle(); // ← évite le 406 si 0 ligne
+
+      if (catErr) {
+        console.warn('bonus_categories lookup:', catErr.message);
+        setBonusDefs([]);
+      } else if (cat?.id) {
+        const { data: defs, error: defsErr } = await supabase
           .from('bonus_definition')
           .select('id,code,name')
           .eq('category_id', cat.id);
-        setBonusDefs(defs || []);
+        setBonusDefs(defsErr ? [] : (defs || []));
+      } else {
+        // Pas de catégorie 'MATCH' en base
+        setBonusDefs([]);
       }
       setLoadingDefs(false);
 
@@ -139,107 +150,185 @@ export default function AdminGridsPage() {
     setTab('create');
     setMessage(null);
     setGridId(id);
+
     const { data: g } = await supabase
-    .from('grids')
-    .select('title,allowed_bonuses,description')
-    .eq('id', id)
-    .single();
-    if (g) { setTitle(g.title); setAllowedBonuses(g.allowed_bonuses); setDescription(g.description || '');}
+      .from('grids')
+      .select('title,allowed_bonuses,description')
+      .eq('id', id)
+      .single();
+    if (g) {
+      setTitle(g.title);
+      setAllowedBonuses(g.allowed_bonuses);
+      setDescription(g.description || '');
+    }
+
     const { data: items } = await supabase
-    .from('grid_items')
-    .select('match_id')
-    .eq('grid_id', id);
+      .from('grid_items')
+      .select('match_id')
+      .eq('grid_id', id);
 
     const mids = items?.map(it => it.match_id) || [];
     setSelectedFixtures(mids);
+    setInitialFixtureIds(mids); // 👈 on garde la photo “avant édition”
+
     if (mids.length) {
       const { data: det } = await supabase.from('matches').select('*').in('id', mids);
       setFixtures(det || []);
     }
   };
 
+  //supprimer une grille de la base
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette grille ?')) return;
-    await supabase.from('grids').delete().eq('id', id);
+    if (!confirm('Supprimer cette grille partout ?')) return;
+    await deleteGridEverywhere(id); // RPC côté SQL, ordre de suppression correct
     setGrids(gs => gs.filter(g => g.id !== id));
   };
 
   const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true); setMessage(null);
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
+
     try {
       let gid = gridId;
+
+      // 1) Créer / mettre à jour la grille
       if (gridId) {
-        await supabase.from('grids').update({ title, description, allowed_bonuses: allowedBonuses }).eq('id', gridId);
+        const { error: updErr } = await supabase
+          .from('grids')
+          .update({ title, description, allowed_bonuses: allowedBonuses })
+          .eq('id', gridId);
+        if (updErr) throw new Error('grids.update: ' + updErr.message);
       } else {
-        const { data: ins } = await supabase.from('grids').insert([{ title, description, allowed_bonuses: allowedBonuses }]).select('id');
-        gid = ins![0].id;
+        const { data: ins, error: insErr } = await supabase
+          .from('grids')
+          .insert([{ title, description, allowed_bonuses: allowedBonuses }])
+          .select('id')
+          .single();
+        if (insErr) throw new Error('grids.insert: ' + insErr.message);
+        gid = ins!.id;
+        setGridId(gid);
       }
-      await supabase.from('grid_items').delete().eq('grid_id', gid);
-      if (selectedFixtures.length) {
-        await supabase.from('grid_items').insert(selectedFixtures.map(mid => ({ grid_id: gid, match_id: mid })));
+
+      // 2) Calculer diff entre “avant” et “après”
+      const before = new Set(initialFixtureIds);
+      const after  = new Set(selectedFixtures);
+
+      const toAdd    = [...after].filter(mid => !before.has(mid));
+      const toRemove = [...before].filter(mid => !after.has(mid));
+
+      // 3) Ajouter les nouveaux match_id (insert direct sur grid_items)
+      if (toAdd.length) {
+        const rows = toAdd.map(mid => ({ grid_id: gid!, match_id: mid }));
+        const { error: addErr } = await supabase.from('grid_items').insert(rows).select();
+        if (addErr) throw new Error('grid_items.insert: ' + addErr.message);
       }
+
+      // 4) Retirer proprement les anciens (RPC = nettoie items + matches + bonus)
+      for (const mid of toRemove) {
+        await removeMatchFromGrid(gid!, mid);
+      }
+
+      // 5) Feedback + refresh liste des grilles
       setMessage('✅ Grille enregistrée');
       setDescription('');
-      const { data: gs2 } = await supabase.from('grids').select('id,title,created_at,allowed_bonuses').order('created_at', { ascending: false });
+
+      const { data: gs2 } = await supabase
+        .from('grids')
+        .select('id,title,created_at,allowed_bonuses')
+        .order('created_at', { ascending: false });
       setGrids(gs2 || []);
-      setGridId(null);setTitle('');setCompetitionFilter('');setDateFrom(new Date().toISOString().slice(0,10));setDateTo(new Date().toISOString().slice(0,10));setFixtures([]);setSelectedFixtures([]);setAllowedBonuses([]);setTab('list');
+
+      // 6) Reset du formulaire
+      setInitialFixtureIds(selectedFixtures); // snapshot = nouvel état validé
+      setGridId(null);
+      setTitle('');
+      setCompetitionFilter('');
+      setDateFrom(new Date().toISOString().slice(0, 10));
+      setDateTo(new Date().toISOString().slice(0, 10));
+      setFixtures([]);
+      setSelectedFixtures([]);
+      setAllowedBonuses([]);
+      setTab('list');
     } catch (err: unknown) {
-  console.error(err);
-  setMessage('❌ Erreur : ' + (err instanceof Error ? err.message : String(err)));
-} finally { setSaving(false); }
+      console.error(err);
+      setMessage('❌ Erreur : ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Création / modification compétition
   const handleCompetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessageCompet(null);
-try {
-  let compId = editingCompetId;
 
-  if (compId) {
-    const { error: updErr } = await supabase
-      .from('competitions')
-      .update({ name: competName })
-      .eq('id', compId);
-    if (updErr) throw new Error('competitions.update: ' + updErr.message);
+    try {
+      let compId = editingCompetId;
 
-    const { error: delErr } = await supabase
-      .from('competition_grids')
-      .delete()
-      .eq('competition_id', compId);
-    if (delErr) throw new Error('competition_grids.delete: ' + delErr.message);
+      if (compId) {
+        // 🔹 Mise à jour du nom de la compétition
+        const { error: updErr } = await supabase
+          .from('competitions')
+          .update({ name: competName })
+          .eq('id', compId);
+        if (updErr) throw new Error('competitions.update: ' + updErr.message);
 
-  } else {
-    const { data: comp, error: compErr } = await supabase
-      .from('competitions')
-      .insert([{ name: competName }])
-      .select('id,name,created_at')
-      .single();
-    if (compErr) throw new Error('competitions.insert: ' + compErr.message);
-    compId = comp.id;
-    setComps(cs => [{ id: comp.id, name: comp.name, created_at: comp.created_at }, ...cs]);
-  }
+        // 🔹 1) Lire les grilles actuellement liées
+        const { data: existingLinks, error: readErr } = await supabase
+          .from('competition_grids')
+          .select('grid_id')
+          .eq('competition_id', compId);
+        if (readErr) throw new Error('competition_grids.select: ' + readErr.message);
 
-  if (selCompetGrids.length && compId) {
-    const links = selCompetGrids.map(grid_id => ({ competition_id: compId!, grid_id }));
-    const { error: linkErr } = await supabase.from('competition_grids').insert(links);
-    if (linkErr) throw new Error('competition_grids.insert: ' + linkErr.message);
-  }
+        const existing = new Set((existingLinks ?? []).map(r => r.grid_id));
+        const selected = new Set(selCompetGrids);
 
-  if (compId) {
-    const { error: regenErr } = await supabase.rpc('regenerate_grid_matches_for_competition', { p_compet_id: compId });
-    if (regenErr) throw new Error('rpc.regenerate_grid_matches_for_competition: ' + regenErr.message);
-  }
+        // 🔹 2) Calculer les grilles à ajouter / à retirer
+        const toAdd = [...selected].filter(gid => !existing.has(gid));
+        const toRemove = [...existing].filter(gid => !selected.has(gid));
 
-  setMessageCompet(editingCompetId ? '✅ Compétition modifiée' : '✅ Compétition créée');
-  setCompetName('');
-  setSelCompetGrids([]);
-  setEditingCompetId(null);
-} catch (err: any) {
-  console.error('Erreur compétition :', err?.message || err);
-  setMessageCompet('❌ ' + (err?.message || 'Erreur'));
-}
+        // 🔹 3) Ajouter les manquantes (via helper → insert idempotent + regen)
+        for (const gid of toAdd) {
+          await addGridToCompetition(compId!, gid);
+        }
 
+        // 🔹 4) Détacher proprement les grilles retirées
+        for (const gid of toRemove) {
+          await removeGridFromCompetition(compId!, gid);
+        }
+      } else {
+        // 🔹 Création d'une nouvelle compétition
+        const { data: comp, error: compErr } = await supabase
+          .from('competitions')
+          .insert([{ name: competName }])
+          .select('id,name,created_at')
+          .single();
+        if (compErr) throw new Error('competitions.insert: ' + compErr.message);
+        compId = comp.id;
+        setComps(cs => [{ id: comp.id, name: comp.name, created_at: comp.created_at }, ...cs]);
+      }
+
+      // ❌ SUPPRIMÉ : ancien bloc qui ré-insérait encore toutes les grilles
+      // (inutile puisque déjà géré par le diff au-dessus)
+
+      // 🔹 Regénérer les lignes manquantes pour les joueurs
+      if (compId) {
+        const { error: regenErr } = await supabase.rpc(
+          'regenerate_grid_matches_for_competition',
+          { p_compet_id: compId }
+        );
+        if (regenErr) throw new Error('rpc.regenerate_grid_matches_for_competition: ' + regenErr.message);
+      }
+
+      setMessageCompet(editingCompetId ? '✅ Compétition modifiée' : '✅ Compétition créée');
+      setCompetName('');
+      setSelCompetGrids([]);
+      setEditingCompetId(null);
+    } catch (err: any) {
+      console.error('Erreur compétition :', err?.message || err);
+      setMessageCompet('❌ ' + (err?.message || 'Erreur'));
+    }
   };
 
   return (
@@ -536,19 +625,30 @@ try {
                   >
                     Modifier
                   </button>
-                  <button
-                    onClick={async()=>{
-                      if(!confirm('Supprimer ?'))return;
-                      await supabase.from('competition_grids')
-                        .delete().eq('competition_id', c.id);
-                      await supabase.from('competitions')
-                        .delete().eq('id', c.id);
-                      setComps(cs=>cs.filter(x=>x.id!==c.id));
-                    }}
-                    className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  >
-                    Supprimer
-                  </button>
+<button
+  onClick={async()=>{
+    if(!confirm('Supprimer cette compétition (et détacher ses grilles) ?')) return;
+
+    // détacher proprement chaque grille (nettoyage côté SQL)
+    const { data: links } = await supabase
+      .from('competition_grids')
+      .select('grid_id')
+      .eq('competition_id', c.id);
+
+    for (const row of (links ?? [])) {
+      await removeGridFromCompetition(c.id, row.grid_id);
+    }
+
+    // supprimer la compétition
+    await supabase.from('competitions').delete().eq('id', c.id);
+
+    setComps(cs=>cs.filter(x=>x.id!==c.id));
+  }}
+  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+>
+  Supprimer
+</button>
+
                 </div>
               </li>
             ))}
