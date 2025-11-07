@@ -2154,46 +2154,59 @@ console.log('[popup] bonus for', p.username, {
         )}
 
         {/* ── POPUP BONUS ── */}
-        {openedBonus && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-            <div className="bg-white rounded-lg p-6 w-80 relative">
+{openedBonus && (
+  <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+    <div className="bg-white rounded-lg p-6 w-80 relative">
+      <button
+        onClick={() => setOpenedBonus(null)}
+        className="absolute top-2 right-2 text-black text-xl"
+      >
+        ✕
+      </button>
+
+      {/* Titre centré */}
+      <h2 className="text-2xl font-bold mb-2 text-center">
+        {openedBonus.code}
+      </h2>
+
+      {/* Texte justifié */}
+      <p className="mb-4 text-sm text-gray-700 text-justify">
+        {openedBonus.rule ?? openedBonus.description}
+      </p>
+
+      {renderPopupContent()}
+
+      {/* Boutons */}
+      {(() => {
+        const hasDelete = gridBonuses.some(
+          (b) => b.bonus_definition === openedBonus.id
+        );
+        return (
+          <div className={`mt-4 flex ${hasDelete ? "justify-between" : "justify-center"}`}>
+            {/* Vert toujours rendu en premier */}
+            <button
+              onClick={onValidateBonus}
+              className="px-4 py-2 bg-green-500 text-white rounded"
+            >
+              Valider
+            </button>
+
+            {/* Rouge seulement si présent */}
+            {hasDelete && (
               <button
-                onClick={() => setOpenedBonus(null)}
-                className="absolute top-2 right-2 text-black text-xl"
+                onClick={handleBonusDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded"
               >
-                ✕
+                Supprimer
               </button>
-              <h2 className="text-2xl font-bold mb-2">
-                {openedBonus.code}
-              </h2>
-<p className="mb-4 text-sm text-gray-700">{openedBonus.rule ?? openedBonus.description}</p>
-
-
-              {/* Contenu selon bonus */}
-              {renderPopupContent()}
-              <div className="flex justify-between">
-                {gridBonuses.some(
-                  (b) => b.bonus_definition === openedBonus.id
-                ) && (
-                  <button
-                    onClick={handleBonusDelete}
-                    className="px-4 py-2 bg-red-500 text-white rounded"
-                  >
-                    Supprimer
-                  </button>
-                )}
-                <div className="flex justify-center">
-                  <button
-                    onClick={onValidateBonus}
-                    className="px-4 py-2 bg-green-500 text-white rounded"
-                  >
-                    Valider
-                  </button>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
-        )}        
+        );
+      })()}
+    </div>
+  </div>
+)}
+     
       </div>
     </main>
     </>
