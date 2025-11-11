@@ -47,7 +47,7 @@ if (!self.__PEPS_BG_BOUND__) {
 
       const title = n.title || d.title || 'PEPS';
       const body  = n.body  || d.body  || '';
-      const icon  = toAbs(n.icon || d.icon || '/images/notifications/empty-box.png');
+      const icon  = toAbs(n.icon || d.icon || '/images/notifications/icon-192x192.png');
       const badge = toAbs('/images/notifications/peps-badge-72.png');
       const url   = d.url ? toAbs(d.url) : self.location.origin + '/';
       const tag   = d.tag   || 'peps-broadcast';
