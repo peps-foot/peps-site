@@ -41,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon-512x512.png" />
       </head>
       <body>
-        <PushBootstrap />
+        {/*<PushBootstrap />*/}
         <RegisterServiceWorker />      
         <ClientLayout>{children}</ClientLayout>
       </body>
