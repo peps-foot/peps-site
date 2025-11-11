@@ -19,6 +19,7 @@ type Payload = {
   url?: string;
   platform?: Platform;   // filtre explicite
   preferApp?: boolean;   // si true (par défaut) et platform=all → priorise twa/android par user
+  icon?: string;
 };
 
 const PLATFORM_PRIORITY: Platform[] = ['twa', 'android', 'web', 'ios'];
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
     url = 'https://www.peps-foot.com/',
     platform = 'all',
     preferApp = true, // ⬅️ on active la priorité appli par défaut
+    icon,
   } = payload;
 
   if (!title || !body) {
@@ -114,11 +116,14 @@ export async function POST(req: Request) {
       await messaging.send({
         token: t,
         webpush: {
-          headers: { Urgency: 'high', TTL: '10' },
-          // ❌ PAS de "notification" ici pour éviter le double affichage
-          data: { title, body, url, icon: '/icon-512x512.png', tag: 'peps-broadcast' },
-          fcmOptions: { link: url },
+        headers: { Urgency: 'high', TTL: '10' },
+        data: {
+          title, body, url,
+          icon: icon || '/images/notifications/peps-notif-icon-192.png', // 👈
+          tag: 'peps-broadcast',
         },
+        fcmOptions: { link: url },
+      },
       });
       return true;
     } catch (e: any) {
