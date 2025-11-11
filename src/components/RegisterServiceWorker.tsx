@@ -5,8 +5,7 @@ import { useEffect } from 'react';
 export default function RegisterServiceWorker() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      //navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch(() => {});
-      navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' })
+      navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' }).catch(() => {});
     }
   }, []);
   return null;

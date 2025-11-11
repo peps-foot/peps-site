@@ -17,29 +17,27 @@ export default function AdminPushPanel() {
   // 1) Enregistrer mon propre token (au clic)
   const subscribe = async () => {
     try {
+      if (typeof window === 'undefined' || !('Notification' in window)) {
+        appendLog('Notifications non supportées sur cet appareil.');
+        return;
+      }
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        appendLog('Permission refusée.');
-        return;
-      }
+      if (perm !== 'granted') { appendLog('Permission refusée.'); return; }
+
       const token = await getFcmToken();
-      if (!token) {
-        appendLog('Impossible de récupérer un token FCM.');
-        return;
-      }
-      appendLog('Token récupéré: ' + token.slice(0, 16) + '…');
+      if (!token) { appendLog('Impossible de récupérer un token FCM.'); return; }
 
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token, platform }), // ← utilise la plateforme choisie
+        body: JSON.stringify({ token, platform: 'web' }),
       });
-      const json = await res.json();
-      appendLog('subscribe → ' + JSON.stringify(json));
+      appendLog('subscribe → ' + (await res.text()));
     } catch (e: any) {
       appendLog('subscribe error: ' + (e?.message || String(e)));
     }
   };
+
 
   // 2) Broadcast immédiat
   const send = async () => {
@@ -67,40 +65,53 @@ export default function AdminPushPanel() {
   };
 
   // 4) Debug foreground (affiche une notif si l’onglet est visible)
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    (async () => {
-      unsub = await onForegroundMessage(async (p) => {
-        try {
-          const d = (p && p.data) || {};
-          const reg = await navigator.serviceWorker.ready;
-          const toAbs = (u: string) => {
-            try { return new URL(u, location.origin).href; } catch { return u; }
-          };
+    useEffect(() => {
+      let unsub: (() => void) | undefined;
+      try {
+        if (typeof window === 'undefined') return;
+        if (!('Notification' in window)) return; // 🧱 Garde iOS
+        if (!('serviceWorker' in navigator)) return;
 
-          const title = d.title || 'PEPS';
-          const body  = d.body  || '';
-          const icon  = toAbs(d.icon || '/icon-512x512.png');
-          const url   = d.url   || '/';
-          const tag   = (d.tag ? String(d.tag) : 'peps-broadcast') + '-' + Date.now();
+        (async () => {
+          unsub = await onForegroundMessage(async (p) => {
+            try {
+              const d = (p && p.data) || {};
+              const reg = await navigator.serviceWorker.ready;
+              const toAbs = (u: string) => {
+                try { return new URL(u, location.origin).href; } catch { return u; }
+              };
 
-          if (typeof (reg as any).showNotification !== 'function') {
-            appendLog('[FG] showNotification non disponible (iOS ?).');
-            return;
-          }
-          (reg as any).showNotification(title, {
-            body, icon,
-            badge: toAbs('/icon-192x192.png'),
-            data: { url }, tag,
-            requireInteraction: true, // pour que la notif reste vicible.
+              const title = d.title || 'PEPS';
+              const body  = d.body  || '';
+              const icon  = toAbs(d.icon || '/icon-512x512.png');
+              const url   = d.url   || '/';
+              const tag   = (d.tag ? String(d.tag) : 'peps-broadcast') + '-' + Date.now();
+
+              // 🧱 iOS: showNotification souvent absent en foreground
+              if (typeof (reg as any).showNotification !== 'function') {
+                appendLog?.('[FG] showNotification non disponible (iOS ?).');
+                return;
+              }
+
+              (reg as any).showNotification(title, {
+                body,
+                icon,
+                badge: toAbs('/icon-192x192.png'),
+                data: { url },
+                tag,
+                requireInteraction: true, // 👁️ reste visible jusqu’à clic
+              });
+            } catch (e) {
+              appendLog?.('[FG] error: ' + String(e));
+            }
           });
-        } catch (e) {
-          appendLog('[FG] error: ' + String(e));
-        }
-      });
-    })();
-    return () => { if (unsub) unsub(); };
-  }, []);
+        })();
+      } catch {
+        // Pas de crash en cas d’erreur d’environnement
+      }
+
+      return () => { if (unsub) unsub(); };
+    }, []);
 
   return (
     <section style={{ maxWidth: 720, margin: '24px auto', fontFamily: 'system-ui, sans-serif' }}>
