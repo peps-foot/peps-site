@@ -212,7 +212,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
                 title: kind === 'H24' ? '⏰ Rappel J-1' : '⏰ Rappel H-1',
                 body:  'Tu as des matchs non pariés qui démarrent bientôt.',
                 url:   'https://www.peps-foot.com/',
-                icon:  '/icon-512x512.png',
+                icon:  '/images/notifications/icon-192x192.png',
                 tag:   'peps-reminder'
               },
               fcmOptions: { link: 'https://www.peps-foot.com/' }

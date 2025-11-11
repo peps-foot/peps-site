@@ -47,14 +47,15 @@ if (!self.__PEPS_BG_BOUND__) {
 
       const title = n.title || d.title || 'PEPS';
       const body  = n.body  || d.body  || '';
-      const icon  = toAbs(n.icon || d.icon || '/icon-512x512.png');
+      const icon  = toAbs(n.icon || d.icon || '/images/peps-notif-icon-192.png');
+      const badge = toAbs('/images/peps-badge-72.png');
       const url   = d.url ? toAbs(d.url) : self.location.origin + '/';
       const tag   = d.tag   || 'peps-broadcast';
 
       await self.registration.showNotification(title, {
         body,
         icon,
-        badge: toAbs('/icon-192x192.png'),
+        badge,
         data: { url },
         tag,
         renotify: true,
