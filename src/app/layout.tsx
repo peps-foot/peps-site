@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Oswald, Poppins } from 'next/font/google';
 import ClientLayout from '../components/ClientLayout';
 import RegisterServiceWorker from '../components/RegisterServiceWorker';
-import PushBootstrap from '../components/PushBootstrap';
+//import PushBootstrap from '../components/PushBootstrap';
 
 console.log('[layout] rendu');
 
