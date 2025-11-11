@@ -1,6 +1,6 @@
 'use client';
 import RuleSection from '../../components/RuleSection';
-//import NotificationsSettings from '../../components/NotificationsSettings.tsx.bak';
+import NotificationsSettings from '../../components/NotificationsSettings';
 import { Construction } from "lucide-react";
 
 export default function PepsPlusPage() {
@@ -43,10 +43,9 @@ export default function PepsPlusPage() {
       </RuleSection>
 
       <RuleSection title="Notifications" iconSrc="/images/regles/notif.png" type="default">
-      {/* <NotificationsSettings /> */}
+      <NotificationsSettings />
       <p className="flex items-center space-x-2 text-gray-600">
         <Construction className="w-5 h-5 text-yellow-600" />
-        <span>En chantier.</span>
       </p>       
       </RuleSection>
     </main>

@@ -1,4 +1,6 @@
+// src/components/AdminPushPanel.tsx
 'use client';
+
 import { useEffect, useState } from 'react';
 import { getFcmToken, onForegroundMessage } from '../lib/firebaseClient';
 
@@ -12,16 +14,14 @@ export default function AdminPushPanel() {
   const appendLog = (line: string) =>
     setLog((prev) => (prev ? prev + '\n' + line : line));
 
+  // 1) Enregistrer mon propre token (au clic)
   const subscribe = async () => {
     try {
-      // 1) Permission
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') {
         appendLog('Permission refusée.');
         return;
       }
-
-      // 2) Récup token (via SW déjà prêt)
       const token = await getFcmToken();
       if (!token) {
         appendLog('Impossible de récupérer un token FCM.');
@@ -29,11 +29,10 @@ export default function AdminPushPanel() {
       }
       appendLog('Token récupéré: ' + token.slice(0, 16) + '…');
 
-      // 3) Enregistrement en base
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token, platform: 'web' }),
+        body: JSON.stringify({ token, platform }), // ← utilise la plateforme choisie
       });
       const json = await res.json();
       appendLog('subscribe → ' + JSON.stringify(json));
@@ -42,6 +41,7 @@ export default function AdminPushPanel() {
     }
   };
 
+  // 2) Broadcast immédiat
   const send = async () => {
     const res = await fetch('/api/push/broadcast', {
       method: 'POST',
@@ -52,6 +52,7 @@ export default function AdminPushPanel() {
     setLog(txt);
   };
 
+  // 3) Broadcast dans 5s
   const sendDelayed = async () => {
     setLog('Envoi dans 5s…');
     setTimeout(async () => {
@@ -65,31 +66,41 @@ export default function AdminPushPanel() {
     }, 5000);
   };
 
-  // Optionnel: écouter les messages en premier plan (debug)
-useEffect(() => {
-  onForegroundMessage(async (p) => {
-    const d = (p && p.data) || {};
-    const reg = await navigator.serviceWorker.ready;
-    const toAbs = (u: string) => new URL(u, location.origin).href;
+  // 4) Debug foreground (affiche une notif si l’onglet est visible)
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    (async () => {
+      unsub = await onForegroundMessage(async (p) => {
+        try {
+          const d = (p && p.data) || {};
+          const reg = await navigator.serviceWorker.ready;
+          const toAbs = (u: string) => {
+            try { return new URL(u, location.origin).href; } catch { return u; }
+          };
 
-    const title = d.title || 'PEPS';
-    const body  = d.body  || '';
-    const icon  = toAbs(d.icon || '/icon-512x512.png');
-    const url   = d.url   || '/';
-    // Astuce test : tag unique pour forcer une nouvelle bannière à chaque essai
-    const tag   = (d.tag ? String(d.tag) : 'peps-broadcast') + '-' + Date.now();
+          const title = d.title || 'PEPS';
+          const body  = d.body  || '';
+          const icon  = toAbs(d.icon || '/icon-512x512.png');
+          const url   = d.url   || '/';
+          const tag   = (d.tag ? String(d.tag) : 'peps-broadcast') + '-' + Date.now();
 
-    reg.showNotification(title, {
-      body,
-      icon,
-      badge: toAbs('/icon-192x192.png'),
-      data: { url },
-      tag
-      // ❌ pas de renotify ici (ça fait raler TypeScript)
-    });
-  });
-}, []);
-
+          if (typeof (reg as any).showNotification !== 'function') {
+            appendLog('[FG] showNotification non disponible (iOS ?).');
+            return;
+          }
+          (reg as any).showNotification(title, {
+            body, icon,
+            badge: toAbs('/icon-192x192.png'),
+            data: { url }, tag,
+            requireInteraction: true, // pour que la notif reste vicible.
+          });
+        } catch (e) {
+          appendLog('[FG] error: ' + String(e));
+        }
+      });
+    })();
+    return () => { if (unsub) unsub(); };
+  }, []);
 
   return (
     <section style={{ maxWidth: 720, margin: '24px auto', fontFamily: 'system-ui, sans-serif' }}>
@@ -153,6 +164,54 @@ useEffect(() => {
           Envoyer dans 5s
         </button>
       </div>
+
+<div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
+  <div style={{ fontWeight: 600 }}>Tâches “cron” manuelles</div>
+  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <button
+      onClick={async () => setLog(await (await fetch('/api/push/cron?type=H24')).text())}
+      style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
+    >
+      Lancer rappel H-24
+    </button>
+    <button
+      onClick={async () => setLog(await (await fetch('/api/push/cron?type=H1')).text())}
+      style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
+    >
+      Lancer rappel H-1
+    </button>
+    <button
+      onClick={async () => setLog(await (await fetch('/api/push/cron?type=GRID_DONE')).text())}
+      style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
+    >
+      Lancer “grille terminée”
+    </button>
+  </div>
+
+  <div style={{ marginTop: 8 }}>
+    <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>
+      Test ciblé (user_id UUID)
+    </label>
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <input
+        placeholder="619cda3f-26c0-4ef5-aace-26770f977942"
+        onChange={(e) => (window as any).__ONLY_UID = e.target.value}
+        style={{ flex: 1, minWidth: 260, padding: 8, border: '1px solid #ddd', borderRadius: 8 }}
+      />
+      <button
+        onClick={async () => {
+          const uid = (window as any).__ONLY_UID;
+          if (!uid) { setLog('Renseigne un user_id'); return; }
+          setLog(await (await fetch(`/api/push/test-user?only=${uid}`)).text());
+        }}
+        style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
+      >
+        Tester cet utilisateur
+      </button>
+    </div>
+  </div>
+</div>
+
 
       <pre
         style={{

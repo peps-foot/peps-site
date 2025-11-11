@@ -1,7 +1,7 @@
 // public/firebase-messaging-sw.js
 /* eslint-disable no-undef */
 
-// --- Firebase compat (comme chez toi)
+// Firebase compat
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
@@ -15,17 +15,15 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// utilitaire pour rendre les URLs absolues
+// URLs absolues
 const toAbs = (u) => { try { return new URL(u, self.location.origin).href; } catch { return u; } };
 
 // --- GARDE 1 : éviter d’attacher plusieurs fois le handler
 if (!self.__PEPS_BG_BOUND__) {
   self.__PEPS_BG_BOUND__ = true;
 
-  // Handler background
   messaging.onBackgroundMessage(async (payload) => {
     try {
-      // log de diag
       console.log('[PEPS][SW] onBackgroundMessage', payload);
 
       // Si FCM a un bloc notification intégré, on ne re-notifie pas (évite doublon)
@@ -35,26 +33,23 @@ if (!self.__PEPS_BG_BOUND__) {
       }
 
       // --- GARDE 2 : si une fenêtre est visible, on laisse le foreground gérer
-      // (évite que la page + le SW notifient en même temps)
       const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const hasVisibleClient = clientsList.some((c) => {
-        // visibilityState peut ne pas exister partout → fallback true si inconnu
-        return (c.visibilityState ? c.visibilityState === 'visible' : true) && !!c.url;
-      });
+      const hasVisibleClient = clientsList.some((c) =>
+        (c.visibilityState ? c.visibilityState === 'visible' : true) && !!c.url
+      );
       if (hasVisibleClient) {
         console.log('[PEPS][SW] skip: client visible → foreground notifiera');
         return;
       }
 
-      // données
       const n = payload.notification || {};
       const d = payload.data || {};
 
       const title = n.title || d.title || 'PEPS';
       const body  = n.body  || d.body  || '';
       const icon  = toAbs(n.icon || d.icon || '/icon-512x512.png');
-      const url   = d.url   || '/';
-      const tag   = d.tag   || 'peps-broadcast'; // tag constant = remplace au lieu d’empiler
+      const url   = d.url ? toAbs(d.url) : self.location.origin + '/';
+      const tag   = d.tag   || 'peps-broadcast';
 
       await self.registration.showNotification(title, {
         body,
@@ -72,9 +67,19 @@ if (!self.__PEPS_BG_BOUND__) {
   });
 }
 
-// clic sur la notif → ouvrir l’app
+// Clic sur la notif → focus un onglet existant si possible, sinon ouvrir
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || '/';
-  event.waitUntil(self.clients.openWindow(url));
+  const url = (event.notification.data && event.notification.data.url) || self.location.origin + '/';
+  event.waitUntil((async () => {
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of allClients) {
+      if (client.url && url && client.url.startsWith(new URL(url).origin)) {
+        // focus le premier onglet de l'app trouvé
+        try { await client.focus(); } catch {}
+        return;
+      }
+    }
+    try { await self.clients.openWindow(url); } catch {}
+  })());
 });

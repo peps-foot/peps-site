@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Oswald, Poppins } from 'next/font/google';
 import ClientLayout from '../components/ClientLayout';
-import RegisterServiceWorker from '../components/RegisterServiceWorker';
-//import PushBootstrap from '../components/PushBootstrap.tsx.bak';
+import RegisterServiceWorker from '../components/RegisterServiceWorker.tsx';
+import PushBootstrap from '../components/PushBootstrap';
 
 console.log('[layout] rendu');
 
@@ -41,8 +41,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icon-512x512.png" />
       </head>
       <body>
-        {/* <PushBootstrap /> */}
-        {/* <RegisterServiceWorker /> */}        
+        <PushBootstrap />
+        <RegisterServiceWorker />      
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

@@ -1,0 +1,7 @@
+{
+  "title": "Test priorité appli",
+  "body": "Un seul canal par user (twa>android>web>ios)",
+  "url": "https://www.peps-foot.com",
+  "platform": "all",
+  "preferApp": true
+}

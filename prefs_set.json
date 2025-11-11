@@ -1,0 +1,9 @@
+{
+  "user_id": "619cda3f-26c0-4ef5-aace-26770f977942",
+  "prefs": {
+    "allow_admin_broadcast": true,
+    "allow_grid_done": true,
+    "allow_match_reminder_24h": false,
+    "allow_match_reminder_1h": true
+  }
+}

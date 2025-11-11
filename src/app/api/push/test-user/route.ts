@@ -1,3 +1,6 @@
+// Envoi direct à un user_id précis.
+// Très pratique pour vérifier en local un user_id avant un vrai cron.
+
 export const runtime = 'nodejs';
 import { messaging } from '../../../../lib/firebaseAdmin';
 import { createClient } from '@supabase/supabase-js';

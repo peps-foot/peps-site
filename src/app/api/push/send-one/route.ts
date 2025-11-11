@@ -1,3 +1,6 @@
+// Envoi manuel à 1 token précis (debug unitaire).
+// Utile pour test ciblé si un joueur ne reçoit pas.
+
 export const runtime = 'nodejs';
 import { messaging } from '../../../../lib/firebaseAdmin';
 

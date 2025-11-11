@@ -28,7 +28,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-, "app/api/push/send-latest/route.ts.bak", "app/api/push/send-all/route.ts.bak", "app/api/push/send/route.ts.bak", "app/test-notifs/page.tsx.bak", "components/NotificationsSettings.tsx.bak", "components/PushBootstrap.tsx.bak", "app/partenaires/page.tsx.bak"  ],
+, "app/api/push/send-latest/route.ts.bak", "app/api/push/send-all/route.ts.bak", "app/api/push/send/route.ts.bak", "app/test-notifs/page.tsx.bak", "components/NotificationsSettings.tsx", "components/PushBootstrap.tsx", "app/partenaires/page.tsx.bak", "components/RegisterServiceWorker.tsx"  ],
   "exclude": [
     "node_modules"
   ]

@@ -1,3 +1,6 @@
+// Envoi au dernier token enregistré.
+// Bon outil de test local rapide, mais inutile en prod.
+
 export const runtime = 'nodejs';
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
