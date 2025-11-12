@@ -1,7 +1,5 @@
 'use client';
 import RuleSection from '../../components/RuleSection';
-import NotificationsSettings from '../../components/NotificationsSettings';
-import { Construction } from "lucide-react";
 
 export default function PepsPlusPage() {
   return (
@@ -40,13 +38,6 @@ export default function PepsPlusPage() {
           <li>Choisissez <strong>“Sur l’écran d’accueil”</strong></li>
           <li>Validez : vous avez l’appli PEPS sur votre iPhone !</li>
         </ol>
-      </RuleSection>
-
-      <RuleSection title="Notifications" iconSrc="/images/regles/notif.png" type="default">
-      <NotificationsSettings />
-      <p className="flex items-center space-x-2 text-gray-600">
-        <Construction className="w-5 h-5 text-yellow-600" />
-      </p>       
       </RuleSection>
     </main>
   );

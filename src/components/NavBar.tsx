@@ -100,6 +100,7 @@ export function NavBar() {
     { label: 'PROFIL', href: '/profil' },
     { label: 'RÈGLES', href: '/regles' },
     { label: 'PEPS+', href: '/peps-plus' },
+    { label: 'NOTIFS', href: '/notifications' },
     //{ label: 'PARTENAIRES', href: '/partenaires' },
   ];
 
