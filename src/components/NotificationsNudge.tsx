@@ -61,7 +61,14 @@ export default function NotificationsNudge() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-    <div className="mx-4 max-w-sm rounded-2xl bg-white p-5 shadow-lg flex flex-col items-center">
+    <div className="relative mx-4 max-w-sm rounded-2xl bg-white p-5 shadow-lg flex flex-col items-center">
+        <button
+        onClick={closeAndRemember}
+        className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+        aria-label="Fermer la fenêtre"
+        >
+        ✕
+        </button>
         <button
         onClick={goToNotifications}
         className="mb-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
