@@ -18,10 +18,10 @@ type Prefs = {
 };
 
 const DEFAULTS: Prefs = {
-  allow_admin_broadcast: true,
-  allow_grid_done: true,
-  allow_match_reminder_24h: true,
-  allow_match_reminder_1h: true,
+  allow_admin_broadcast: false,
+  allow_grid_done: false,
+  allow_match_reminder_24h: false,
+  allow_match_reminder_1h: false,
 };
 
 export default function NotificationsSettings() {
@@ -54,10 +54,10 @@ export default function NotificationsSettings() {
           const j = await r.json();
           if (j?.ok && j.prefs) {
             setPrefs({
-              allow_admin_broadcast: j.prefs.allow_admin_broadcast ?? true,
-              allow_grid_done: j.prefs.allow_grid_done ?? true,
-              allow_match_reminder_24h: j.prefs.allow_match_reminder_24h ?? true,
-              allow_match_reminder_1h: j.prefs.allow_match_reminder_1h ?? true,
+              allow_admin_broadcast: j.prefs.allow_admin_broadcast ?? false,
+              allow_grid_done: j.prefs.allow_grid_done ?? false,
+              allow_match_reminder_24h: j.prefs.allow_match_reminder_24h ?? false,
+              allow_match_reminder_1h: j.prefs.allow_match_reminder_1h ?? false,
             });
           }
         } catch {

@@ -4,6 +4,7 @@ import { Oswald, Poppins } from 'next/font/google';
 import ClientLayout from '../components/ClientLayout';
 import RegisterServiceWorker from '../components/RegisterServiceWorker';
 import PushBootstrap from '../components/PushBootstrap';
+import NotificationsNudge from '../components/NotificationsNudge';
 
 console.log('[layout] rendu');
 
@@ -42,7 +43,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <PushBootstrap />
-        <RegisterServiceWorker />      
+        <RegisterServiceWorker />
+        <NotificationsNudge /> 
         <ClientLayout>{children}</ClientLayout>
       </body>
     </html>

@@ -20,6 +20,26 @@ type Kind = 'H24' | 'H1' | 'GRID_DONE';
 // ordre de priorité d’envoi par plateforme
 const PLATFORM_PRIORITY = ['twa', 'android', 'web', 'ios'] as const;
 
+// gestion du cas des éliminés en tournoi qui ne doivent pas recevoir de rappel
+type EligRow = { user_id: string; competition_id: string; can_play: boolean | null };
+
+async function loadEliminatedSet(compIds: string[], supabase: any) {
+  if (!compIds.length) return new Set<string>();
+  const { data, error } = await supabase
+    .from('grid_player_eligibility')
+    .select('user_id, competition_id, can_play')
+    .in('competition_id', compIds);
+  if (error) throw new Error(error.message);
+
+  // On considère “éliminé” uniquement si can_play === false
+  const set = new Set<string>();
+  for (const r of (data || []) as EligRow[]) {
+    if (r.can_play === false) set.add(`${r.user_id}|${r.competition_id}`);
+  }
+  return set;
+}
+
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const type = (searchParams.get('type') || '').toUpperCase() as Kind;
@@ -110,10 +130,16 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
       .map(r => r.user_id)
   );
 
-  // 4) Déterminer les compétitions impliquées et calculer les "joueurs engagés"
-  const compIds = Array.from(new Set((gms || [])
-    .map(r => r.competition_id)
-    .filter((v): v is string | number => v != null)));
+  // 4) Déterminer les compétitions impliquées (string[])
+  const compIds: string[] = Array.from(
+    new Set((gms || [])
+        .map(r => r.competition_id)
+        .filter((v): v is string => typeof v === 'string' && v !== null)
+            )
+          );
+
+  // joueurs éliminés par compet
+  const eliminatedByComp = await loadEliminatedSet(compIds, supabase);
 
   // (A) Engagement via CROIX (pick non NULL) dans ces compétitions
   const { data: played, error: playedErr } = await supabase
@@ -182,9 +208,12 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     if (!users?.size) continue;
 
     const compId = compByMatch.get(m.id);
-    const eligible = Array.from(users).filter(uid => {
-      if (compId == null) return false;
-      return engagedSet.has(`${uid}|${compId}`) && !offSet.has(uid);
+    const eligible = Array.from(users).filter((uid) => {
+      if (!compId) return false;
+      const engaged = engagedSet.has(`${uid}|${compId}`);           // a déjà joué (pick/bonus)
+      const notEliminated = !eliminatedByComp.has(`${uid}|${compId}`); // pas éliminé dans cette compet
+      const prefOK = !offSet.has(uid);                              // préférence ON
+      return engaged && notEliminated && prefOK;
     });
     if (!eligible.length) continue;
 
@@ -244,7 +273,7 @@ async function handleGridDone() {
   const now = new Date();
   const windowStart = new Date(now.getTime() - WINDOW_MINUTES * 60 * 1000);
 
-  // 1) Grilles modifiées récemment (supposées "terminées" côté app quand tous les matches sont FT)
+  // 1) Grilles modifiées récemment
   const { data: grids, error: gErr } = await supabase
     .from('grids')
     .select('id, competition_id, updated_at')
@@ -252,13 +281,21 @@ async function handleGridDone() {
   if (gErr) throw new Error(gErr.message);
   if (!grids?.length) return 0;
 
+  // Map grille -> compet (utile plus bas)
+  const gridToComp = new Map<number, string>();
+  for (const g of grids) {
+    if (g.competition_id) gridToComp.set(g.id, g.competition_id as any);
+  }
+
   // 2) Vérifier qu’il n’y a plus de match NS dans ces grilles
   const { data: gmAll, error: gmaErr } = await supabase
     .from('grid_matches')
     .select('grid_id, match_id');
   if (gmaErr) throw new Error(gmaErr.message);
 
-  const { data: mAll, error: mErr } = await supabase.from('matches').select('id, status');
+  const { data: mAll, error: mErr } = await supabase
+    .from('matches')
+    .select('id, status');
   if (mErr) throw new Error(mErr.message);
 
   const statusByMatch = new Map(mAll?.map((m) => [m.id, m.status]) || []);
@@ -291,7 +328,17 @@ async function handleGridDone() {
   if (prefErr) throw new Error(prefErr.message);
   const offSet = new Set((prefs || []).filter((r) => r.allow_grid_done === false).map((r) => r.user_id));
 
-  // 5) Tokens (avec plateforme) + helper de priorité
+  // --- Charger les éliminés sur les compétitions concernées
+  const compIdsGD: string[] = Array.from(
+    new Set(
+      (grids || [])
+        .map(g => g.competition_id)
+        .filter((v): v is string => typeof v === 'string' && v !== null)
+    )
+  );
+  const eliminatedByComp = await loadEliminatedSet(compIdsGD, supabase);
+
+  // 5) Tokens (avec plateforme) + helper de priorité (tu l'avais déjà)
   const { data: tokensRows, error: tErr } = await supabase
     .from('push_tokens')
     .select('token, user_id, platform');
@@ -311,7 +358,15 @@ async function handleGridDone() {
   const toDelete = new Set<string>();
 
   for (const gridId of Array.from(finishedGrids)) {
-    const users = Array.from(usersByGrid.get(gridId) || []).filter((uid) => !offSet.has(uid));
+    const compId = gridToComp.get(gridId);
+
+    // filtre: préférence ON + pas éliminé sur cette compet
+    const users = Array.from(usersByGrid.get(gridId) || []).filter((uid) => {
+      if (!compId) return false;
+      const eliminated = eliminatedByComp.has(`${uid}|${compId}`);
+      return !offSet.has(uid) && !eliminated;
+    });
+
     for (const uid of users) {
       // dédup
       const { error: logErr } = await supabase
@@ -334,10 +389,10 @@ async function handleGridDone() {
                 headers: { Urgency: 'high', TTL: '10' },
                 data: {
                   title: '🎉 Grille terminée',
-                  body: 'Les résultats sont là. Viens voir ton score !',
-                  url: 'https://www.peps-foot.com/',
-                  icon: '/icon-512x512.png',
-                  tag: 'peps-grid-done',
+                  body:  'Les résultats sont là. Viens voir ton score !',
+                  url:   'https://www.peps-foot.com/',
+                  icon:  '/icon-512x512.png',
+                  tag:   'peps-grid-done',
                 },
                 fcmOptions: { link: 'https://www.peps-foot.com/' },
               },

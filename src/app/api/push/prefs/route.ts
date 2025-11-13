@@ -29,30 +29,22 @@ const SUPABASE_SERVICE_ROLE_KEY =
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const DEFAULTS = {
-  allow_admin_broadcast: true,
-  allow_grid_done: true,
-  allow_match_reminder_24h: true,
-  allow_match_reminder_1h: true,
+  allow_admin_broadcast: false,
+  allow_grid_done: false,
+  allow_match_reminder_24h: false,
+  allow_match_reminder_1h: false,
 };
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const user_id = searchParams.get('user_id');
-  if (!user_id) {
-    return new Response(JSON.stringify({ ok: false, error: 'missing user_id' }), { status: 400 });
-  }
+  if (!user_id) return new Response(JSON.stringify({ ok:false, error:'missing user_id' }), { status: 400 });
 
-  const { data, error } = await supabase
-    .from('push_prefs')
-    .select('*')
-    .eq('user_id', user_id)
-    .maybeSingle();
+  const { data, error } = await supabase.from('push_prefs').select('*').eq('user_id', user_id).maybeSingle();
+  if (error) return new Response(JSON.stringify({ ok:false, supabase_error:error.message }), { status: 500 });
 
-  if (error) {
-    return new Response(JSON.stringify({ ok: false, supabase_error: error.message }), { status: 500 });
-  }
-
-  return Response.json({ ok: true, prefs: data ?? { user_id, ...DEFAULTS } });
+  // ➜ si pas de ligne, on renvoie tout à false
+  return Response.json({ ok:true, prefs: data ?? { user_id, ...DEFAULTS } });
 }
 
 type PostBody = {
