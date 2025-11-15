@@ -14,7 +14,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 
 const MATCH_STATUS_NOT_STARTED = 'NS';
 const MATCH_STATUS_FINISHED = 'FT';
-const WINDOW_MINUTES = 15; // fenêtre anti-doublons
+const WINDOW_MINUTES = 10; // fenêtre anti-doublons [NOW +ou- window/2]
 type Kind = 'H24' | 'H1' | 'GRID_DONE';
 
 // ordre de priorité d’envoi par plateforme
@@ -294,7 +294,6 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
   }
   return sentCount;
 }
-
 
 /**
  * Grille terminée — notifie les participants (préférence ON),
