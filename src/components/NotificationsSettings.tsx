@@ -132,7 +132,7 @@ const handleSave = async () => {
       } else {
         // Tout semble ok mais pas de token => on propose d’essayer un autre navigateur
         setMsg(
-          "Échec ❌ (notifications impossibles sur cet appareil/navigateur, essayez d'ouvrir www.peps-foot.com dans un autre navigateur)."
+          "Échec ❌ (réessayez plus tard ou essayez d'ouvrir www.peps-foot.com dans un autre navigateur)."
         );
       }
     } else {

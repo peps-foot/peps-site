@@ -71,9 +71,13 @@ export async function GET(req: Request) {
  */
 async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
   const now = new Date();
-  const deltaMinutes = kind === 'H24' ? 24 * 60 : 60; // remet 24*60 en prod pour J-1
-  const start = new Date(now.getTime() + deltaMinutes * 60 * 1000);
-  const end   = new Date(start.getTime() + WINDOW_MINUTES * 60 * 1000);
+  const deltaMinutes = kind === 'H24' ? 24 * 60 : 60; // 24*60 en prod pour J-1
+
+  // 🔁 CHANGEMENT 1 : fenêtre centrée autour de H-1 / J-1
+  const target = new Date(now.getTime() + deltaMinutes * 60 * 1000); // heure "théorique" du match
+  const halfWindowMs = (WINDOW_MINUTES / 2) * 60 * 1000;
+  const start = new Date(target.getTime() - halfWindowMs);
+  const end   = new Date(target.getTime() + halfWindowMs);
 
   // 1) Matches dans la fenêtre et encore NS
   const { data: matches, error: mErr } = await supabase
@@ -87,7 +91,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
 
   const matchIds = matches.map(m => m.id);
 
-  // 2) grid_matches pour ces matches (qui n'ont PAS de pick)
+  // 2) grid_matches pour ces matches
   const { data: gms, error: gmErr } = await supabase
     .from('grid_matches')
     .select('user_id, match_id, grid_id, competition_id, pick')
@@ -97,13 +101,19 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
 
   // Users sans pick pour chaque match
   const todoByMatch = new Map<number, Set<string>>();
+  const allTodoUsers = new Set<string>(); // 🔁 servira pour prefs + tokens
+
   for (const r of gms) {
     if (r.pick == null) {
       if (!todoByMatch.has(r.match_id)) todoByMatch.set(r.match_id, new Set());
       todoByMatch.get(r.match_id)!.add(r.user_id);
+      allTodoUsers.add(r.user_id);
     }
   }
   if (!todoByMatch.size) return 0;
+
+  const allTodoUserIds = Array.from(allTodoUsers);
+  if (!allTodoUserIds.length) return 0;
 
   // Map match_id -> competition_id (depuis gms)
   const compByMatch = new Map<number, string | number>();
@@ -119,29 +129,37 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     allow_match_reminder_24h: boolean | null;
     allow_match_reminder_1h:  boolean | null;
   };
+
+  // 🔁 CHANGEMENT 2 : on ne regarde les prefs que des joueurs concernés
   const { data: prefsRaw, error: prefErr } = await supabase
     .from('push_prefs')
-    .select('user_id, allow_match_reminder_24h, allow_match_reminder_1h');
+    .select('user_id, allow_match_reminder_24h, allow_match_reminder_1h')
+    .in('user_id', allTodoUserIds);
   if (prefErr) throw new Error(prefErr.message);
-  const offSet = new Set(
+
+  const offSet = new Set<string>(
     (prefsRaw || [])
-      .filter(r => (kind === 'H24' ? r.allow_match_reminder_24h === false
-                                   : r.allow_match_reminder_1h  === false))
+      .filter(r =>
+        kind === 'H24'
+          ? r.allow_match_reminder_24h === false
+          : r.allow_match_reminder_1h === false
+      )
       .map(r => r.user_id)
   );
 
-  // 4) Déterminer les compétitions impliquées (string[])
+  // 4) Compétitions impliquées
   const compIds: string[] = Array.from(
-    new Set((gms || [])
+    new Set(
+      (gms || [])
         .map(r => r.competition_id)
         .filter((v): v is string => typeof v === 'string' && v !== null)
-            )
-          );
+    )
+  );
 
   // joueurs éliminés par compet
   const eliminatedByComp = await loadEliminatedSet(compIds, supabase);
 
-  // (A) Engagement via CROIX (pick non NULL) dans ces compétitions
+  // (A) Engagement via CROIX
   const { data: played, error: playedErr } = await supabase
     .from('grid_matches')
     .select('user_id, competition_id')
@@ -149,7 +167,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     .not('pick', 'is', null);
   if (playedErr) throw new Error(playedErr.message);
 
-  // (B) Engagement via BONUS : grid_bonus -> grids -> competition_id
+  // (B) Engagement via BONUS
   const { data: gridsMap, error: gridsErr } = await supabase
     .from('grids')
     .select('id, competition_id')
@@ -185,11 +203,17 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     .from('push_tokens')
     .select('token, user_id, platform, last_seen_at')
     .order('last_seen_at', { ascending: false, nullsFirst: false });
-  if (only) tokensQuery = tokensQuery.eq('user_id', only);
+
+  // 🔁 CHANGEMENT 3 : on limite aussi les tokens aux joueurs concernés
+  if (only) {
+    tokensQuery = tokensQuery.eq('user_id', only);
+  } else {
+    tokensQuery = tokensQuery.in('user_id', allTodoUserIds);
+  }
+
   const { data: tokensRows, error: tErr } = await tokensQuery;
   if (tErr) throw new Error(tErr.message);
 
-  // Helper priorité: une seule "famille" + 1 token (le plus récent) par user
   function pickPreferredTokensForUser(uid: string): string[] {
     const rows = (tokensRows || []).filter(r => r.user_id === uid);
     for (const p of PLATFORM_PRIORITY) {
@@ -210,52 +234,58 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     const compId = compByMatch.get(m.id);
     const eligible = Array.from(users).filter((uid) => {
       if (!compId) return false;
-      const engaged = engagedSet.has(`${uid}|${compId}`);           // a déjà joué (pick/bonus)
-      const notEliminated = !eliminatedByComp.has(`${uid}|${compId}`); // pas éliminé dans cette compet
-      const prefOK = !offSet.has(uid);                              // préférence ON
+      if (only && uid !== only) return false; // ✅ test ciblé
+
+      const engaged = engagedSet.has(`${uid}|${compId}`);
+      const notEliminated = !eliminatedByComp.has(`${uid}|${compId}`);
+      const prefOK = !offSet.has(uid);
       return engaged && notEliminated && prefOK;
     });
     if (!eligible.length) continue;
 
     for (const uid of eligible) {
-      // dédup via push_log
+      const userTokens = pickPreferredTokensForUser(uid);
+      if (!userTokens.length) continue; // pas de device connu → inutile de logger
+
+      // dédup via push_log (uniquement si on a un token)
       const ins = await supabase
         .from('push_log')
         .insert({ user_id: uid, kind, match_id: m.id, grid_id: null });
       if (ins.error) {
         const code = (ins.error as any).code || '';
-        if (code === '23505') continue; // déjà envoyé récemment
+        if (code === '23505') continue; // déjà envoyé
         continue;
       }
 
-      const userTokens = pickPreferredTokensForUser(uid);
-      if (!userTokens.length) continue;
-
-      await Promise.all(userTokens.map(async (t) => {
-        try {
-          await messaging.send({
-            token: t,
-            webpush: {
-              headers: { Urgency: 'high', TTL: '10' },
-              data: {
-                title: kind === 'H24' ? '⏰ Rappel J-1' : '⏰ Rappel H-1',
-                body:  'Tu as des matchs non pariés qui démarrent bientôt.',
-                url:   'https://www.peps-foot.com/',
-                icon:  '/images/notifications/peps-notif-icon-192.png',
-                tag:   'peps-reminder'
+      await Promise.all(
+        userTokens.map(async (t) => {
+          try {
+            await messaging.send({
+              token: t,
+              webpush: {
+                headers: { Urgency: 'high', TTL: '10' },
+                data: {
+                  title: kind === 'H24' ? '⏰ Rappel J-1' : '⏰ Rappel H-1',
+                  body:  'Tu as des matchs non pariés qui démarrent bientôt.',
+                  url:   'https://www.peps-foot.com/',
+                  icon:  '/images/notifications/peps-notif-icon-192.png',
+                  tag:   'peps-reminder',
+                },
+                fcmOptions: { link: 'https://www.peps-foot.com/' },
               },
-              fcmOptions: { link: 'https://www.peps-foot.com/' }
+            });
+            sentCount++;
+          } catch (e: any) {
+            const msg = e?.errorInfo?.code || e?.message || '';
+            if (
+              String(msg).includes('registration-token-not-registered') ||
+              String(msg).includes('invalid-argument')
+            ) {
+              toDelete.add(t);
             }
-          });
-          sentCount++;
-        } catch (e: any) {
-          const msg = e?.errorInfo?.code || e?.message || '';
-          if (String(msg).includes('registration-token-not-registered') ||
-              String(msg).includes('invalid-argument')) {
-            toDelete.add(t);
           }
-        }
-      }));
+        })
+      );
     }
   }
 
@@ -264,6 +294,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
   }
   return sentCount;
 }
+
 
 /**
  * Grille terminée — notifie les participants (préférence ON),
