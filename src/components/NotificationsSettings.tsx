@@ -68,67 +68,84 @@ export default function NotificationsSettings() {
     return () => { alive = false; };
   }, []);
 
-  const handleSave = async () => {
-    if (!userId) {
-      setMsg('Connecte-toi pour enregistrer tes préférences.');
-      return;
-    }
-    setLoading(true);
-    setMsg(null);
+const handleSave = async () => {
+  if (!userId) {
+    setMsg('Connecte-toi pour enregistrer tes préférences.');
+    return;
+  }
+  setLoading(true);
+  setMsg(null);
 
-    try {
-      // 1) Enregistrer les préférences côté BDD
-      const res = await fetch('/api/push/prefs', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, prefs }),
-      });
-      const js = await res.json();
-      if (!js?.ok) throw new Error('save prefs failed');
+  try {
+    // 1) Enregistrer les préférences côté BDD
+    const res = await fetch('/api/push/prefs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, prefs }),
+    });
+    const js = await res.json();
+    if (!js?.ok) throw new Error('save prefs failed');
 
-      // 2) Si le joueur veut des notifs, on prépare le canal (permission + token + subscribe)
-      const wants =
-        prefs.allow_admin_broadcast ||
-        prefs.allow_grid_done ||
-        prefs.allow_match_reminder_24h ||
-        prefs.allow_match_reminder_1h;
+    // 2) Si le joueur veut des notifs, on prépare le canal (permission + token + subscribe)
+    const wants =
+      prefs.allow_admin_broadcast ||
+      prefs.allow_grid_done ||
+      prefs.allow_match_reminder_24h ||
+      prefs.allow_match_reminder_1h;
 
-      if (wants) {
-        const supported = await isFcmSupported();
-        if (!supported) {
-          setMsg('Préférences enregistrées ✅ (ce navigateur ne supporte pas les notifications).');
+    if (wants) {
+      const supported = await isFcmSupported();
+      const isIos =
+        typeof navigator !== 'undefined' &&
+        /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+
+      if (!supported) {
+        // Cas : iOS
+        if (isIos) {
+          setMsg("Échec ❌ (notifications impossibles sur iPhone pour l'instant).");
+        } else {
+          // Cas : navigateur non compatible
+          setMsg(
+            "Échec ❌ (notifications impossibles sur ce navigateur, essayez d'ouvrir www.peps-foot.com dans un autre navigateur)."
+          );
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Permission si nécessaire
+      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+        const p = await askNotificationPermission();
+        if (p !== 'granted') {
+          setMsg("Échec ❌ (permission refusée : aucune notification ne sera reçue).");
           setLoading(false);
           return;
         }
-
-        // Permission si nécessaire
-        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-          const p = await askNotificationPermission();
-          if (p !== 'granted') {
-            setMsg('Préférences enregistrées ✅ (permission refusée : aucune notification ne sera reçue).');
-            setLoading(false);
-            return;
-          }
-        }
-
-        // Token + enregistrement côté serveur
-        const token = await getFcmToken();
-        if (token) {
-          await subscribeToken(platform, userId);
-          localStorage.setItem('peps_push_token', token);
-          setMsg('Préférences enregistrées ✅');
-        } else {
-          setMsg('Préférences enregistrées ✅ (token indisponible sur cet appareil).');
-        }
-      } else {
-        setMsg('Préférences enregistrées ✅');
       }
-    } catch {
-      setMsg('Erreur : sauvegarde impossible.');
-    } finally {
-      setLoading(false);
+
+      // Token + enregistrement côté serveur
+      const token = await getFcmToken();
+      if (token) {
+        await subscribeToken(platform, userId);
+        localStorage.setItem('peps_push_token', token);
+        setMsg('Enregistré ✅');
+      } else {
+        // Tout semble ok mais pas de token => on propose d’essayer un autre navigateur
+        setMsg(
+          "Échec ❌ (notifications impossibles sur cet appareil/navigateur, essayez d'ouvrir www.peps-foot.com dans un autre navigateur)."
+        );
+      }
+    } else {
+      // L'utilisateur ne veut pas de notifications, on enregistre juste les préférences
+      setMsg('Enregistré ✅');
     }
-  };
+  } catch {
+    setMsg("Échec ❌ (erreur : sauvegarde impossible).");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="max-w-xl mx-auto rounded-xl border p-4 space-y-3">
