@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
 const API_KEY = '112a112da460820962f5e9fc0b261d2a';
-const SEASON = 2024;
+const SEASON = 2025;
 
 export async function GET() {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -12,7 +12,7 @@ export async function GET() {
 
   logs.push('🟠 Lancement de fetchUpcoming');
 
-  const leagueIds = [32];
+  const leagueIds = [2,3,61,848]; //2,3,61,848
   const allFixtures: any[] = [];
 
   for (const leagueId of leagueIds) {

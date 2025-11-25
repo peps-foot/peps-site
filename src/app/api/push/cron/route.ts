@@ -16,6 +16,7 @@ const MATCH_STATUS_NOT_STARTED = 'NS';
 const MATCH_STATUS_FINISHED = 'FT';
 const WINDOW_MINUTES = 10; // fenêtre anti-doublons [NOW +ou- window/2]
 type Kind = 'H24' | 'H1' | 'GRID_DONE';
+const BIELSA_BONUS_DEFINITION_ID = 'cee1eccc-28bf-4cbf-9968-2e7479d3b19f';
 
 // ordre de priorité d’envoi par plateforme
 const PLATFORM_PRIORITY = ['twa', 'android', 'web', 'ios'] as const;
@@ -73,7 +74,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
   const now = new Date();
   const deltaMinutes = kind === 'H24' ? 24 * 60 : 60; // 24*60 en prod pour J-1
 
-  // 🔁 CHANGEMENT 1 : fenêtre centrée autour de H-1 / J-1
+  // 🔁 fenêtre centrée autour de H-1 / J-1
   const target = new Date(now.getTime() + deltaMinutes * 60 * 1000); // heure "théorique" du match
   const halfWindowMs = (WINDOW_MINUTES / 2) * 60 * 1000;
   const start = new Date(target.getTime() - halfWindowMs);
@@ -89,7 +90,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
   if (mErr) throw new Error(mErr.message);
   if (!matches?.length) return 0;
 
-  const matchIds = matches.map(m => m.id);
+  const matchIds = matches.map((m) => m.id);
 
   // 2) grid_matches pour ces matches
   const { data: gms, error: gmErr } = await supabase
@@ -101,27 +102,35 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
 
   // Users sans pick pour chaque match
   const todoByMatch = new Map<number, Set<string>>();
-  const allTodoUsers = new Set<string>(); // 🔁 servira pour prefs + tokens
+  const allTodoUsers = new Set<string>(); // servira pour prefs + tokens
+
+  // Map match_id -> competition_id (depuis gms)
+  const compByMatch = new Map<number, string | number>();
+
+  // Map "user_id|match_id" -> grid_id (pour vérifier BIELSA sur la bonne grille)
+  const gridByUserMatch = new Map<string, string | number>();
 
   for (const r of gms) {
+    // pas de pick => candidat au rappel
     if (r.pick == null) {
       if (!todoByMatch.has(r.match_id)) todoByMatch.set(r.match_id, new Set());
       todoByMatch.get(r.match_id)!.add(r.user_id);
       allTodoUsers.add(r.user_id);
     }
+
+    // map match -> compet
+    if (!compByMatch.has(r.match_id) && r.competition_id != null) {
+      compByMatch.set(r.match_id, r.competition_id);
+    }
+
+    // map (user, match) -> grid
+    gridByUserMatch.set(`${r.user_id}|${r.match_id}`, r.grid_id);
   }
+
   if (!todoByMatch.size) return 0;
 
   const allTodoUserIds = Array.from(allTodoUsers);
   if (!allTodoUserIds.length) return 0;
-
-  // Map match_id -> competition_id (depuis gms)
-  const compByMatch = new Map<number, string | number>();
-  for (const r of gms) {
-    if (!compByMatch.has(r.match_id) && r.competition_id != null) {
-      compByMatch.set(r.match_id, r.competition_id);
-    }
-  }
 
   // 3) Préférences ON (par défaut ON si pas de ligne)
   type PrefRow = {
@@ -130,7 +139,6 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     allow_match_reminder_1h:  boolean | null;
   };
 
-  // 🔁 CHANGEMENT 2 : on ne regarde les prefs que des joueurs concernés
   const { data: prefsRaw, error: prefErr } = await supabase
     .from('push_prefs')
     .select('user_id, allow_match_reminder_24h, allow_match_reminder_1h')
@@ -139,19 +147,19 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
 
   const offSet = new Set<string>(
     (prefsRaw || [])
-      .filter(r =>
+      .filter((r: PrefRow) =>
         kind === 'H24'
           ? r.allow_match_reminder_24h === false
           : r.allow_match_reminder_1h === false
       )
-      .map(r => r.user_id)
+      .map((r: PrefRow) => r.user_id)
   );
 
   // 4) Compétitions impliquées
   const compIds: string[] = Array.from(
     new Set(
       (gms || [])
-        .map(r => r.competition_id)
+        .map((r) => r.competition_id)
         .filter((v): v is string => typeof v === 'string' && v !== null)
     )
   );
@@ -167,7 +175,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     .not('pick', 'is', null);
   if (playedErr) throw new Error(playedErr.message);
 
-  // (B) Engagement via BONUS
+  // (B) Engagement via BONUS (et détection bonus sur match / BIELSA)
   const { data: gridsMap, error: gridsErr } = await supabase
     .from('grids')
     .select('id, competition_id')
@@ -178,24 +186,50 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
   for (const g of gridsMap || []) compByGrid.set(g.id, g.competition_id);
 
   const gridIds = Array.from(compByGrid.keys());
-  let bonusPlayed: { user_id: string; grid_id: number | string }[] = [];
-  if (gridIds.length) {
-    const { data: bonusRows, error: bonusErr } = await supabase
-      .from('grid_bonus')
-      .select('user_id, grid_id')
-      .in('grid_id', gridIds);
-    if (bonusErr) throw new Error(bonusErr.message);
-    bonusPlayed = bonusRows || [];
-  }
 
   // Set "user_id|competition_id" des joueurs engagés (croix OU bonus)
   const engagedSet = new Set<string>();
-  for (const r of played || []) {
+
+  // engagement via CROIX
+  for (const r of (played || []) as { user_id: string; competition_id: string }[]) {
     engagedSet.add(`${r.user_id}|${r.competition_id}`);
   }
-  for (const r of bonusPlayed) {
-    const cid = compByGrid.get(r.grid_id);
-    if (cid != null) engagedSet.add(`${r.user_id}|${cid}`);
+
+  // BONUS : utilisé pour engagement + exclusion (bonus sur le match / BIELSA sur la grille)
+  type BonusRow = {
+    user_id: string;
+    grid_id: string | number;
+    match_id: number | null;
+    bonus_definition: string; // uuid du bonus_definition
+  };
+
+  const bonusOnMatch = new Set<string>(); // "uid|match_id" => bonus déjà joué sur CE match
+  const bielsaOnGrid = new Set<string>(); // "uid|grid_id" => BIELSA joué sur cette grille
+
+  if (gridIds.length) {
+    const { data: bonusRows, error: bonusErr } = await supabase
+      .from('grid_bonus')
+      .select('user_id, grid_id, match_id, bonus_definition')
+      .in('grid_id', gridIds);
+    if (bonusErr) throw new Error(bonusErr.message);
+
+    for (const b of (bonusRows || []) as BonusRow[]) {
+      const cid = compByGrid.get(b.grid_id);
+      if (cid != null) {
+        // engagement via bonus
+        engagedSet.add(`${b.user_id}|${cid}`);
+      }
+
+      // (1) bonus ciblé sur un match => pas de rappel pour ce match
+      if (b.match_id != null) {
+        bonusOnMatch.add(`${b.user_id}|${b.match_id}`);
+      }
+
+      // (2) BIELSA sur la grille => pas de rappel pour cette grille
+      if (b.bonus_definition === BIELSA_BONUS_DEFINITION_ID) {
+        bielsaOnGrid.add(`${b.user_id}|${b.grid_id}`);
+      }
+    }
   }
 
   // 5) Tokens (priorité plateforme) + filtre only
@@ -204,7 +238,6 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     .select('token, user_id, platform, last_seen_at')
     .order('last_seen_at', { ascending: false, nullsFirst: false });
 
-  // 🔁 CHANGEMENT 3 : on limite aussi les tokens aux joueurs concernés
   if (only) {
     tokensQuery = tokensQuery.eq('user_id', only);
   } else {
@@ -215,9 +248,9 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
   if (tErr) throw new Error(tErr.message);
 
   function pickPreferredTokensForUser(uid: string): string[] {
-    const rows = (tokensRows || []).filter(r => r.user_id === uid);
+    const rows = (tokensRows || []).filter((r: any) => r.user_id === uid);
     for (const p of PLATFORM_PRIORITY) {
-      const subset = rows.filter(r => (r.platform as any) === p);
+      const subset = rows.filter((r: any) => (r.platform as any) === p);
       if (subset.length) return [subset[0].token as string];
     }
     return [];
@@ -232,20 +265,36 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
     if (!users?.size) continue;
 
     const compId = compByMatch.get(m.id);
+
     const eligible = Array.from(users).filter((uid) => {
       if (!compId) return false;
-      if (only && uid !== only) return false; // ✅ test ciblé
+      if (only && uid !== only) return false; // test ciblé
+
+      // (1) bonus déjà joué sur CE match => pas de rappel
+      if (bonusOnMatch.has(`${uid}|${m.id}`)) {
+        return false;
+      }
+
+      // (2) BIELSA joué sur la grille de (uid, match) => pas de rappel
+      const gid = gridByUserMatch.get(`${uid}|${m.id}`);
+      if (gid && bielsaOnGrid.has(`${uid}|${gid}`)) {
+        return false;
+      }
 
       const engaged = engagedSet.has(`${uid}|${compId}`);
       const notEliminated = !eliminatedByComp.has(`${uid}|${compId}`);
       const prefOK = !offSet.has(uid);
+
       return engaged && notEliminated && prefOK;
     });
+
     if (!eligible.length) continue;
+    console.log('[CRON] match', m.id, 'eligible users:', eligible);
 
     for (const uid of eligible) {
       const userTokens = pickPreferredTokensForUser(uid);
       if (!userTokens.length) continue; // pas de device connu → inutile de logger
+      console.log('[CRON] sending reminder', kind, 'to uid', uid, 'tokens:', userTokens);
 
       // dédup via push_log (uniquement si on a un token)
       const ins = await supabase
@@ -300,14 +349,10 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
  * en priorisant aussi l’appli.
  */
 async function handleGridDone() {
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - WINDOW_MINUTES * 60 * 1000);
-
-  // 1) Grilles modifiées récemment
+  // 1) Toutes les grilles (on filtrera ensuite par "finies")
   const { data: grids, error: gErr } = await supabase
     .from('grids')
-    .select('id, competition_id, updated_at')
-    .gte('updated_at', windowStart.toISOString());
+    .select('id, competition_id');
   if (gErr) throw new Error(gErr.message);
   if (!grids?.length) return 0;
 
