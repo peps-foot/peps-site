@@ -80,11 +80,11 @@ const className = useMemo(() => {
   return `${box} border-gray-500 text-gray-700 bg-gray-100`;
 }, [label, color]);
 
-    if (label === null) {
-        return (
-            <div className="w-32 h-9 inline-flex items-center justify-center rounded border border-gray-300 bg-gray-100 animate-pulse" />
-        );
-        }
+if (label === null) {
+  return (
+    <div className="inline-flex items-center justify-center rounded border border-gray-300 bg-gray-100 animate-pulse text-sm px-1.5 py-0.5 whitespace-nowrap flex-none min-w-[78px]" />
+  );
+}
         
  return <div className={className}>{label}</div>;
 }
