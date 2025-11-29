@@ -24,9 +24,9 @@ export default function CompetitionStatusBadge({ competitionId, mode }: Props) {
 
 const className = useMemo(() => {
   // badge compact, largeur auto, anti-wrap
-  const box =
-    "inline-flex items-center justify-center rounded border font-medium " +
-    "text-xs px-1.5 py-0.5 whitespace-nowrap flex-none";
+const box =
+  "inline-flex items-center justify-center rounded border font-medium " +
+  "text-sm px-1.5 py-0.5 whitespace-nowrap flex-none";
 
   if (label === null)
     return `${box} border-gray-300 bg-gray-100 text-transparent`;
