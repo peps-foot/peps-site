@@ -127,7 +127,7 @@ export default function HomePage() {
   type View = 'grid' | 'rankGrid' | 'rankGeneral';
   // accordéon pour la grille
   const [openGrille, setOpenGrille] = useState(true); // ouverte par défaut
-
+  
   const viewParam = (searchParams?.get('view') as View) || 'grid';
   const [view, setView] = useState<View>(viewParam);
 
@@ -741,6 +741,16 @@ if (!loadingGrids && grids.length > 0 && !gridId) {
     if (n.includes('terminator')) return 'terminator';
     return 'default';
   }
+
+  // ouverture de la grille selon le status
+  useEffect(() => {
+  if (gate.state === 'joueur') {
+    setOpenGrille(true);       // joueur → ouvert
+  } else if (gate.state === 'elimine' || gate.state === 'spectateur') {
+    setOpenGrille(false);      // éliminé / spectateur → fermé
+  }
+  // pour 'loading', on ne touche à rien, on garde la valeur actuelle
+}, [gate.state]);
 
   //Gestion de la view
 useEffect(() => {
@@ -1647,14 +1657,22 @@ return early ? (
         {/* ── GRILLE ── */}
         <div className="w-full lg:w-2/3">
           <div className="border rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => setOpenGrille(!openGrille)}
-                  className="w-full flex items-center px-4 py-3"
-                >
-                  <span className="font-semibold text-center flex-1">Fais tes pronos !</span>
-                  <span className="text-xl shrink-0">{openGrille ? '▲' : '▼'}</span>
-                </button>
+    <button
+      type="button"
+      onClick={() => setOpenGrille(!openGrille)}
+      className="w-full flex items-center px-4 py-3"
+    >
+      <span className="font-semibold text-center flex-1">
+        {gate.state === 'joueur'
+          ? "Fais tes pronos !"
+          : gate.state === "elimine" || gate.state === "spectateur"
+          ? "Suis la compet"
+          : "Chargement..."}
+      </span>
+      <span className="text-xl shrink-0">
+        {openGrille ? "▲" : "▼"}
+      </span>
+    </button>
                     {openGrille && (
                       <div className="-mx-4 px-4 pb-4 space-y-2">
                         <div className="space-y-1">
@@ -1842,98 +1860,107 @@ return early ? (
 
         {/* ── BONUS ── */}
         <div className="w-full lg:w-1/3 space-y-4">
-            {/* Gate sur le BONUS */}
-            {gate.state !== 'joueur' ? (
-              <>
-                <img
-                  src={
-                    gate.state === 'elimine'
-                      ? ELIM_IMAGES[elimVariant]
-                      : ELIM_IMAGES['spectateur']
-                  }
-                  alt={gate.state === 'elimine' ? 'Éliminé' : 'Spectateur'}
-                  className="mx-auto max-w-[240px]"
-                />
-                <p className="text-center text-sm text-gray-600">
-                  {gate.state === 'elimine'
-                    ? 'Tu es éliminé de cette compétition.'
-                    : 'Mode spectateur : bonus indisponibles.'}
-                </p>
-              </>
-            ) : (
-              <>
+          {/* Gate sur le BONUS */}
+          {gate.state !== 'joueur' ? (
+            // Cas spectateur / éliminé : on affiche l'image
+            <img
+              src={
+                gate.state === 'elimine'
+                  ? ELIM_IMAGES[elimVariant]
+                  : ELIM_IMAGES['spectateur']
+              }
+              alt={gate.state === 'elimine' ? 'Éliminé' : 'Spectateur'}
+              className="w-full h-auto rounded-lg shadow-md"
+            />
+          ) : (
+            <>
+              {/* Accordéon CROIX */}
+              <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTouched(true);
+                    setOpenCroix(!openCroix);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-3"
+                >
+                  <span className="font-semibold text-center w-full">
+                    Joue ton bonus CROIX
+                  </span>
+                  <span className="text-xl">{openCroix ? "▲" : "▼"}</span>
+                </button>
+                {openCroix && (
+                  <div className="px-4 pb-4 space-y-3">
+                    {defsCroix.length === 0 ? (
+                      <div className="text-sm text-gray-500">
+                        Pas de bonus croix pour cette grille.
+                      </div>
+                    ) : (
+                      defsCroix.map(renderBonusRow)
+                    )}
+                  </div>
+                )}
+              </div>
 
-                {/* Accordéon CROIX */}
-                <div className="border rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => { setTouched(true); setOpenCroix(!openCroix); }}
-                    className="w-full flex items-center justify-between px-4 py-3"
-                  >
-                    <span className="font-semibold text-center w-full">Joue ton bonus CROIX</span>
-                    <span className="text-xl">{openCroix ? '▲' : '▼'}</span>
-                  </button>
-                  {openCroix && (
-                    <div className="px-4 pb-4 space-y-3">
-                      {defsCroix.length === 0 ? (
-                        <div className="text-sm text-gray-500">Pas de bonus croix pour cette grille.</div>
-                      ) : (
-                        defsCroix.map(renderBonusRow)
-                      )}
-                    </div>
-                  )}
-                </div>
+              {/* Accordéon SCORE */}
+              <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTouched(true);
+                    setOpenScore(!openScore);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-3"
+                >
+                  <span className="font-semibold text-center w-full">
+                    Joue ton bonus SCORE
+                  </span>
+                  <span className="text-xl">{openScore ? "▲" : "▼"}</span>
+                </button>
+                {openScore && (
+                  <div className="px-4 pb-4 space-y-3">
+                    {defsScore.length === 0 ? (
+                      <div className="text-sm text-gray-500">
+                        Pas de bonus score pour cette grille.
+                      </div>
+                    ) : (
+                      defsScore.map(renderBonusRow)
+                    )}
+                  </div>
+                )}
+              </div>
 
-                {/* Accordéon SCORE */}
-                <div className="border rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => { setTouched(true); setOpenScore(!openScore); }}
-                    className="w-full flex items-center justify-between px-4 py-3"
-                  >
-                    <span className="font-semibold text-center w-full">Joue ton bonus SCORE</span>
-                    <span className="text-xl">{openScore ? '▲' : '▼'}</span>
-                  </button>
-                  {openScore && (
-                    <div className="px-4 pb-4 space-y-3">
-                      {defsScore.length === 0 ? (
-                        <div className="text-sm text-gray-500">Pas de bonus score pour cette grille.</div>
-                      ) : (
-                        defsScore.map(renderBonusRow)
-                      )}
-                    </div>
-                  )}
-                </div>
+              {/* Accordéon SPÉCIAUX */}
+              <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTouched(true);
+                    setOpenSpecial((v) => !v);
+                  }}
+                  className="w-full flex items-center justify-between px-4 py-3"
+                >
+                  <span className="font-semibold text-center w-full">
+                    Joue ton bonus SPÉCIAL
+                  </span>
+                  <span className="text-xl">{openSpecial ? "▲" : "▼"}</span>
+                </button>
 
-                {/* Accordéon SPÉCIAUX */}
-<div className="border rounded-lg">
-  <button
-    type="button"
-    onClick={() => {
-      // aucune condition ici : on ouvre/ferme uniquement au clic
-      setTouched(true);
-      setOpenSpecial(v => !v);
-    }}
-    className="w-full flex items-center justify-between px-4 py-3"
-  >
-    <span className="font-semibold text-center w-full">
-      Joue ton bonus SPÉCIAL
-    </span>
-    <span className="text-xl">{openSpecial ? '▲' : '▼'}</span>
-  </button>
-
-{openSpecial && (
-  <div className="px-4 pb-4 space-y-3">
-    {specialsDefs.length === 0
-      ? <div className="text-sm text-gray-500">Aucun bonus spécial défini.</div>
-      : specialsDefs.map(renderBonusRow)}
-  </div>
-)}
-</div>
-              </>
-            )}
+                {openSpecial && (
+                  <div className="px-4 pb-4 space-y-3">
+                    {specialsDefs.length === 0 ? (
+                      <div className="text-sm text-gray-500">
+                        Aucun bonus spécial défini.
+                      </div>
+                    ) : (
+                      specialsDefs.map(renderBonusRow)
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
-
 
         {/* ── message d'erreur si un joueur parie trop tard = hors jeu ── */}
         {showOffside && (
