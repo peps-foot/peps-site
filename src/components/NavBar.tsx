@@ -111,7 +111,10 @@ export function NavBar() {
         return a.name.localeCompare(b.name);
       });
 
-      setLeftMenuColored(enriched);
+      // ✅ Ne garder que les compétitions "en cours" (bleu/vert)
+      const onlyActive = enriched.filter(c => c.color !== "gray");
+
+      setLeftMenuColored(onlyActive);
     };
 
     run();
