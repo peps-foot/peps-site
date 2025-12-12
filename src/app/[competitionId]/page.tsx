@@ -59,6 +59,8 @@ import { handleBonusValidateSpeciaux }  from "../../features/bonus/handlersSpeci
 // pour la gestion des cases 1N2 quand il y a un bonus
 import { computeOverlay } from '../../features/bonus/computeOverlay';
 import type { OverlayEntry } from '../../features/bonus/computeOverlay';
+import CompetitionInfoPanel from "../../components/CompetitionInfoPanel";
+
 
 import supabase from '../../lib/supabaseBrowser';
 
@@ -124,7 +126,7 @@ export default function HomePage() {
   const [popupPick, setPopupPick] = useState<'1' | 'N' | '2'>('1');
   // 👉 Gestion de navigation entre les grilles
   const searchParams  = useSearchParams();
-  type View = 'grid' | 'rankGrid' | 'rankGeneral';
+  type View = 'grid' | 'rankGrid' | 'rankGeneral' | 'info';
   // accordéon pour la grille
   const [openGrille, setOpenGrille] = useState(true); // ouverte par défaut
   
@@ -147,45 +149,51 @@ export default function HomePage() {
   const router        = useRouter();
   const params = useParams();
   const competitionId = params?.competitionId as string;
-  const [competition, setCompetition] = useState<{ id: string; name: string; mode: string } | null>(null);
+  //const [competition, setCompetition] = useState<{ id: string; name: string; mode: string } | null>(null);
+  const [competition, setCompetition] = useState<any | null>(null);
   const [competitionReady, setCompetitionReady] = useState(false);
   console.log("🔍 competitionId reçu :", competitionId);
 
   //pour afficher zones GRILLES/BONUS suivant le mode CLASSIC/TOURNOI
   // 1) Charger name + mode depuis la table competitions
-useEffect(() => {
-  if (!competitionId) return;
-  console.time('[competitions] fetch');
-  console.log('[competitions] start', competitionId);
+  useEffect(() => {
+    if (!competitionId) return;
+    console.time('[competitions] fetch');
+    console.log('[competitions] start', competitionId);
 
-  (async () => {
-    const { data, error } = await supabase
-      .from('competitions')
-      .select('id,name,mode')
-      .eq('id', competitionId)
-      .maybeSingle();
+    (async () => {
+      const { data, error } = await supabase
+        .from('competitions')
+        .select('id, name, mode, kind, join_code, created_by')
+        .eq('id', competitionId)
+        .maybeSingle();
 
-    if (error) {
-      console.warn('[competitions] ERROR', error.message);
-      setCompetition(null);
-    } else if (!data) {
-      console.log('[competitions] NOT_FOUND');
-      setCompetition(null);
-    } else {
-      console.log('[competitions] OK', { id: data.id, mode: data.mode });
-      setCompetition(data);
-      console.log('[competitions] fetched', {
-  id: data?.id,
-  name: data?.name,
-  rawMode: `‹${data?.mode}›`
-});
-    }
-    setCompetitionReady(true);
-    console.timeEnd('[competitions] fetch');
-  })();
-  // dep: seulement competitionId (l'instance supabase est stable)
-}, [competitionId]);
+      if (error) {
+        console.warn('[competitions] ERROR', error.message);
+        setCompetition(null);
+      } else if (!data) {
+        console.log('[competitions] NOT_FOUND');
+        setCompetition(null);
+      } else {
+        console.log('[competitions] OK', {
+          id: data.id,
+          mode: data.mode,
+          kind: data.kind,
+        });
+        setCompetition(data);
+        console.log('[competitions] fetched', {
+          id: data?.id,
+          name: data?.name,
+          rawMode: `‹${data?.mode}›`,
+          kind: data?.kind,
+        });
+      }
 
+      setCompetitionReady(true);
+      console.timeEnd('[competitions] fetch');
+    })();
+    // dep: seulement competitionId (l'instance supabase est stable)
+  }, [competitionId]);
 
   const [showOffside, setShowOffside] = useState(false);
   const pathname = '/' + competitionId;
@@ -603,6 +611,14 @@ useEffect(() => {
     .gt('quantity', 0)
     .then(({ data, error }) => setUserInventory(error ? [] : (data ?? [])));
 }, [user?.id, competition?.id]);
+
+const isPrivate = competition?.kind === 'PRIVATE';
+
+// V1 : on ne sait pas encore récupérer proprement l'id du joueur ici.
+// On met false pour l'instant, juste pour que le panneau fonctionne.
+// On raffinera plus tard si tu veux afficher "toi 😉" de façon fiable.
+const isCreator = false;
+
 
 // cas spécial des bonus spéciaux
 const specialsForUser = (defsSpecial ?? []).filter(def => userInventory.some(inv => inv.bonus_definition === def.id));
@@ -1544,6 +1560,26 @@ return early ? (
     className="rounded-full object-cover"
   />
               </button>
+
+              {/* 5) INFOS COMPÉT (uniquement pour PRIVATE) */}
+              {isPrivate && (
+                <button
+                  onClick={() => setViewAndURL('info')}
+                  aria-pressed={view === 'info'}
+                  className={`w-12 h-12 rounded-full border border-black bg-white p-[3px]
+                              flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none
+                              ${view === 'info' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
+                  title="Infos de la compétition"
+                >
+                  <Image
+                    src="/images/icons/info.png"
+                    alt="Infos"
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover"
+                  />
+                </button>
+              )}
             </div>
 
             {/* C) DESCRIPTION (texte seul) */}
@@ -1558,7 +1594,7 @@ return early ? (
           </div>
         </section>
 
-      {/* Vue des 2 classements */}
+      {/* Vue des 2 classements et de la zone info */}
       {view === 'rankGrid' && (
         <div className="w-full">
           {lbLoading && <p className="text-center text-sm text-gray-500 my-4">Chargement…</p>}
@@ -1651,6 +1687,20 @@ return early ? (
           )}
         </div>
       )}
+
+      {isPrivate && view === 'info' && (
+        <div className="mt-4">
+          <CompetitionInfoPanel
+            name={competition.name}
+            mode={competition.mode}
+            kind={competition.kind}
+            joinCode={competition.join_code}
+            isCreator={isCreator}
+          />
+        </div>
+      )}
+
+
 
       {/* 2) CONTENU PRINCIPAL : GRILLE (2/3) & BONUS (1/3) */}
       <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'grid' ? 'hidden' : ''}`}>

@@ -61,19 +61,40 @@ export function NavBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Remplir le burger menu de gauche
+  // Remplir le burger menu de gauche (uniquement les compétitions où l'utilisateur est PLAYER/CREATOR)
   useEffect(() => {
     const run = async () => {
-      const { data, error } = await supabase
-        .from("competitions")
-        .select("id, name, icon, mode")
-        .order("name", { ascending: true });
-      if (error) { console.error("Erreur compétitions :", error); return; }
-      const comps = (data ?? []) as CompetitionFull[];
-
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLeftMenuColored(comps.map(c => ({ ...c, color: "gray" }))); return; }
 
+      // Pas connecté => menu vide (ou garde ton fallback si tu préfères)
+      if (!user) {
+        setLeftMenuColored([]);
+        return;
+      }
+
+      // 1) Récupérer les compétitions où il est membre (PLAYER/CREATOR)
+      const { data, error } = await supabase
+        .from("competition_members")
+        .select(`
+          role,
+          competitions:competition_id (
+            id, name, icon, mode
+          )
+        `)
+        .eq("user_id", user.id)
+        .in("role", ["PLAYER", "CREATOR"]);
+
+      if (error) {
+        console.error("Erreur menu competitions :", error);
+        return;
+      }
+
+      // 2) Aplatir
+      const comps = (data ?? [])
+        .map((row: any) => row.competitions)
+        .filter(Boolean) as CompetitionFull[];
+
+      // 3) (Optionnel) couleur / tri comme avant
       const slim = comps.map(c => ({ id: c.id, mode: c.mode }));
       const res = await groupCompetitionsForHome(slim, user.id);
       const colorMap = res.statuses; // Map(id => {label, color})
@@ -92,6 +113,7 @@ export function NavBar() {
 
       setLeftMenuColored(enriched);
     };
+
     run();
   }, []);
 

@@ -1,90 +1,157 @@
-// components/CompetitionStatusBadge.tsx
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import supabase from "../lib/supabaseBrowser";
 import { fetchCompetitionStatus, CompetitionMode } from "../lib/competitionStatus";
 
-type Props = { competitionId: string; mode: CompetitionMode };
-type Label = "JOUER" | "QUALIFIÉ" | "ÉLIMINÉ" | "VOIR" | "A VENIR" | "Non classé" | string;
+type Props = {
+  competitionId: string;
+  mode: CompetitionMode;
+  isMember?: boolean;
+  allFT?: boolean;
+  hasNS?: boolean;
+  onClick?: () => void; // 👈 prop React, avec un C majuscule
+};
 
-export default function CompetitionStatusBadge({ competitionId, mode }: Props) {
+type Label = "JOUER" | "QUALIFIÉ" | "ÉLIMINÉ" | "VOIR" | "A VENIR" | "Non classé" | "FINALE" |  string;
+
+export default function CompetitionStatusBadge({
+  competitionId,
+  mode,
+  isMember,
+  allFT,
+  hasNS,
+  onClick, // 👈 on récupère bien la prop ici
+}: Props) {
   const [label, setLabel] = useState<Label | null>(null);
-  const [color, setColor] = useState<"blue" | "green" | "gray">("gray");
+  const [color, setColor] = useState<"blue" | "green" | "gray" | "yellow">("gray");
 
-// Que mettre dans le badge ?
-useEffect(() => {
-  let stop = false;
+  useEffect(() => {
+    let stop = false;
 
-  (async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      if (!stop) {
-        setLabel("JOUER");
-        setColor("blue");
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      // Pas connecté
+      if (!user) {
+        if (allFT) {
+          if (!stop) {
+            setLabel("VOIR");
+            setColor("gray");
+          }
+        } else {
+          if (!stop) {
+            setLabel("JOUER");
+            setColor("blue");
+          }
+        }
+        return;
       }
-      return;
-    }
 
-    // 1) Vérifier l'éligibilité dans grid_player_eligibility
-    const { data: eligibility, error } = await supabase
-      .from("grid_player_eligibility")
-      .select("can_play")
-      .eq("competition_id", competitionId)
-      .eq("user_id", user.id)
-      .maybeSingle();
+      // Non-membre
+      if (isMember === false) {
+        if (allFT) {
+          if (!stop) {
+            setLabel("VOIR");
+            setColor("gray");
+          }
+        } else {
+          if (!stop) {
+            setLabel("JOUER");
+            setColor("blue");
+          }
+        }
+        return;
+      }
 
-    if (!stop && eligibility && eligibility.can_play === false) {
-      // Joueur éliminé : on force le badge "ÉLIMINÉ"
-      setLabel("ÉLIMINÉ");
-      setColor("gray"); // la couleur ne servira pas vraiment, mais on met quelque chose
-      return;           // très important : on ne va pas chercher le reste du statut
-    }
+      // Membre → vérifier éligibilité
+      const { data: eligibility } = await supabase
+        .from("grid_player_eligibility")
+        .select("can_play")
+        .eq("competition_id", competitionId)
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-    // 2) Sinon, on continue comme avant
-    const st = await fetchCompetitionStatus({
-      competitionId,
-      mode,
-      userId: user.id,
-    });
+      // 🔹 joueur éliminé
+      if (!stop && eligibility && eligibility.can_play === false) {
+        setLabel("ÉLIMINÉ");
+        setColor("gray");
+        return;
+      }
 
-    if (!stop) {
-      setLabel(st.label);
-      setColor(st.color);
-    }
-  })();
+      // 🔹 cas FINALE (tournoi terminé, joueur jamais marqué éliminé)
+      if (allFT && mode === "TOURNOI" && (!eligibility || eligibility.can_play === null)) {
+        if (!stop) {
+          setLabel("FINALE");
+          setColor("yellow");
+        }
+        return;
+      }
 
-  return () => {
-    stop = true;
-  };
-}, [competitionId, mode]);
+      // 🔹 sinon : logique existante (classement / qualifié...)
+      const st = await fetchCompetitionStatus({
+        competitionId,
+        mode,
+        userId: user.id,
+      });
 
-// pour la taille du badge et la gestion des couleurs
-const className = useMemo(() => {
-  const box =
-    "inline-flex items-center justify-center rounded border font-medium " +
-    "text-sm px-1.5 py-0.5 whitespace-nowrap flex-none min-w-[78px]";
+      if (!stop) {
+        setLabel(st.label);
+        setColor(st.color);
+      }
+    })();
 
-  if (label === null)
-    return `${box} border-gray-300 bg-gray-100 text-transparent`;
+    return () => {
+      stop = true;
+    };
+  }, [competitionId, mode, isMember, allFT, hasNS]);
 
-  // priorité au cas ÉLIMINÉ
-  if (label === "ÉLIMINÉ")
-    return `${box} border-red-700 text-red-800 bg-red-50`;
-
-  if (color === "green")
-    return `${box} border-green-700 text-green-800 bg-green-50`;
-
-  if (color === "blue")
-    return `${box} border-blue-700 text-blue-800 bg-blue-50`;
-
-  return `${box} border-gray-500 text-gray-700 bg-gray-100`;
-}, [label, color]);
-
-if (label === null) {
-  return (
-    <div className="inline-flex items-center justify-center rounded border border-gray-300 bg-gray-100 animate-pulse text-sm px-1.5 py-0.5 whitespace-nowrap flex-none min-w-[78px]" />
+  // Handler click compatible avec React
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!onClick) return;
+      e.preventDefault();
+      onClick();
+    },
+    [onClick]
   );
-}
-        
- return <div className={className}>{label}</div>;
+
+  const className = useMemo(() => {
+    const box =
+      "inline-flex items-center justify-center rounded border font-medium " +
+      "text-sm px-1.5 py-0.5 whitespace-nowrap flex-none min-w-[78px]";
+
+    if (label === null)
+      return `${box} border-gray-300 bg-gray-100 text-transparent`;
+
+    if (label === "ÉLIMINÉ")
+      return `${box} border-red-700 text-red-800 bg-red-50`;
+
+    if (color === "green")
+      return `${box} border-green-700 text-green-800 bg-green-50`;
+
+    if (color === "blue")
+      return `${box} border-blue-700 text-blue-800 bg-blue-50`;
+
+    if (color === "yellow")
+      return `${box} border-yellow-500 text-yellow-800 bg-yellow-50`;
+
+    return `${box} border-gray-500 text-gray-700 bg-gray-100`;
+  }, [label, color]);
+
+  if (label === null) {
+    return (
+      <div className="inline-flex items-center justify-center rounded border border-gray-300 bg-gray-100 animate-pulse text-sm px-1.5 py-0.5 whitespace-nowrap flex-none min-w-[78px]" />
+    );
+  }
+
+  return (
+    <div
+      className={className + (onClick ? " cursor-pointer hover:opacity-80" : "")}
+      onClick={onClick ? handleClick : undefined}
+    >
+      {label}
+    </div>
+  );
 }

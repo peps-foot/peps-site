@@ -309,9 +309,6 @@ export default function AdminGridsPage() {
         setComps(cs => [{ id: comp.id, name: comp.name, created_at: comp.created_at }, ...cs]);
       }
 
-      // ❌ SUPPRIMÉ : ancien bloc qui ré-insérait encore toutes les grilles
-      // (inutile puisque déjà géré par le diff au-dessus)
-
       // 🔹 Regénérer les lignes manquantes pour les joueurs
       if (compId) {
         const { error: regenErr } = await supabase.rpc(

@@ -8,19 +8,28 @@ import Image from "next/image";
 import { CompetitionMode, Competition } from '../lib/types';
 import { groupCompetitionsForHome } from "../lib/competitionStatus";
 import RandomPromo from '../components/RandomPromo';
+import { splitCompetitions, CompetitionWithFlags } from "../lib/competitionsGrouping";
+
 
 export default function Home() {
   const router = useRouter();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [groups, setGroups] = useState<{mine: Competition[]; toJoin: Competition[]; history: Competition[]}>({
-    mine: [], toJoin: [], history: []
-  });
+  const [groups, setGroups] = useState<{
+    mine: Competition[];
+    toJoin: Competition[];
+    history: Competition[];
+  }>({ mine: [], toJoin: [], history: [] });
+
   const [statuses, setStatuses] = useState<Map<string, {label: string; color: "blue"|"green"|"gray"; isActiveRank: boolean}>>(new Map());
   const [ready, setReady] = useState(false);
   const { mine, toJoin, history } = groups;
   // état local (à mettre avec tes autres useState)
   const [openTuto, setOpenTuto] = useState(false);
+  // code pour rejoindre une compet privée
+  const [joinCode, setJoinCode] = useState('');
+  const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const check = async () => {
@@ -47,56 +56,176 @@ export default function Home() {
   }, [router]);
 
   useEffect(() => {
-    const fetchCompetitions = async () => {
-      const { data, error } = await supabase
-      .from('competitions')
-      .select('id, name, description, icon, mode');
+  const loadHomeCompetitions = async () => {
+    if (!sessionChecked) return;
 
-      const competitions: Competition[] = (data ?? []).map((c) => ({
-        ...c,
+    // 1) Récupérer l'utilisateur
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("Erreur user", userError);
+      setGroups({ mine: [], toJoin: [], history: [] });
+      setReady(true);
+      return;
+    }
+
+    // 2) Appeler la RPC get_home_competitions
+    const { data, error } = await supabase.rpc("get_home_competitions", {
+      p_user_id: user.id,
+    });
+
+    if (error) {
+      console.error("Erreur RPC get_home_competitions", error);
+      setGroups({ mine: [], toJoin: [], history: [] });
+      setReady(true);
+      return;
+    }
+
+    // 3) On garde les lignes renvoyées par la RPC (avec flags + homeTab)
+    const rows = (data ?? []).map((c: any) => ({
+      ...c,
+      mode: (c.mode ?? "CLASSIC") as CompetitionMode,
+    })) as CompetitionWithFlags<Competition>[];
+
+    // ✅ petit helper local pour produire un Competition[] propre
+    const toCompetitionArray = (arr: any[]): Competition[] =>
+      arr.map((c) => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        icon: c.icon,
         mode: (c.mode ?? "CLASSIC") as CompetitionMode,
       }));
 
-      if (!error && data) {
-        setCompetitions(data);
-      } else {
-        console.error('Erreur récupération competitions :', error);
-      }
-    };
+    // ✅ Tri 100% piloté par la RPC (homeTab)
+    const mineRows = rows.filter((r) => r.homeTab === "MINE");
+    const toJoinRows = rows.filter((r) => r.homeTab === "TO_JOIN");
+    const historyRows = rows.filter((r) => r.homeTab === "HISTORY");
 
-    if (sessionChecked) fetchCompetitions();
-  }, [sessionChecked]);
+    // (optionnel) si tu utilises competitions ailleurs, tu stockes tout
+    setCompetitions(toCompetitionArray(rows));
 
-  useEffect(() => {
-    const run = async () => {
-      if (!sessionChecked) return;
-      if (competitions.length === 0) { setGroups({ mine: [], toJoin: [], history: [] }); setReady(true); return; }
+    // ✅ Plus besoin de splitCompetitions ici
+    setGroups({
+      mine: toCompetitionArray(mineRows),
+      toJoin: toCompetitionArray(toJoinRows),
+      history: toCompetitionArray(historyRows),
+    });
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    setReady(true);
+  };
 
-      const slim = competitions.map(c => ({ id: c.id, mode: c.mode }));
-      const res = await groupCompetitionsForHome(slim, user.id);
-
-      setGroups({
-        mine: competitions.filter(c => res.mine.some(x => x.id === c.id)),
-        toJoin: competitions.filter(c => res.toJoin.some(x => x.id === c.id)),
-        history: competitions.filter(c => res.history.some(x => x.id === c.id)),
-      });
-      setReady(true);
-    };
-    run();
-  }, [sessionChecked, competitions]);
+  loadHomeCompetitions();
+}, [sessionChecked]);
 
   if (!sessionChecked) return null;
+
+  async function handleJoinPublicCompetition(comp: { id: string; name: string }) {
+    const ok = window.confirm(`Tu veux rejoindre la compétition "${comp.name}" ?`);
+    if (!ok) return;
+
+    // Récupérer l'utilisateur connecté
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      alert("Impossible de retrouver ton compte. Merci de te reconnecter.");
+      return;
+    }
+
+    // Appel de la fonction generate_grid_matches_for_user
+    const { error: rpcError } = await supabase.rpc("generate_grid_matches_for_user", {
+      p_compet_id: comp.id,
+      p_user_id: user.id,
+    });
+
+    if (rpcError) {
+      console.error(rpcError);
+      alert("Impossible de rejoindre la compétition (erreur côté serveur).");
+      return;
+    }
+
+    // Tout est bon : redirection vers la compét
+    router.push(`/${comp.id}`);
+  }
+
+  async function handleJoinByCode() {
+    setJoinCodeError(null);
+
+    const code = joinCode.trim();
+    if (!code) {
+      setJoinCodeError("Merci de saisir un code.");
+      return;
+    }
+
+    // Récupérer l'utilisateur connecté
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setJoinCodeError("Impossible de retrouver ton compte. Merci de te reconnecter.");
+      return;
+    }
+
+    // 1) Retrouver la compétition par le code
+    const { data: comp, error: compError } = await supabase
+      .from("competitions")
+      .select("id, name, kind")
+      .eq("join_code", code)
+      .single();
+
+    if (compError || !comp) {
+      console.error(compError);
+      setJoinCodeError("Code invalide ou compétition introuvable.");
+      return;
+    }
+
+    // (Optionnel : vérifier que c'est bien une compet privée)
+    if (comp.kind !== "PRIVATE") {
+      setJoinCodeError("Ce code ne correspond pas à une compétition privée.");
+      return;
+    }
+
+    // 2) Appeler generate_grid_matches_for_user
+    const { error: rpcError } = await supabase.rpc("generate_grid_matches_for_user", {
+      p_compet_id: comp.id,
+      p_user_id: user.id,
+    });
+
+    if (rpcError) {
+      console.error(rpcError);
+      setJoinCodeError("Impossible de rejoindre cette compétition (erreur serveur).");
+      return;
+    }
+
+    // 3) Tout est bon : on peut vider le code et rediriger
+    setJoinCode("");
+    router.push(`/${comp.id}`);
+  }
+
+function handleOpenCreateCompetition() {
+  // Plus tard : page / modal de création de compétition.
+  // Pour l’instant, simple message.
+  alert("Interface de création de compétition à venir 🙂");
+}
+
 
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Pub PEPS aléatoire */}
     <RandomPromo />
 
+    <div className="space-y-4">
+
     {/* ── TUTO FLASH ── */}
-    <div className="border rounded-lg mb-4">
+    <div className="border rounded-lg ">
       <button
         type="button"
         onClick={() => setOpenTuto(!openTuto)}
@@ -123,98 +252,179 @@ export default function Home() {
       )}
     </div>
 
-    {/* Liste des compétitions */}
-{/* MES COMPÉT' */}
-<details open className="mb-4 rounded-md border">
-  <summary className="cursor-pointer select-none px-4 py-2 font-semibold">MES COMPÉT'</summary>
-  <div className="p-2">
-    {mine.length === 0 && <p className="px-2 py-1 text-sm text-gray-600">Aucune pour le moment.</p>}
-    {mine.map((comp) => (
-      <div
-        key={comp.id}
-        onClick={() => router.push(`/${comp.id}`)}
-        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
-      >
-        <div className="flex items-center space-x-3">
-          <Image
-            src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
-            alt={comp.name}
-            width={48}
-            height={48}
-            className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
-          />
-          <div>
-            <p className="text-green-600 font-bold">{comp.name}</p>
-            <p className="text-sm text-gray-800">{comp.description}</p>
-          </div>
+    {/* MES COMPÉT' */}
+    <details open className="rounded-md border">
+      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
+        <div className="flex items-center justify-between">
+          <span className="text-center w-full">🏆 MES COMPÉTITIONS 🏆</span>
+          <span className="text-xl">▼</span>
         </div>
-        <CompetitionStatusBadge competitionId={comp.id} mode={comp.mode} />
-      </div>
-    ))}
-  </div>
-</details>
-
-{/* À REJOINDRE */}
-<details open className="mb-4 rounded-md border">
-  <summary className="cursor-pointer select-none px-4 py-2 font-semibold">À REJOINDRE</summary>
-  <div className="p-2">
-    {toJoin.length === 0 && <p className="px-2 py-1 text-sm text-gray-600">Rien à rejoindre pour l’instant.</p>}
-    {toJoin.map((comp) => (
-      <div
-        key={comp.id}
-        onClick={() => router.push(`/${comp.id}`)}
-        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
-      >
-        <div className="flex items-center space-x-3">
-          <Image
-            src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
-            alt={comp.name}
-            width={48}
-            height={48}
-            className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
-          />
-          <div>
-            <p className="text-green-600 font-bold">{comp.name}</p>
-            <p className="text-sm text-gray-800">{comp.description}</p>
+      </summary>
+      <div className="p-2">
+        {mine.length === 0 && (
+          <p className="px-2 py-1 text-sm text-gray-600">
+            Aucune pour le moment.
+          </p>
+        )}
+        {mine.map((comp) => (
+          <div
+            key={comp.id}
+            onClick={() => router.push(`/${comp.id}`)}
+            className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
+          >
+            <div className="flex items-center space-x-3">
+              <Image
+                src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
+                alt={comp.name}
+                width={48}
+                height={48}
+                className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+              />
+              <div>
+                <p className="text-green-600 font-bold">{comp.name}</p>
+                <p className="text-sm text-gray-800">{comp.description}</p>
+              </div>
+            </div>
+            <CompetitionStatusBadge
+              competitionId={comp.id}
+              mode={comp.mode}
+              isMember={true}          // mine => forcément membre
+            />
           </div>
-        </div>
-        <CompetitionStatusBadge competitionId={comp.id} mode={comp.mode} />
+        ))}
       </div>
-    ))}
-  </div>
-</details>
+    </details>
 
-{/* HISTORIQUE */}
-<details className="mb-4 rounded-md border">
-  <summary className="cursor-pointer select-none px-4 py-2 font-semibold">HISTORIQUE</summary>
-  <div className="p-2">
-    {history.length === 0 && <p className="px-2 py-1 text-sm text-gray-600">Aucune compétition terminée.</p>}
-    {history.map((comp) => (
-      <div
-        key={comp.id}
-        onClick={() => router.push(`/${comp.id}`)}
-        className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
-      >
-        <div className="flex items-center space-x-3">
-          <Image
-            src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
-            alt={comp.name}
-            width={48}
-            height={48}
-            className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
-          />
-          <div>
-            <p className="text-green-600 font-bold">{comp.name}</p>
-            <p className="text-sm text-gray-800">{comp.description}</p>
+    {/* CRÉER UNE COMPÉT */}
+    <button
+      type="button"
+      onClick={() => router.push("/competition/create")}
+      className="w-full rounded-md bg-green-600 px-3 py-3 text-center text-sm font-semibold text-white hover:bg-green-700">
+      CRÉER MA COMPÉTITION
+    </button>
+
+    {/* À REJOINDRE */}
+    <details open className="rounded-md border">
+      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
+        <div className="flex items-center justify-between">
+          <span className="text-center w-full">➕ REJOINDRE UNE COMPÉTITION ➕</span>
+          <span className="text-xl">▼</span>
+        </div>
+      </summary>
+      <div className="p-2 space-y-4">
+        {/* 1. Compétitions publiques disponibles */}
+        <div>
+          <p className="px-2 py-1 text-sm font-semibold text-gray-700">
+            Compétitions publiques disponibles
+          </p>
+          {toJoin.length === 0 && (
+            <p className="px-2 py-1 text-sm text-gray-600">
+              Rien à rejoindre pour l’instant.
+            </p>
+          )}
+          {toJoin.map((comp) => (
+            <div
+              key={comp.id}
+              className="bg-blue-100 rounded-md p-3 shadow flex items-center justify-between mb-2"
+            >
+              <div className="flex items-center space-x-3">
+                <Image
+                  src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
+                  alt={comp.name}
+                  width={48}
+                  height={48}
+                  className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+                />
+                <div>
+                  <p className="text-green-600 font-bold">{comp.name}</p>
+                  <p className="text-sm text-gray-800">{comp.description}</p>
+                </div>
+              </div>
+              {/* Bouton JOUER -> pop-up de confirmation puis RPC generate_grid_matches_for_user */}
+<CompetitionStatusBadge
+  competitionId={comp.id}
+  mode={comp.mode}
+  isMember={false}
+  allFT={false}
+  hasNS={true}
+  onClick={() => handleJoinPublicCompetition(comp)}
+/>
+            </div>
+          ))}
+        </div>
+
+        {/* 2. Rejoindre avec un code */}
+        <div className="border-t pt-3">
+          <p className="px-2 py-1 text-sm font-semibold text-gray-700">
+            Rejoindre une compétition privée avec un code
+          </p>
+          <div className="flex items-center gap-2 px-2">
+            <input
+              type="text"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              placeholder="Code d’invitation"
+              className="flex-1 rounded-md border px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              onClick={handleJoinByCode}
+            >
+              Rejoindre
+            </button>
           </div>
+          {joinCodeError && (
+            <p className="px-2 pt-1 text-xs text-red-600">{joinCodeError}</p>
+          )}
         </div>
-        <CompetitionStatusBadge competitionId={comp.id} mode={comp.mode} />
       </div>
-    ))}
-  </div>
-</details>
+    </details>
 
+    {/* HISTORIQUE */}
+    <details className="rounded-md border">
+      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
+        <div className="flex items-center justify-between">
+          <span className="text-center w-full">🕘 HISTORIQUE 🕘</span>
+          <span className="text-xl">▼</span>
+        </div>
+      </summary>
+      <div className="p-2">
+        {history.length === 0 && (
+          <p className="px-2 py-1 text-sm text-gray-600">
+            Aucune compétition terminée.
+          </p>
+        )}
+        {history.map((comp) => (
+          <div
+            key={comp.id}
+            onClick={() => router.push(`/${comp.id}`)}
+            className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
+          >
+            <div className="flex items-center space-x-3">
+              <Image
+                src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
+                alt={comp.name}
+                width={48}
+                height={48}
+                className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+              />
+              <div>
+                <p className="text-green-600 font-bold">{comp.name}</p>
+                <p className="text-sm text-gray-800">{comp.description}</p>
+              </div>
+            </div>
+<CompetitionStatusBadge
+  competitionId={comp.id}
+  mode={comp.mode}
+  allFT={true}
+/>
+          </div>
+        ))}
+      </div>
+    </details>
 
+    </div>
     </main>
   );
 }
