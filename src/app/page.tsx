@@ -300,7 +300,7 @@ export default function Home() {
     <details open className="rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
-          <span className="text-center w-full">➕ REJOINDRE UNE COMPÉTITION ➕</span>
+          <span className="text-center w-full">➕ REJOINDRE UNE COMPÉT ➕</span>
           <span className="text-xl">▼</span>
         </div>
       </summary>
@@ -356,12 +356,35 @@ export default function Home() {
               type="text"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
-              placeholder="Code d’invitation"
-              className="flex-1 rounded-md border px-3 py-2 text-sm"
+              placeholder="Code"
+              className="
+                flex-1
+                min-w-0
+                rounded-md
+                border
+                px-2
+                py-2
+                text-sm
+                uppercase
+                tracking-wider
+                sm:px-3
+              "
             />
+
             <button
               type="button"
-              className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="
+                shrink-0
+                rounded-md
+                bg-blue-600
+                px-3
+                py-2
+                text-sm
+                font-semibold
+                text-white
+                hover:bg-blue-700
+                sm:px-4
+              "
               onClick={handleJoinByCode}
             >
               Rejoindre
