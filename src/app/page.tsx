@@ -210,13 +210,6 @@ export default function Home() {
     router.push(`/${comp.id}`);
   }
 
-function handleOpenCreateCompetition() {
-  // Plus tard : page / modal de création de compétition.
-  // Pour l’instant, simple message.
-  alert("Interface de création de compétition à venir 🙂");
-}
-
-
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Pub PEPS aléatoire */}
@@ -282,7 +275,7 @@ function handleOpenCreateCompetition() {
               />
               <div>
                 <p className="text-green-600 font-bold">{comp.name}</p>
-                <p className="text-sm text-gray-800">{comp.description}</p>
+                <p className="text-sm text-gray-800">{comp.mode}</p>
               </div>
             </div>
             <CompetitionStatusBadge
@@ -337,7 +330,7 @@ function handleOpenCreateCompetition() {
                 />
                 <div>
                   <p className="text-green-600 font-bold">{comp.name}</p>
-                  <p className="text-sm text-gray-800">{comp.description}</p>
+                  <p className="text-sm text-gray-800">{comp.mode}</p>
                 </div>
               </div>
               {/* Bouton JOUER -> pop-up de confirmation puis RPC generate_grid_matches_for_user */}
@@ -411,7 +404,7 @@ function handleOpenCreateCompetition() {
               />
               <div>
                 <p className="text-green-600 font-bold">{comp.name}</p>
-                <p className="text-sm text-gray-800">{comp.description}</p>
+                <p className="text-sm text-gray-800">{comp.mode}</p>
               </div>
             </div>
 <CompetitionStatusBadge
