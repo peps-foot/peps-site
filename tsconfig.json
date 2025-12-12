@@ -15,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
     "paths": {
@@ -33,8 +33,17 @@
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
-    ".next/types/**/*.ts"
-, "src/app/api/push/send-latest/route.ts.bak", "src/app/api/push/send-all/route.ts.bak", "src/app/api/push/send/route.ts.bak", "src/app/test-notifs/page.tsx.bak", "src/components/NotificationsSettings.tsx.bak", "src/components/PushBootstrap.tsx.bak", "src/app/partenaires/page.tsx.bak", "src/components/RegisterServiceWorker.tsx.bak"  ],
+    ".next/types/**/*.ts",
+    "src/app/api/push/send-latest/route.ts.bak",
+    "src/app/api/push/send-all/route.ts.bak",
+    "src/app/api/push/send/route.ts.bak",
+    "src/app/test-notifs/page.tsx.bak",
+    "src/components/NotificationsSettings.tsx.bak",
+    "src/components/PushBootstrap.tsx.bak",
+    "src/app/partenaires/page.tsx.bak",
+    "src/components/RegisterServiceWorker.tsx.bak",
+    ".next/dev/types/**/*.ts"
+  ],
   "exclude": [
     "node_modules"
   ]
