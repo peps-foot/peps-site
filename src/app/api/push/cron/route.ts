@@ -369,113 +369,164 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
  * en priorisant aussi l’appli.
  */
 async function handleGridDone() {
-
-  // 1) Ne regarder QUE les grilles non terminées
+  // 1) Grilles non terminées
   const { data: grids, error: gErr } = await supabase
     .from('grids')
     .select('id, competition_id')
-    .eq('grid_done', false);           // 👈 filtre important
+    .eq('grid_done', false);
+
   if (gErr) throw new Error(gErr.message);
   if (!grids?.length) return 0;
 
-  // Map grille -> compet (utile plus bas)
-  const gridToComp = new Map<number, string>();
+  const gridIds = grids.map((g) => String(g.id));
+
+  // Map grille -> compet
+  const gridToComp = new Map<string, string>();
   for (const g of grids) {
-    if (g.competition_id) gridToComp.set(g.id, g.competition_id as any);
+    if (g.competition_id) gridToComp.set(String(g.id), String(g.competition_id));
   }
 
-  // 2) Vérifier qu’il n’y a plus de match NS dans ces grilles
-  const { data: gmAll, error: gmaErr } = await supabase
-    .from('grid_matches')
-    .select('grid_id, match_id');
-  if (gmaErr) throw new Error(gmaErr.message);
+  // 2) Charger la composition des grilles via grid_items
+  const { data: items, error: itErr } = await supabase
+    .from('grid_items')
+    .select('grid_id, match_id')
+    .in('grid_id', gridIds);
 
-  const { data: mAll, error: mErr } = await supabase
+  if (itErr) throw new Error(itErr.message);
+  if (!items?.length) return 0;
+
+  // regrouper match_ids par grid_id
+  const matchIdsByGrid = new Map<string, string[]>();
+  const allMatchIdsSet = new Set<string>();
+
+  for (const it of items) {
+    const gid = String(it.grid_id);
+    const mid = String(it.match_id);
+
+    if (!matchIdsByGrid.has(gid)) matchIdsByGrid.set(gid, []);
+    matchIdsByGrid.get(gid)!.push(mid);
+
+    allMatchIdsSet.add(mid);
+  }
+
+  const allMatchIds = Array.from(allMatchIdsSet);
+  if (!allMatchIds.length) return 0;
+
+  // 3) Charger les statuts des matchs concernés
+  const { data: mRows, error: mErr } = await supabase
     .from('matches')
-    .select('id, status');
+    .select('id, status')
+    .in('id', allMatchIds);
+
   if (mErr) throw new Error(mErr.message);
 
-  const statusByMatch = new Map(mAll?.map((m) => [m.id, m.status]) || []);
-  const finishedGrids = new Set<number>();
-  for (const g of grids) {
-    const rows = (gmAll || []).filter((r) => r.grid_id === g.id);
-    if (!rows.length) continue;
-    const allFinished = rows.every((r) => statusByMatch.get(r.match_id) === MATCH_STATUS_FINISHED);
-    if (allFinished) finishedGrids.add(g.id);
+  const statusByMatch = new Map<string, string>(
+    (mRows || []).map((m) => [String(m.id), String(m.status)])
+  );
+
+  // FT only (comme tu veux)
+  const isFT = (s: any) => String(s || '').trim().toUpperCase() === 'FT';
+
+  // 4) Déterminer les grilles terminées
+  const finishedGrids = new Set<string>();
+
+  for (const gid of gridIds) {
+    const mids = matchIdsByGrid.get(gid) || [];
+    if (!mids.length) continue;
+
+    const allFinished = mids.every((mid) => isFT(statusByMatch.get(mid)));
+    if (allFinished) finishedGrids.add(gid);
   }
+
   if (!finishedGrids.size) return 0;
-  // 🔁 marquer ces grilles comme terminées
-  await supabase
+
+  // 5) Marquer grid_done = true (avec check d'erreur !)
+  const { error: updErr } = await supabase
     .from('grids')
     .update({ grid_done: true })
     .in('id', Array.from(finishedGrids));
 
-  // 3) Participants des grilles finies
+  if (updErr) throw new Error(updErr.message);
+
+  // 6) Participants (users liés à ces grilles) via grid_matches
+  // -> et uniquement ceux-là recevront une notif
   const { data: participants, error: partErr } = await supabase
     .from('grid_matches')
     .select('grid_id, user_id')
     .in('grid_id', Array.from(finishedGrids));
+
   if (partErr) throw new Error(partErr.message);
 
-  const usersByGrid = new Map<number, Set<string>>();
+  const usersByGrid = new Map<string, Set<string>>();
   for (const r of participants || []) {
-    if (!usersByGrid.has(r.grid_id)) usersByGrid.set(r.grid_id, new Set());
-    usersByGrid.get(r.grid_id)!.add(r.user_id);
+    const gid = String(r.grid_id);
+    const uid = String(r.user_id);
+    if (!usersByGrid.has(gid)) usersByGrid.set(gid, new Set());
+    usersByGrid.get(gid)!.add(uid);
   }
 
-  // 4) Préférences allow_grid_done
+  // 7) Préférences allow_grid_done
   const { data: prefs, error: prefErr } = await supabase
     .from('push_prefs')
     .select('user_id, allow_grid_done');
-  if (prefErr) throw new Error(prefErr.message);
-  const offSet = new Set((prefs || []).filter((r) => r.allow_grid_done === false).map((r) => r.user_id));
 
-  // --- Charger les éliminés sur les compétitions concernées
-  const compIdsGD: string[] = Array.from(
+  if (prefErr) throw new Error(prefErr.message);
+
+  const offSet = new Set(
+    (prefs || [])
+      .filter((r) => r.allow_grid_done === false)
+      .map((r) => String(r.user_id))
+  );
+
+  // éliminés sur les compétitions concernées
+  const compIdsGD = Array.from(
     new Set(
       (grids || [])
-        .map(g => g.competition_id)
+        .map((g) => g.competition_id)
         .filter((v): v is string => typeof v === 'string' && v !== null)
+        .map(String)
     )
   );
   const eliminatedByComp = await loadEliminatedSet(compIdsGD, supabase);
 
-  // 5) Tokens (avec plateforme) + helper de priorité (tu l'avais déjà)
+  // 8) Tokens
   const { data: tokensRows, error: tErr } = await supabase
     .from('push_tokens')
     .select('token, user_id, platform');
+
   if (tErr) throw new Error(tErr.message);
 
   function pickPreferredTokensForUser(uid: string): string[] {
-    const rows = (tokensRows || []).filter((t) => t.user_id === uid);
+    const rows = (tokensRows || []).filter((t) => String(t.user_id) === uid);
     for (const p of PLATFORM_PRIORITY) {
-      const subset = rows.filter((r) => (r.platform as any) === p).map((r) => r.token as string);
+      const subset = rows
+        .filter((r) => (r.platform as any) === p)
+        .map((r) => String(r.token));
       if (subset.length) return subset;
     }
     return [];
   }
 
-  // 6) Envoi
+  // 9) Envoi
   let sentCount = 0;
   const toDelete = new Set<string>();
 
   for (const gridId of Array.from(finishedGrids)) {
     const compId = gridToComp.get(gridId);
+    if (!compId) continue;
 
-    // filtre: préférence ON + pas éliminé sur cette compet
     const users = Array.from(usersByGrid.get(gridId) || []).filter((uid) => {
-      if (!compId) return false;
       const eliminated = eliminatedByComp.has(`${uid}|${compId}`);
       return !offSet.has(uid) && !eliminated;
     });
 
     for (const uid of users) {
-      // dédup
+      // dédup via push_log
       const { error: logErr } = await supabase
         .from('push_log')
         .upsert(
           { user_id: uid, kind: 'GRID_DONE', match_id: null, grid_id: gridId },
-          { onConflict: 'user_id,kind,match_id,grid_id' },
+          { onConflict: 'user_id,kind,match_id,grid_id' }
         );
       if (logErr) continue;
 
@@ -491,10 +542,10 @@ async function handleGridDone() {
                 headers: { Urgency: 'high', TTL: '10' },
                 data: {
                   title: '🎉 Grille terminée',
-                  body:  'Les résultats sont là. Viens voir ton score !',
-                  url:   'https://www.peps-foot.com/',
-                  icon:  '/icon-512x512.png',
-                  tag:   'peps-grid-done',
+                  body: 'Les résultats sont là. Viens voir ton score !',
+                  url: 'https://www.peps-foot.com/',
+                  icon: '/icon-512x512.png',
+                  tag: 'peps-grid-done',
                 },
                 fcmOptions: { link: 'https://www.peps-foot.com/' },
               },
@@ -509,7 +560,7 @@ async function handleGridDone() {
               toDelete.add(t);
             }
           }
-        }),
+        })
       );
     }
   }
@@ -517,5 +568,7 @@ async function handleGridDone() {
   if (toDelete.size) {
     await supabase.from('push_tokens').delete().in('token', Array.from(toDelete));
   }
+
   return sentCount;
 }
+
