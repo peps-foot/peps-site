@@ -369,6 +369,13 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null) {
  * en priorisant aussi l’appli.
  */
 async function handleGridDone() {
+  // ===== DEBUG =====
+  const DEBUG = true; // mets false après tests
+  const runId = `GRID_DONE_${new Date().toISOString()}`;
+  const log = (...args: any[]) => DEBUG && console.log(`[${runId}]`, ...args);
+
+  log('START');
+
   // 1) Grilles non terminées
   const { data: grids, error: gErr } = await supabase
     .from('grids')
@@ -376,6 +383,8 @@ async function handleGridDone() {
     .eq('grid_done', false);
 
   if (gErr) throw new Error(gErr.message);
+  log('grids candidates', grids?.length || 0);
+
   if (!grids?.length) return 0;
 
   const gridIds = grids.map((g) => String(g.id));
@@ -393,6 +402,8 @@ async function handleGridDone() {
     .in('grid_id', gridIds);
 
   if (itErr) throw new Error(itErr.message);
+  log('grid_items rows', items?.length || 0);
+
   if (!items?.length) return 0;
 
   // regrouper match_ids par grid_id
@@ -410,6 +421,8 @@ async function handleGridDone() {
   }
 
   const allMatchIds = Array.from(allMatchIdsSet);
+  log('unique match ids', allMatchIds.length);
+
   if (!allMatchIds.length) return 0;
 
   // 3) Charger les statuts des matchs concernés
@@ -419,24 +432,40 @@ async function handleGridDone() {
     .in('id', allMatchIds);
 
   if (mErr) throw new Error(mErr.message);
+  log('matches fetched', { expected: allMatchIds.length, got: mRows?.length || 0 });
 
   const statusByMatch = new Map<string, string>(
     (mRows || []).map((m) => [String(m.id), String(m.status)])
   );
 
-  // FT only (comme tu veux)
-  const isFT = (s: any) => String(s || '').trim().toUpperCase() === 'FT';
+  // Statuts "fin de match"
+  const FINISHED_STATUSES = new Set(['ET', 'BT', 'P', 'FT', 'AET', 'PEN']);
+  const isFinished = (s: any) =>
+    FINISHED_STATUSES.has(String(s || '').trim().toUpperCase());
 
   // 4) Déterminer les grilles terminées
   const finishedGrids = new Set<string>();
+
+  // Petit probe sur une grille pour voir les statuts (si jamais ça sort 0)
+  const probeGridId = gridIds[0];
 
   for (const gid of gridIds) {
     const mids = matchIdsByGrid.get(gid) || [];
     if (!mids.length) continue;
 
-    const allFinished = mids.every((mid) => isFT(statusByMatch.get(mid)));
+    if (DEBUG && gid === probeGridId) {
+      const sample = mids.slice(0, 9).map((mid) => ({
+        mid,
+        status: statusByMatch.get(mid),
+      }));
+      log('probe grid', { gid, matches: mids.length, sample });
+    }
+
+    const allFinished = mids.every((mid) => isFinished(statusByMatch.get(mid) || ''));
     if (allFinished) finishedGrids.add(gid);
   }
+
+  log('finishedGrids', { count: finishedGrids.size, sample: Array.from(finishedGrids).slice(0, 5) });
 
   if (!finishedGrids.size) return 0;
 
@@ -447,15 +476,16 @@ async function handleGridDone() {
     .in('id', Array.from(finishedGrids));
 
   if (updErr) throw new Error(updErr.message);
+  log('grid_done update OK');
 
   // 6) Participants (users liés à ces grilles) via grid_matches
-  // -> et uniquement ceux-là recevront une notif
   const { data: participants, error: partErr } = await supabase
     .from('grid_matches')
     .select('grid_id, user_id')
     .in('grid_id', Array.from(finishedGrids));
 
   if (partErr) throw new Error(partErr.message);
+  log('participants rows', participants?.length || 0);
 
   const usersByGrid = new Map<string, Set<string>>();
   for (const r of participants || []) {
@@ -496,8 +526,19 @@ async function handleGridDone() {
 
   if (tErr) throw new Error(tErr.message);
 
+  // Debug: vue globale des plateformes
+  if (DEBUG) {
+    const byPlatform: Record<string, number> = {};
+    for (const t of tokensRows || []) {
+      const p = String((t as any).platform || 'NULL');
+      byPlatform[p] = (byPlatform[p] || 0) + 1;
+    }
+    log('tokens by platform', byPlatform);
+  }
+
   function pickPreferredTokensForUser(uid: string): string[] {
     const rows = (tokensRows || []).filter((t) => String(t.user_id) === uid);
+
     for (const p of PLATFORM_PRIORITY) {
       const subset = rows
         .filter((r) => (r.platform as any) === p)
@@ -515,22 +556,46 @@ async function handleGridDone() {
     const compId = gridToComp.get(gridId);
     if (!compId) continue;
 
-    const users = Array.from(usersByGrid.get(gridId) || []).filter((uid) => {
+    const allUsers = Array.from(usersByGrid.get(gridId) || []);
+    log('grid loop', { gridId, compId, usersInGrid: allUsers.length });
+
+    const users = allUsers.filter((uid) => {
       const eliminated = eliminatedByComp.has(`${uid}|${compId}`);
       return !offSet.has(uid) && !eliminated;
     });
 
+    log('eligible users', { gridId, count: users.length });
+
     for (const uid of users) {
       // dédup via push_log
+      const ONC = 'user_id,kind,grid_id';
+      log('UPsert push_log using onConflict =', ONC);
+
       const { error: logErr } = await supabase
         .from('push_log')
         .upsert(
           { user_id: uid, kind: 'GRID_DONE', match_id: null, grid_id: gridId },
-          { onConflict: 'user_id,kind,match_id,grid_id' }
+          { onConflict: ONC }
         );
-      if (logErr) continue;
+
+      if (logErr) {
+        log('push_log ERROR', { uid, gridId, msg: logErr.message });
+        continue;
+      }
 
       const userTokens = pickPreferredTokensForUser(uid);
+
+      // Debug important: si user a un token mais pas dans ta priorité plateforme
+      if (DEBUG && !userTokens.length) {
+        const rawRows = (tokensRows || []).filter((t) => String(t.user_id) === uid);
+        log('NO TOKENS PICKED for uid', {
+          uid,
+          rawTokenCount: rawRows.length,
+          platforms: rawRows.map((r) => String((r as any).platform)),
+          priority: PLATFORM_PRIORITY,
+        });
+      }
+
       if (!userTokens.length) continue;
 
       await Promise.all(
@@ -553,6 +618,8 @@ async function handleGridDone() {
             sentCount++;
           } catch (e: any) {
             const msg = e?.errorInfo?.code || e?.message || '';
+            log('send ERROR', { uid, msg });
+
             if (
               String(msg).includes('registration-token-not-registered') ||
               String(msg).includes('invalid-argument')
@@ -567,8 +634,10 @@ async function handleGridDone() {
 
   if (toDelete.size) {
     await supabase.from('push_tokens').delete().in('token', Array.from(toDelete));
+    log('deleted bad tokens', toDelete.size);
   }
 
+  log('DONE sentCount', sentCount);
   return sentCount;
 }
 
