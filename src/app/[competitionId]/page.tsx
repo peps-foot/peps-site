@@ -1041,7 +1041,7 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
       try {
         setLoadingGrid(true);
 
-        // 1) Fetch de la grille active
+        // 0) Fetch de la grille active
         const { data: g, error: ge } = await supabase
           .from('grids')
           .select(`
@@ -1059,10 +1059,10 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
         if (ge) throw ge;
         setGrid(g);
 
-        // 2) Préparer la liste des match_id à récupérer
+        // 1) Préparer la liste des match_id à récupérer
         const ids = (g.grid_items || []).map((x: { match_id: string }) => x.match_id);
 
-        // 3) Fetch des matchs (côtes et scores)
+        // 2) Fetch des matchs (côtes et scores)
         const { data: raws, error: re } = await supabase
           .from('matches')
           .select(`
@@ -1070,6 +1070,8 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
             date,
             home_team,
             away_team,
+            team_home_id,
+            team_away_id,
             score_home,
             score_away,
             status,
@@ -1087,6 +1089,25 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
           .order('date', { ascending: true });
         if (re) throw re;
 
+        const matches = (raws ?? []) as any[];
+
+        // 3) Fetch logos des équipes
+        const teamIds = Array.from(
+          new Set(matches.flatMap(m => [m.team_home_id, m.team_away_id]).filter(Boolean))
+        );
+
+        const { data: teams, error: te } = await supabase
+          .from('teams')
+          .select('id, logo')
+          .in('id', teamIds);
+
+        if (te) throw te;
+
+        const logosMap: Record<number, string> = Object.fromEntries(
+          (teams ?? []).map(t => [t.id, t.logo])
+        );
+
+
         // 4) Fetch des picks posés dans grid_matches
         const { data: rawGridMatches, error: gmError } = await supabase
           .from('grid_matches')
@@ -1095,16 +1116,15 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
         if (gmError) throw gmError;
 
         // 5) Fusionner tout pour construire le tableau final
-        const clean: MatchWithState[] = (raws || []).map((m) => {
+        const clean: any[] = (raws || []).map((m) => {
           const gm = rawGridMatches.find((gm) => gm.match_id === m.id);
-          const match = m as MatchWithState;
 
           return {
             ...m,
             pick: gm?.pick ?? undefined,
             points: gm?.points ?? 0,
-            fixture_id: match.fixture_id,
-            league_id: match.league_id,
+            home_logo: m.team_home_id ? logosMap[m.team_home_id] ?? null : null,
+            away_logo: m.team_away_id ? logosMap[m.team_away_id] ?? null : null,
           };
         });
 
@@ -1156,8 +1176,6 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
     const t = d ? Date.parse(d) : NaN;
     return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
   }
-
-
 
 const hasBielsaAlready = codesPlayed.includes('BIELSA');
 const hasAnyNotButs    = codesPlayed.some(c => c !== 'BUTS'); // couvre CROIX≠BIELSA, SCORE (ECART/CLEAN SHEET), SPECIAL (BOOST_x), etc.
@@ -1854,50 +1872,86 @@ return early ? (
                                       className="focus:outline-none"
                                     >
                                       {/* ton rendu d'icône bonus inchangé */}
-            {hasAnyBonusHere ? (
-                  <Image
-                    src={bonusLogos[firstCode]}
-                    alt={`${firstCode} bonus`}
-                    width={32}
-                    height={32}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <Image
-                    src={bonusLogos['INFO']}
-                    alt="bonus inconnu"
-                    width={32}
-                    height={32}
-                    className="rounded-full"
-                  />
-                )}
-              </button>
-            </div>
+                                      {hasAnyBonusHere ? (
+                                            <Image
+                                              src={bonusLogos[firstCode]}
+                                              alt={`${firstCode} bonus`}
+                                              width={32}
+                                              height={32}
+                                              className="rounded-full"
+                                            />
+                                          ) : (
+                                            <Image
+                                              src={bonusLogos['INFO']}
+                                              alt="bonus inconnu"
+                                              width={32}
+                                              height={32}
+                                              className="rounded-full"
+                                            />
+                                          )}
+                                        </button>
+                                      </div>
 
 
                                   {/* LIGNE 2 */}
+                                  {/* LIGNE 2 */}
                                   {(() => {
                                     const { label, color } = getMatchLabelAndColor(m.status ?? '');
+                                    const isNS = m.status === 'NS';
+
                                     return (
-                                      <div className={`text-center text-xs ${color}`}>
-                                        {label}
-                                      </div>
+                                      <>
+                                        <div className={`text-center text-xs ${color}`}>
+                                          {label}
+                                        </div>
+
+                                        <div className="text-center font-semibold">
+                                          {isNS ? (
+                                            (m as any).home_logo ? (
+                                              <img
+                                                src={(m as any).home_logo}
+                                                alt={m.home_team}
+                                                className="w-5 h-5 mx-auto object-contain"
+                                                loading="lazy"
+                                              />
+                                            ) : (
+                                              ''
+                                            )
+                                          ) : (
+                                            m.score_home ?? ''
+                                          )}
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
+                                          <div>{m.base_1_points ?? '-'}</div>
+                                          <div>{m.base_n_points ?? '-'}</div>
+                                          <div>{m.base_2_points ?? '-'}</div>
+                                        </div>
+
+                                        <div className="text-center font-semibold">
+                                          {isNS ? (
+                                            (m as any).away_logo ? (
+                                              <img
+                                                src={(m as any).away_logo}
+                                                alt={m.away_team}
+                                                className="w-5 h-5 mx-auto object-contain"
+                                                loading="lazy"
+                                              />
+                                            ) : (
+                                              ''
+                                            )
+                                          ) : (
+                                            m.score_away ?? ''
+                                          )}
+                                        </div>
+
+                                        <div className="text-center text-sm">
+                                          {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
+                                        </div>
+                                      </>
                                     );
                                   })()}
-                                  <div className="text-center font-semibold">
-                                    {m.score_home != null ? m.score_home : ''}
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
-                                    <div>{m.base_1_points ?? '-'}</div>
-                                    <div>{m.base_n_points ?? '-'}</div>
-                                    <div>{m.base_2_points ?? '-'}</div>
-                                  </div>
-                                  <div className="text-center font-semibold">
-                                    {m.score_away != null ? m.score_away : ''}
-                                  </div>
-                                  <div className="text-center text-sm">
-                                    {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
-                                  </div>
+
                                 </div>
                               )
                             })
