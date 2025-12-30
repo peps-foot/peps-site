@@ -384,7 +384,6 @@ async function handleGridDone() {
 
   if (gErr) throw new Error(gErr.message);
   log('grids candidates', grids?.length || 0);
-
   if (!grids?.length) return 0;
 
   const gridIds = grids.map((g) => String(g.id));
@@ -403,7 +402,6 @@ async function handleGridDone() {
 
   if (itErr) throw new Error(itErr.message);
   log('grid_items rows', items?.length || 0);
-
   if (!items?.length) return 0;
 
   // regrouper match_ids par grid_id
@@ -422,7 +420,6 @@ async function handleGridDone() {
 
   const allMatchIds = Array.from(allMatchIdsSet);
   log('unique match ids', allMatchIds.length);
-
   if (!allMatchIds.length) return 0;
 
   // 3) Charger les statuts des matchs concernés
@@ -440,13 +437,10 @@ async function handleGridDone() {
 
   // Statuts "fin de match"
   const FINISHED_STATUSES = new Set(['ET', 'BT', 'P', 'FT', 'AET', 'PEN']);
-  const isFinished = (s: any) =>
-    FINISHED_STATUSES.has(String(s || '').trim().toUpperCase());
+  const isFinished = (s: any) => FINISHED_STATUSES.has(String(s || '').trim().toUpperCase());
 
   // 4) Déterminer les grilles terminées
   const finishedGrids = new Set<string>();
-
-  // Petit probe sur une grille pour voir les statuts (si jamais ça sort 0)
   const probeGridId = gridIds[0];
 
   for (const gid of gridIds) {
@@ -466,10 +460,9 @@ async function handleGridDone() {
   }
 
   log('finishedGrids', { count: finishedGrids.size, sample: Array.from(finishedGrids).slice(0, 5) });
-
   if (!finishedGrids.size) return 0;
 
-  // 5) Marquer grid_done = true (avec check d'erreur !)
+  // 5) Marquer grid_done = true
   const { error: updErr } = await supabase
     .from('grids')
     .update({ grid_done: true })
@@ -478,21 +471,44 @@ async function handleGridDone() {
   if (updErr) throw new Error(updErr.message);
   log('grid_done update OK');
 
-  // 6) Participants (users liés à ces grilles) via grid_matches
-  const { data: participants, error: partErr } = await supabase
+  // 6) Players ayant "joué" la grille = (≥1 pick) OU (≥1 bonus)
+
+  // 6a) picks (au moins 1 pick non null)
+  const { data: pickPlayers, error: pickErr } = await supabase
     .from('grid_matches')
+    .select('grid_id, user_id')
+    .in('grid_id', Array.from(finishedGrids))
+    .not('pick', 'is', null);
+
+  if (pickErr) throw new Error(pickErr.message);
+  log('pickPlayers rows', pickPlayers?.length || 0);
+
+  // 6b) bonus (au moins 1 ligne dans grid_bonus)
+  const { data: bonusPlayers, error: bonusErr } = await supabase
+    .from('grid_bonus')
     .select('grid_id, user_id')
     .in('grid_id', Array.from(finishedGrids));
 
-  if (partErr) throw new Error(partErr.message);
-  log('participants rows', participants?.length || 0);
+  if (bonusErr) throw new Error(bonusErr.message);
+  log('bonusPlayers rows', bonusPlayers?.length || 0);
 
+  // merge dans usersByGrid
   const usersByGrid = new Map<string, Set<string>>();
-  for (const r of participants || []) {
-    const gid = String(r.grid_id);
-    const uid = String(r.user_id);
+  const addUG = (gridId: any, userId: any) => {
+    const gid = String(gridId);
+    const uid = String(userId);
     if (!usersByGrid.has(gid)) usersByGrid.set(gid, new Set());
     usersByGrid.get(gid)!.add(uid);
+  };
+
+  for (const r of pickPlayers || []) addUG(r.grid_id, r.user_id);
+  for (const r of bonusPlayers || []) addUG(r.grid_id, r.user_id);
+
+  // Debug : combien d'utilisateurs uniques par grille (joueurs ayant joué)
+  if (DEBUG) {
+    for (const gid of Array.from(finishedGrids)) {
+      log('played users in grid', { gid, count: (usersByGrid.get(gid)?.size || 0) });
+    }
   }
 
   // 7) Préférences allow_grid_done
@@ -526,7 +542,6 @@ async function handleGridDone() {
 
   if (tErr) throw new Error(tErr.message);
 
-  // Debug: vue globale des plateformes
   if (DEBUG) {
     const byPlatform: Record<string, number> = {};
     for (const t of tokensRows || []) {
@@ -538,7 +553,6 @@ async function handleGridDone() {
 
   function pickPreferredTokensForUser(uid: string): string[] {
     const rows = (tokensRows || []).filter((t) => String(t.user_id) === uid);
-
     for (const p of PLATFORM_PRIORITY) {
       const subset = rows
         .filter((r) => (r.platform as any) === p)
@@ -548,33 +562,47 @@ async function handleGridDone() {
     return [];
   }
 
-  // 9) Envoi
+  // 9) Envoi + push_log (push_log seulement si token OK)
   let sentCount = 0;
   const toDelete = new Set<string>();
+
+  const ONC = 'user_id,kind,grid_id';
 
   for (const gridId of Array.from(finishedGrids)) {
     const compId = gridToComp.get(gridId);
     if (!compId) continue;
 
     const allUsers = Array.from(usersByGrid.get(gridId) || []);
-    log('grid loop', { gridId, compId, usersInGrid: allUsers.length });
+    log('grid loop', { gridId, compId, playedUsers: allUsers.length });
 
-    const users = allUsers.filter((uid) => {
+    const eligibleUsers = allUsers.filter((uid) => {
       const eliminated = eliminatedByComp.has(`${uid}|${compId}`);
       return !offSet.has(uid) && !eliminated;
     });
 
-    log('eligible users', { gridId, count: users.length });
+    log('eligible users', { gridId, count: eligibleUsers.length });
 
-    for (const uid of users) {
-      // dédup via push_log
-      const ONC = 'user_id,kind,grid_id';
-      log('UPsert push_log using onConflict =', ONC);
+    for (const uid of eligibleUsers) {
+      // ✅ 1) tokens d'abord
+      const userTokens = pickPreferredTokensForUser(uid);
+      if (!userTokens.length) {
+        if (DEBUG) {
+          const rawRows = (tokensRows || []).filter((t) => String(t.user_id) === uid);
+          log('SKIP no token', {
+            uid,
+            rawTokenCount: rawRows.length,
+            platforms: rawRows.map((r) => String((r as any).platform)),
+            priority: PLATFORM_PRIORITY,
+          });
+        }
+        continue;
+      }
 
+      // ✅ 2) dédup (push_log) ensuite
       const { error: logErr } = await supabase
         .from('push_log')
         .upsert(
-          { user_id: uid, kind: 'GRID_DONE', match_id: null, grid_id: gridId },
+          { user_id: uid, kind: 'GRID_DONE', grid_id: gridId, match_id: null },
           { onConflict: ONC }
         );
 
@@ -583,21 +611,7 @@ async function handleGridDone() {
         continue;
       }
 
-      const userTokens = pickPreferredTokensForUser(uid);
-
-      // Debug important: si user a un token mais pas dans ta priorité plateforme
-      if (DEBUG && !userTokens.length) {
-        const rawRows = (tokensRows || []).filter((t) => String(t.user_id) === uid);
-        log('NO TOKENS PICKED for uid', {
-          uid,
-          rawTokenCount: rawRows.length,
-          platforms: rawRows.map((r) => String((r as any).platform)),
-          priority: PLATFORM_PRIORITY,
-        });
-      }
-
-      if (!userTokens.length) continue;
-
+      // ✅ 3) send
       await Promise.all(
         userTokens.map(async (t) => {
           try {
@@ -640,4 +654,5 @@ async function handleGridDone() {
   log('DONE sentCount', sentCount);
   return sentCount;
 }
+
 
