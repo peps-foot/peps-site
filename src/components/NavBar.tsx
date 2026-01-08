@@ -126,6 +126,7 @@ export function NavBar() {
     { label: 'RÈGLES', href: '/regles' },
     { label: 'PEPS+', href: '/peps-plus' },
     { label: 'NOTIFS', href: '/notifications' },
+    { label: 'CARRIERE', href: '/carriere' },
     //{ label: 'PARTENAIRES', href: '/partenaires' },
   ];
 

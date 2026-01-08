@@ -246,11 +246,15 @@ export default function Home() {
     </div>
 
     {/* MES COMPÉT' */}
-    <details open className="rounded-md border">
+    <details className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
           <span className="text-center w-full">🏆 MES COMPÉTITIONS 🏆</span>
-          <span className="text-xl">▼</span>
+
+          {/* flèche */}
+          <span className="text-xl transition-transform group-open:rotate-180">
+            ▼
+          </span>
         </div>
       </summary>
       <div className="p-2">
@@ -296,104 +300,112 @@ export default function Home() {
       CRÉER MA COMPÉTITION
     </button>
 
-    {/* À REJOINDRE */}
-    <details open className="rounded-md border">
+    {/* ✅ REJOINDRE UNE COMPÉT (PUBLIC) — toujours ouvert */}
+    <details open className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
           <span className="text-center w-full">➕ REJOINDRE UNE COMPÉT ➕</span>
-          <span className="text-xl">▼</span>
+          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
         </div>
       </summary>
-      <div className="p-2 space-y-4">
-        {/* 1. Compétitions publiques disponibles */}
-        <div>
-          <p className="px-2 py-1 text-sm font-semibold text-gray-700">
-            Compétitions publiques disponibles
+
+      <div className="p-2">
+
+        {toJoin.length === 0 && (
+          <p className="px-2 py-1 text-sm text-gray-600">
+            Rien à rejoindre pour l’instant.
           </p>
-          {toJoin.length === 0 && (
-            <p className="px-2 py-1 text-sm text-gray-600">
-              Rien à rejoindre pour l’instant.
-            </p>
-          )}
-          {toJoin.map((comp) => (
-            <div
-              key={comp.id}
-              className="bg-blue-100 rounded-md p-3 shadow flex items-center justify-between mb-2"
-            >
-              <div className="flex items-center space-x-3">
-                <Image
-                  src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
-                  alt={comp.name}
-                  width={48}
-                  height={48}
-                  className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
-                />
-                <div>
-                  <p className="text-green-600 font-bold">{comp.name}</p>
-                  <p className="text-sm text-gray-800">{comp.mode}</p>
-                </div>
+        )}
+
+        {toJoin.map((comp) => (
+          <div
+            key={comp.id}
+            className="bg-blue-100 rounded-md p-3 shadow flex items-center justify-between mb-2"
+          >
+            <div className="flex items-center space-x-3">
+              <Image
+                src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
+                alt={comp.name}
+                width={48}
+                height={48}
+                className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+              />
+              <div>
+                <p className="text-green-600 font-bold">{comp.name}</p>
+                <p className="text-sm text-gray-800">{comp.mode}</p>
               </div>
-              {/* Bouton JOUER -> pop-up de confirmation puis RPC generate_grid_matches_for_user */}
-<CompetitionStatusBadge
-  competitionId={comp.id}
-  mode={comp.mode}
-  isMember={false}
-  allFT={false}
-  hasNS={true}
-  onClick={() => handleJoinPublicCompetition(comp)}
-/>
             </div>
-          ))}
-        </div>
 
-        {/* 2. Rejoindre avec un code */}
-        <div className="border-t pt-3">
-          <p className="px-2 py-1 text-sm font-semibold text-gray-700">
-            Rejoindre une compétition privée avec un code
-          </p>
-          <div className="flex items-center gap-2 px-2">
-            <input
-              type="text"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              placeholder="Code"
-              className="
-                flex-1
-                min-w-0
-                rounded-md
-                border
-                px-2
-                py-2
-                text-sm
-                uppercase
-                tracking-wider
-                sm:px-3
-              "
+            <CompetitionStatusBadge
+              competitionId={comp.id}
+              mode={comp.mode}
+              isMember={false}
+              allFT={false}
+              hasNS={true}
+              onClick={() => handleJoinPublicCompetition(comp)}
             />
-
-            <button
-              type="button"
-              className="
-                shrink-0
-                rounded-md
-                bg-blue-600
-                px-3
-                py-2
-                text-sm
-                font-semibold
-                text-white
-                hover:bg-blue-700
-                sm:px-4
-              "
-              onClick={handleJoinByCode}
-            >
-              Rejoindre
-            </button>
           </div>
-          {joinCodeError && (
-            <p className="px-2 pt-1 text-xs text-red-600">{joinCodeError}</p>
-          )}
+        ))}
+      </div>
+    </details>
+
+    {/* ✅ T'AS UN CODE ?? — fermé par défaut */}
+    <details className="group rounded-md border">
+      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
+        <div className="flex items-center justify-between">
+          <span className="text-center w-full">🔑 T’AS UN CODE ?? 🔑</span>
+          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
         </div>
+      </summary>
+
+      <div className="p-2">
+        <p className="px-2 py-1 text-sm font-semibold text-gray-700">
+          Rejoindre une compétition privée avec un code
+        </p>
+
+        <div className="flex items-center gap-2 px-2">
+          <input
+            type="text"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            placeholder="Code"
+            className="
+              flex-1
+              min-w-0
+              rounded-md
+              border
+              px-2
+              py-2
+              text-sm
+              uppercase
+              tracking-wider
+              sm:px-3
+            "
+          />
+
+          <button
+            type="button"
+            className="
+              shrink-0
+              rounded-md
+              bg-blue-600
+              px-3
+              py-2
+              text-sm
+              font-semibold
+              text-white
+              hover:bg-blue-700
+              sm:px-4
+            "
+            onClick={handleJoinByCode}
+          >
+            Rejoindre
+          </button>
+        </div>
+
+        {joinCodeError && (
+          <p className="px-2 pt-1 text-xs text-red-600">{joinCodeError}</p>
+        )}
       </div>
     </details>
 

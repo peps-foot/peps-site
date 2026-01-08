@@ -795,6 +795,44 @@ useEffect(() => {
     updateOnce();
   }, [grid?.id, user?.id]);
 
+// pour savoir si une compétition donne des XP ou pas
+const [xpEnabled, setXpEnabled] = useState(false);
+
+useEffect(() => {
+  if (!gridId) return;
+
+  (async () => {
+    // 1) récupérer competition_id depuis la grille
+    const { data: g, error: gErr } = await supabase
+      .from('grids')
+      .select('competition_id')
+      .eq('id', gridId)
+      .single();
+
+    if (gErr || !g?.competition_id) {
+      setXpEnabled(false);
+      return;
+    }
+
+    // 2) récupérer xp_enabled depuis la compétition
+    const { data: c, error: cErr } = await supabase
+      .from('competitions')
+      .select('xp_enabled')
+      .eq('id', g.competition_id)
+      .single();
+
+    if (cErr) {
+      setXpEnabled(false);
+      return;
+    }
+
+    setXpEnabled(Boolean(c?.xp_enabled));
+  })();
+}, [gridId, supabase]);
+
+
+
+
   // 🍀 Initialise la grille avec des matchs à venir (ou la dernière)
 const LIVE_CODES = new Set(['1H', 'HT', '2H']);
 
@@ -864,7 +902,15 @@ useEffect(() => {
 
   (async () => {
     console.log('[init] start');
-    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    console.log('[AUTH] getUser()', {
+      error,
+      user_id: user?.id,
+      email: user?.email,
+      role: user?.role,
+    });
     setUser(user ?? null);
 
     // 🔴 Ne PAS appeler loadUserGrids si on n'a pas encore d'user
@@ -1619,6 +1665,7 @@ return early ? (
             <h2 className="text-center text-lg font-semibold text-gray-800 mb-3">
               Classement de la grille
             </h2>
+
           {!lbLoading && myRank !== null && (
             <div className="text-center text-base font-medium text-gray-800 my-6">
               Tu es <strong>{myRank}</strong>
@@ -1635,20 +1682,31 @@ return early ? (
                     <th className="text-left px-4 py-3">Position</th>
                     <th className="text-left px-4 py-3">Pseudo</th>
                     <th className="text-left px-4 py-3">Points</th>
+                    {xpEnabled && competition?.mode === 'CLASSIC' && (
+                      <th className="text-left px-4 py-3">XP</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {lbRows.map(row => {
-                    const me = row.user_id === user?.id;
-                    return (
-                      <tr key={row.user_id}
-                          className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}>
-                        <td className="px-4 py-2">{row.rank}</td>
-                        <td className="px-4 py-2">{row.username}</td>
-                        <td className="px-4 py-2">{row.total_points}</td>
-                      </tr>
-                    );
-                  })}
+{lbRows.map(row => {
+  const me = row.user_id === user?.id;
+  const xpClassic = Math.max(0, 11 - Number(row.rank || 0));
+
+  return (
+    <tr
+      key={row.user_id}
+      className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}
+    >
+      <td className="px-4 py-2">{row.rank}</td>
+      <td className="px-4 py-2">{row.username}</td>
+      <td className="px-4 py-2">{row.total_points}</td>
+
+      {xpEnabled && competition?.mode === 'CLASSIC' && (
+        <td className="px-4 py-2">{xpClassic}</td>
+      )}
+    </tr>
+  );
+})}
                 </tbody>
               </table>
             </div>
@@ -1892,8 +1950,6 @@ return early ? (
                                         </button>
                                       </div>
 
-
-                                  {/* LIGNE 2 */}
                                   {/* LIGNE 2 */}
                                   {(() => {
                                     const { label, color } = getMatchLabelAndColor(m.status ?? '');

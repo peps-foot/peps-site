@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../../../components/SupabaseProvider'
 import AdminPushPanel from '../../../components/AdminPushPanel';
+import AdminXpPanel from '../../../components/AdminXpPanel';
 import {addGridToCompetition,removeMatchFromGrid,removeGridFromCompetition,deleteGridEverywhere} from '../../../lib/adminGridActions';
 
 
@@ -23,7 +24,7 @@ type Grid = {
 export default function AdminGridsPage() {
   const supabase = useSupabase()
   // --- Onglets CRUD ---
-  const [tab, setTab] = useState<'create' | 'list' | 'compet' | 'competList' | 'push'>('create');
+  const [tab, setTab] = useState<'create' | 'list' | 'compet' | 'competList' | 'push' | 'xp'>('create');
   // États pour création/édition compétition
   const [competName, setCompetName] = useState('');
   const [selCompetGrids, setSelCompetGrids] = useState<string[]>([]);
@@ -335,10 +336,11 @@ export default function AdminGridsPage() {
         <button className={`px-4 py-2 -mb-px ${tab==='create'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('create')}>
           {gridId?'Modifier une grille':'Créer une grille'}
         </button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='list'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('list')}>Liste des grilles</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='compet'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('compet')}>Compétitions</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='competList'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('competList')}>Liste des compétitions</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='push' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('push')} >Notifications</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='list'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('list')}>Liste grilles</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='compet'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('compet')}>Créer Compét</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='competList'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('competList')}>Liste compét</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='push' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('push')} >Notifs</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='xp' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}  onClick={() => setTab('xp')} >XP</button>
       </div>
 
       {/* Création / Modification */}
@@ -662,6 +664,12 @@ export default function AdminGridsPage() {
   </div>
 )}
 
+{/* Pour ajouter des XP */}
+{tab === 'xp' && (
+  <div className="mt-6">
+    <AdminXpPanel />
+  </div>
+)}
     </div>
 );
 }
