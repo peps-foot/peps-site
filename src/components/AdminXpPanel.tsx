@@ -409,6 +409,7 @@ export default function AdminXpPanel() {
         {/* Petite liste filtrée selon le mode */}
         {(() => {
           const visibleGrids = grids.filter(g => {
+            if (!g.competition_id) return false;
             const cmode = compModeById[g.competition_id];
             if (mode === 'grid') return cmode === 'CLASSIC';
             if (mode === 'tournament') return cmode === 'TOURNOI';
