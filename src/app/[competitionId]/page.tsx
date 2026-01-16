@@ -15,6 +15,7 @@ type BonusParameters = {
 type LeaderboardRow = {
   user_id: string;
   username: string;
+  avatar: string | null;
   total_points: number;
   rank: number;
 };
@@ -60,6 +61,7 @@ import { handleBonusValidateSpeciaux }  from "../../features/bonus/handlersSpeci
 import { computeOverlay } from '../../features/bonus/computeOverlay';
 import type { OverlayEntry } from '../../features/bonus/computeOverlay';
 import CompetitionInfoPanel from "../../components/CompetitionInfoPanel";
+import { isTournamentCompetition, getGateImageSrc } from '../../lib/gateImages';
 
 
 import supabase from '../../lib/supabaseBrowser';
@@ -77,14 +79,6 @@ const bonusLogos: Record<string,string> = {
   "BOOST_2" : '/images/bonus/boost_2.png',
   "BOOST_3" : '/images/bonus/boost_3.png',
   "INFO" : '/images/info.png',  
-};
-
-const ELIM_IMAGES: Record<string, string> = {
-  shark: '/images/elimine/shark.png',
-  totem: '/images/elimine/totem.png',
-  terminator: '/images/elimine/terminator.png',
-  spectateur: '/images/elimine/spectateur.png',
-  default: '/images/elimine/default.png',
 };
 
 export default function HomePage() {
@@ -128,7 +122,7 @@ export default function HomePage() {
   const searchParams  = useSearchParams();
   type View = 'grid' | 'rankGrid' | 'rankGeneral' | 'info';
   // accordéon pour la grille
-  const [openGrille, setOpenGrille] = useState(true); // ouverte par défaut
+  const [openGrille, setOpenGrille] = useState(false); // fermée par défaut
   
   const viewParam = (searchParams?.get('view') as View) || 'grid';
   const [view, setView] = useState<View>(viewParam);
@@ -629,12 +623,19 @@ const hasCroix   = (defsCroix?.length ?? 0) > 0;
 const hasScore   = (defsScore?.length ?? 0) > 0;
 const hasSpecial = (specialsForUser?.length ?? 0) > 0;
 useEffect(() => {
-  if (touched) return;           // ne pas écraser un clic utilisateur
-  setOpenCroix(hasCroix);
-  setOpenScore(hasScore);
-  setOpenSpecial(hasSpecial);
+  if (touched) return; // ne pas écraser un clic utilisateur
+
+  // On ferme par défaut.
+  // Et si le bonus n’existe pas, on force fermé (sécurité).
+  if (!hasCroix) setOpenCroix(false);
+  if (!hasScore) setOpenScore(false);
+  if (!hasSpecial) setOpenSpecial(false);
 }, [hasCroix, hasScore, hasSpecial, touched]);
 
+// Pour gérer l'affichage de TERMINATOR, peut aussi être gérer avec le user_id
+const TERMINATOR_USERNAME = 'TERMINATOR';
+const isTerminator = (row: LeaderboardRow) =>
+  row.username === TERMINATOR_USERNAME;
 
   // 1) IDs pour le "gate"
   const userId = user?.id ?? null;
@@ -643,8 +644,6 @@ useEffect(() => {
   // 2) Déduire le mode + variante image
 const modeRaw = String(competition?.mode ?? '');
 const mode: 'CLASSIC' | 'TOURNOI' = modeRaw.trim().toUpperCase() === 'TOURNOI' ? 'TOURNOI' : 'CLASSIC';
-
-  const elimVariant = getElimVariant(competition?.name ?? '');
 
   // 6) Gate
   const gate = usePlayerGate(userId, competitionId, gridId || '', mode);
@@ -749,23 +748,12 @@ if (!loadingGrids && grids.length > 0 && !gridId) {
     setMyRank(rows.find(r => r.user_id === user?.id)?.rank ?? null);
   }
 
-  // pour afficher l'image éliminé dans le mode TOURNOI
-  function getElimVariant(competitionName: string) {
-    const n = (competitionName || '').toLowerCase();
-    if (n.includes('shark')) return 'shark';
-    if (n.includes('totem')) return 'totem';
-    if (n.includes('terminator')) return 'terminator';
-    return 'default';
+// fermeture automatique selon le status (mais jamais ouverture auto)
+useEffect(() => {
+  if (gate.state === 'elimine' || gate.state === 'spectateur') {
+    setOpenGrille(false);
   }
-
-  // ouverture de la grille selon le status
-  useEffect(() => {
-  if (gate.state === 'joueur') {
-    setOpenGrille(true);       // joueur → ouvert
-  } else if (gate.state === 'elimine' || gate.state === 'spectateur') {
-    setOpenGrille(false);      // éliminé / spectateur → fermé
-  }
-  // pour 'loading', on ne touche à rien, on garde la valeur actuelle
+  // si 'joueur' ou 'loading' : on ne touche à rien
 }, [gate.state]);
 
   //Gestion de la view
@@ -1679,7 +1667,8 @@ return early ? (
               <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                 <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                   <tr>
-                    <th className="text-left px-4 py-3">Position</th>
+                    <th className="text-left px-4 py-3"></th>
+                    <th className="text-left px-4 py-3"></th>
                     <th className="text-left px-4 py-3">Pseudo</th>
                     <th className="text-left px-4 py-3">Points</th>
                     {xpEnabled && competition?.mode === 'CLASSIC' && (
@@ -1690,23 +1679,59 @@ return early ? (
                 <tbody>
 {lbRows.map(row => {
   const me = row.user_id === user?.id;
+  const terminator = isTerminator(row);
   const xpClassic = Math.max(0, 11 - Number(row.rank || 0));
+
+  const rowClass = me
+    ? 'bg-orange-100 font-bold'
+    : terminator
+      ? 'bg-gray-200 font-semibold'
+      : 'hover:bg-gray-50';
 
   return (
     <tr
       key={row.user_id}
-      className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}
+      className={`border-t transition ${rowClass}`}
     >
+      {/* Position */}
       <td className="px-4 py-2">{row.rank}</td>
-      <td className="px-4 py-2">{row.username}</td>
+
+      {/* Avatar */}
+      <td className="px-4 py-2">
+        {row.avatar ? (
+          <Image
+            src={row.avatar}
+            alt={`Avatar ${row.username}`}
+            width={28}
+            height={28}
+            className="rounded-full object-cover"
+          />
+        ) : (
+          <div className="w-7 h-7" />
+        )}
+      </td>
+
+      {/* Pseudo */}
+      <td className="px-4 py-2">
+        {row.username}
+        {terminator && (
+          <span className="ml-2 text-xs text-gray-700">
+            (à battre)
+          </span>
+        )}
+      </td>
+
+      {/* Points */}
       <td className="px-4 py-2">{row.total_points}</td>
 
+      {/* XP */}
       {xpEnabled && competition?.mode === 'CLASSIC' && (
         <td className="px-4 py-2">{xpClassic}</td>
       )}
     </tr>
   );
 })}
+
                 </tbody>
               </table>
             </div>
@@ -2021,18 +2046,13 @@ return early ? (
         {/* ── BONUS ── */}
         <div className="w-full lg:w-1/3 space-y-4">
           {/* Gate sur le BONUS */}
-          {gate.state !== 'joueur' ? (
-            // Cas spectateur / éliminé : on affiche l'image
-            <img
-              src={
-                gate.state === 'elimine'
-                  ? ELIM_IMAGES[elimVariant]
-                  : ELIM_IMAGES['spectateur']
-              }
-              alt={gate.state === 'elimine' ? 'Éliminé' : 'Spectateur'}
-              className="w-full h-auto rounded-lg shadow-md"
-            />
-          ) : (
+{isTournamentCompetition(competition) && (gate.state === 'elimine' || gate.state === 'spectateur') ? (
+  <img
+    src={getGateImageSrc({ gateState: gate.state, competition })}
+    alt={gate.state === 'elimine' ? 'Éliminé' : 'Spectateur'}
+    className="w-full h-auto rounded-lg shadow-md"
+  />
+) : (
             <>
               {/* Accordéon CROIX */}
               <div className="border rounded-lg">
@@ -2101,7 +2121,7 @@ return early ? (
                   className="w-full flex items-center justify-between px-4 py-3"
                 >
                   <span className="font-semibold text-center w-full">
-                    Joue ton bonus SPÉCIAL
+                    T'as un bonus SPÉCIAL ?
                   </span>
                   <span className="text-xl">{openSpecial ? "▲" : "▼"}</span>
                 </button>
