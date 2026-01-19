@@ -146,8 +146,6 @@ export default function HomePage() {
   //const [competition, setCompetition] = useState<{ id: string; name: string; mode: string } | null>(null);
   const [competition, setCompetition] = useState<any | null>(null);
   const [competitionReady, setCompetitionReady] = useState(false);
-  console.log("🔍 competitionId reçu :", competitionId);
-
 
   //pour afficher zones GRILLES/BONUS suivant le mode CLASSIC/TOURNOI
   // 1) Charger name + mode depuis la table competitions
