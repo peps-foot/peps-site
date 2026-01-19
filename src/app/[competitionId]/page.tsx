@@ -148,6 +148,7 @@ export default function HomePage() {
   const [competitionReady, setCompetitionReady] = useState(false);
   console.log("🔍 competitionId reçu :", competitionId);
 
+
   //pour afficher zones GRILLES/BONUS suivant le mode CLASSIC/TOURNOI
   // 1) Charger name + mode depuis la table competitions
   useEffect(() => {
@@ -665,6 +666,8 @@ if (!loadingGrids && grids.length > 0 && !gridId) {
 
   // joueur ? sinon tout devient lecture seule
   const isReadOnly = gate.state !== 'joueur';
+  // joueur ? sinon lignes grisées dans "les pronos des autres"
+  const isEliminated = gate.state === 'elimine';
 
   // pour gérer l'affichage des cases 1N2 quand un bonus est joué.
   const { globalDisabled, byMatch } = React.useMemo(
@@ -1942,14 +1945,14 @@ return early ? (
 
                                         setShowPopup(true);
 
-            // Charge les autres pronos via la RPC simple (grille + match)
-            const { data, error } = await supabase.rpc('get_other_picks_basic', {
-              p_grid_id: grid.id,
-              p_match_id: m.id,
-              p_competition_id: competitionId,
-            });
+                                      // Charge les autres pronos via la RPC simple (grille + match)
+                                      const { data, error } = await supabase.rpc('get_other_picks_basic', {
+                                        p_grid_id: grid.id,
+                                        p_match_id: m.id,
+                                        p_competition_id: competitionId,
+                                      });
 
-            setOtherPicks(data ?? []);
+                                      setOtherPicks(data ?? []);
 
                                       }}
                                       className="focus:outline-none"
@@ -1972,8 +1975,8 @@ return early ? (
                                               className="rounded-full"
                                             />
                                           )}
-                                        </button>
-                                      </div>
+                                     </button>
+                                  </div>
 
                                   {/* LIGNE 2 */}
                                   {(() => {
@@ -2242,64 +2245,70 @@ return early ? (
   const pick1 = p.pick_1 ?? (pickVal === '1');
   const pickN  = p.pick_n ?? (pickVal === 'N');
   const pick2 = p.pick_2 ?? (pickVal === '2');
-  
-  /* --- DEBUG BONUS (à coller ici) --- */
-const rawBonus = p?.bonus_code;
-const normBonus = typeof rawBonus === 'string'
-  ? rawBonus.trim().toUpperCase().replace(/\s+/g, '_')
-  : rawBonus;
 
-console.log('[popup] bonus for', p.username, {
-  raw: JSON.stringify(rawBonus),
-  norm: normBonus,
-  has_bonus: !!p?.has_bonus,
-  hit_raw: !!(rawBonus && bonusLogos[rawBonus as string]),
-  hit_norm: !!(normBonus && bonusLogos[normBonus as string]),
-});
-/* --- /DEBUG BONUS --- */
+  const bielsaShadow = !!p.has_bielsa_grid && !p.has_bonus;
 
-          const Square = ({ label, active }: { label: '1'|'N'|'2'; active: boolean }) => (
-            <span
-              role="button"
-              aria-pressed={active}
-              aria-disabled="true"
-              tabIndex={-1}
-              className={`relative inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md border bg-white leading-none ${
-                active ? 'border-gray-700' : 'border-gray-300'
-              }`}
-              title={active ? `Pick ${label} (sélectionné)` : `Pick ${label}`}
-            >
-              {active ? (
-                // Croix pleine (2 diagonales), fine (2px)
-                <svg viewBox="0 0 30 30" className="absolute inset-0 block">
-                  <line x1="2" y1="2" x2="28" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="28" y1="2" x2="2" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              ) : (
-                // 1/N/2 normal (pas gras), un peu plus grand
-                <span className="text-[14px] font-normal text-gray-800">{label}</span>
-              )}
-            </span>
-          );
+const showDisabledSquares = bielsaShadow;
 
-          const bonusSrc =
-            p.bonus_code && bonusLogos[p.bonus_code]
-              ? bonusLogos[p.bonus_code]
-              : p.has_bonus
-                ? bonusLogos['INFO']
-                : null;
-                console.log('[popup] bonusLogos keys:', Object.keys(bonusLogos));
+// si BIELSA shadow : on force aucune croix
+const pick1Final = showDisabledSquares ? false : pick1;
+const pickNFinal = showDisabledSquares ? false : pickN;
+const pick2Final = showDisabledSquares ? false : pick2;
 
+const Square = ({ label, active, disabled }: { label: '1'|'N'|'2'; active: boolean; disabled?: boolean }) => (
+  <span
+    aria-disabled="true"
+    tabIndex={-1}
+    className={`relative inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md border leading-none
+      ${disabled ? 'bg-gray-200 border-gray-300' : 'bg-white'}
+      ${active ? 'border-gray-700' : disabled ? 'border-gray-300' : 'border-gray-300'}
+    `}
+    title={
+      disabled
+        ? `BIELSA actif sur la grille`
+        : active
+          ? `Pick ${label} (sélectionné)`
+          : `Pick ${label}`
+    }
+  >
+    {active ? (
+      <svg viewBox="0 0 30 30" className="absolute inset-0 block">
+        <line x1="2" y1="2" x2="28" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+        <line x1="28" y1="2" x2="2" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ) : (
+      <span className={`text-[14px] font-normal ${disabled ? 'text-gray-400' : 'text-gray-800'}`}>
+        {label}
+      </span>
+    )}
+  </span>
+);
+
+const hasBielsaGrid = !!p.has_bielsa_grid;
+
+const bonusSrc =
+  p.bonus_code && bonusLogos[p.bonus_code]
+    ? bonusLogos[p.bonus_code]
+    : p.has_bonus
+      ? bonusLogos['INFO']
+      : hasBielsaGrid
+        ? bonusLogos['BIELSA']
+        : null;
 
           // 🔸 surlignage “comme le classement”
-          const isMe = p.user_id === user?.id; // <= même pattern que ton leaderboard
+          const isMe = p.user_id === user?.id; // pour colorer la ligne du joueur
+          const isOut = !!p.is_eliminated; // pour griser les lignes des éliminés en TOURNOI
 
           return (
             <li
               key={p.user_id}
-              className={`grid h-[32px] grid-cols-7 px-3 rounded-xl border ${
-                isMe ? 'bg-orange-100 border-orange-300' : 'bg-white border-gray-300'
-              }`}
+className={`grid h-[32px] grid-cols-7 px-3 rounded-xl border ${
+  isMe
+    ? 'bg-orange-100 border-orange-300'
+    : isOut
+      ? 'bg-gray-300 border-gray-500 text-gray-600 opacity-75 grayscale'
+      : 'bg-white border-gray-300'
+}`}
               aria-current={isMe ? 'true' : undefined}
             >
               {/* 1–3 : pseudo */}
@@ -2314,21 +2323,21 @@ console.log('[popup] bonus for', p.username, {
               {/* 4 : 1 */}
               <div className="col-span-1 h-full">
                 <div className="flex h-full items-center justify-center">
-                  <Square label="1" active={pick1} />
+                  <Square label="1" active={pick1Final} disabled={showDisabledSquares} />
                 </div>
               </div>
 
               {/* 5 : N */}
               <div className="col-span-1 h-full">
                 <div className="flex h-full items-center justify-center">
-                  <Square label="N" active={pickN} />
+                  <Square label="N" active={pickNFinal} disabled={showDisabledSquares} />
                 </div>
               </div>
 
               {/* 6 : 2 */}
               <div className="col-span-1 h-full">
                 <div className="flex h-full items-center justify-center">
-                  <Square label="2" active={pick2} />
+                  <Square label="2" active={pick2Final} disabled={showDisabledSquares} />
                 </div>
               </div>
 
@@ -2336,13 +2345,13 @@ console.log('[popup] bonus for', p.username, {
               <div className="col-span-1 h-full">
                 <div className="flex h-full items-center justify-end">
                   {bonusSrc && (
-                    <Image
-                      src={bonusSrc}
-                      alt="Bonus joué"
-                      width={30}
-                      height={30}
-                      className="block rounded-full"
-                    />
+  <Image
+    src={bonusSrc}
+    alt="Bonus joué"
+    width={30}
+    height={30}
+    className="block rounded-full"
+  />
                   )}
                 </div>
               </div>
