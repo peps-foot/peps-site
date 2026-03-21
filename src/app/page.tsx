@@ -246,7 +246,7 @@ export default function Home() {
     </div>
 
     {/* MES COMPÉT' */}
-    <details className="group rounded-md border">
+    <details open className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
           <span className="text-center w-full">🏆 MES COMPÉTITIONS 🏆</span>
