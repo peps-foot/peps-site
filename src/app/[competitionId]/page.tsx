@@ -122,7 +122,7 @@ export default function HomePage() {
   const searchParams  = useSearchParams();
   type View = 'grid' | 'rankGrid' | 'rankGeneral' | 'info';
   // accordéon pour la grille
-  const [openGrille, setOpenGrille] = useState(false); // fermée par défaut
+  const [openGrille, setOpenGrille] = useState(true); // ouvert par défaut
   
   const viewParam = (searchParams?.get('view') as View) || 'grid';
   const [view, setView] = useState<View>(viewParam);
