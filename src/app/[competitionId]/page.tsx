@@ -673,12 +673,14 @@ if (!loadingGrids && grids.length > 0 && !gridId) {
     [bonusDefs, gridBonuses]
   );
 
-    // 👉 Format FR pour la date
-    const fmtDate = (d: string) =>
-      new Date(d).toLocaleString('fr-FR',{
-        day:'2-digit', month:'2-digit',
-        hour:'2-digit', minute:'2-digit'
-      }).replace(/\u202F/g,' ');
+  // 👉 Format FR pour la date suivant les zones du monde.
+  const fmtDate = (d: string) =>
+     new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+  }).format(new Date(d)).replace(/\u202F/g, ' ');
 
   // 👉 Format FR pour le status des matchs
   const getMatchLabelAndColor = (status: string) => {

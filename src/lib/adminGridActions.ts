@@ -1,4 +1,4 @@
-// Pour ajouter/supprimer des matchs/grilles via la zone admin
+// Pour ajouter/supprimer des matchs/grilles/tickets via la zone admin
 
 import  supabase  from './supabaseBrowser';
 
@@ -42,4 +42,60 @@ export async function deleteGridEverywhere(gridId: string) {
     p_grid_id: gridId,
   });
   if (error) throw new Error('deleteGridEverywhere: ' + error.message);
+}
+
+/** 5) Ajouter un ticket à une compétition */
+export async function addTicketToCompetition(compId: string, ticketId: string) {
+  const { error: insErr } = await supabase
+    .from('competition_tickets')
+    .insert({ competition_id: compId, ticket_id: ticketId })
+    .select();
+
+  if (insErr) throw new Error('addTicketToCompetition: ' + insErr.message);
+
+  const { error: updErr } = await supabase
+    .from('tierce_tickets')
+    .update({ competition_id: compId })
+    .eq('id', ticketId);
+
+  if (updErr) throw new Error('addTicketToCompetition tierce_tickets.update: ' + updErr.message);
+}
+
+/** 6) Retirer un ticket d’une compétition (detach propre) */
+export async function removeTicketFromCompetition(compId: string, ticketId: string) {
+  const { error: delErr } = await supabase
+    .from('competition_tickets')
+    .delete()
+    .eq('competition_id', compId)
+    .eq('ticket_id', ticketId);
+
+  if (delErr) throw new Error('removeTicketFromCompetition competition_tickets.delete: ' + delErr.message);
+
+  const { error: updErr } = await supabase
+    .from('tierce_tickets')
+    .update({ competition_id: null })
+    .eq('id', ticketId)
+    .eq('competition_id', compId);
+
+  if (updErr) throw new Error('removeTicketFromCompetition tierce_tickets.update: ' + updErr.message);
+}
+
+/** 7) Retirer un match d’un ticket */
+export async function removeMatchFromTicket(ticketId: string, matchId: number | string) {
+  const { error } = await supabase
+    .from('tierce_ticket_matches')
+    .delete()
+    .eq('ticket_id', ticketId)
+    .eq('match_id', String(matchId));
+
+  if (error) throw new Error('removeMatchFromTicket: ' + error.message);
+}
+
+/** 8) Supprimer le ticket PARTOUT */
+export async function deleteTicketEverywhere(ticketId: string) {
+  const { error } = await supabase.rpc('admin_delete_ticket_everywhere', {
+    p_ticket_id: ticketId,
+  });
+
+  if (error) throw new Error('deleteTicketEverywhere: ' + error.message);
 }
