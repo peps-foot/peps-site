@@ -463,6 +463,11 @@ export default function AdminGridsPage() {
           ...cs
         ]);
 
+        if (!compId) {
+          setMessage("❌ Compétition introuvable");
+          return;
+        }
+
         if (competGameType === 'GRID' && selCompetGrids.length) {
           for (const gid of selCompetGrids) {
             await addGridToCompetition(compId, gid);
