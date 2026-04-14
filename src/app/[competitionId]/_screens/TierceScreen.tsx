@@ -984,65 +984,72 @@ export default function TierceScreen({
 
                       return (
                         <div key={match.id} className="border rounded-lg px-3 py-2">
-                          {/* DESKTOP */}
-                          <div className="hidden md:grid grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-2">
-                            {/* Colonne 1 */}
-                            <div className="text-center leading-tight">
+                          <div className="grid grid-cols-[16%_26%_10%_10%_26%_12%] md:grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-1 md:gap-2">
+                            {/* Colonne 1 - Date / Heure / Status */}
+                            <div className="text-center leading-tight text-[10px] md:text-sm">
                               <div className="font-medium">
-                                {new Date(match.date).toLocaleString('fr-FR', {
+                                {new Date(match.date).toLocaleDateString('fr-FR', {
                                   day: '2-digit',
                                   month: '2-digit',
+                                })}
+                              </div>
+                              <div>
+                                {new Date(match.date).toLocaleTimeString('fr-FR', {
                                   hour: '2-digit',
                                   minute: '2-digit',
                                 })}
                               </div>
-                              <div className={`text-xs mt-0.5 ${status.color}`}>
+                              <div className={`mt-0.5 ${status.color}`}>
                                 {status.label}
                               </div>
                             </div>
 
-                            {/* Colonne 2 */}
-                            <div className="text-center">
-                              <div className="font-semibold text-[15px] leading-tight">{match.home_team}</div>
-                              <div className="text-sm text-gray-600 mt-0.5 leading-tight">
-                                V: {homeTriplet.v ?? '-'} | N: {homeTriplet.n ?? '-'} | D: {homeTriplet.d ?? '-'}
+                            {/* Colonne 2 - Home */}
+                            <div className="text-center leading-tight min-w-0">
+                              <div className="font-semibold text-[11px] md:text-[15px] truncate">
+                                {match.short_name_home || match.home_team}
+                              </div>
+                              <div className="text-[10px] md:text-sm text-gray-600 truncate">
+                                {homeTriplet.v ?? '-'} | {homeTriplet.n ?? '-'} | {homeTriplet.d ?? '-'}
                               </div>
                             </div>
 
-                            {/* Colonne 3 */}
-                            <div className="text-center">
-                              <div className="text-[18px] font-semibold leading-none">
+                            {/* Colonne 3 - Score + perf home */}
+                            <div className="text-center leading-tight">
+                              <div className="text-[14px] md:text-[18px] font-semibold leading-none">
                                 {match.score_home ?? '-'}
                               </div>
-                              <div className={`mt-1 inline-flex items-center justify-center min-w-[40px] h-7 rounded-full border text-sm font-semibold px-2 leading-none ${perfClass}`}>
+                              <div className={`mt-0.5 inline-flex items-center justify-center min-w-[34px] md:min-w-[40px] h-6 md:h-7 rounded-full border text-[10px] md:text-sm font-semibold px-1.5 md:px-2 leading-none ${perfClass}`}>
                                 {perf ? perf.home_total : '-'}
                               </div>
                             </div>
 
-                            {/* Colonne 4 */}
-                            <div className="text-center">
-                              <div className="text-[18px] font-semibold leading-none">
+                            {/* Colonne 4 - Score + perf away */}
+                            <div className="text-center leading-tight">
+                              <div className="text-[14px] md:text-[18px] font-semibold leading-none">
                                 {match.score_away ?? '-'}
                               </div>
-                              <div className={`mt-1 inline-flex items-center justify-center min-w-[40px] h-7 rounded-full border text-sm font-semibold px-2 leading-none ${perfClass}`}>
+                              <div className={`mt-0.5 inline-flex items-center justify-center min-w-[34px] md:min-w-[40px] h-6 md:h-7 rounded-full border text-[10px] md:text-sm font-semibold px-1.5 md:px-2 leading-none ${perfClass}`}>
                                 {perf ? perf.away_total : '-'}
                               </div>
                             </div>
 
-                            {/* Colonne 5 */}
-                            <div className="text-center">
-                              <div className="font-semibold text-[15px] leading-tight">{match.away_team}</div>
-                              <div className="text-sm text-gray-600 mt-0.5 leading-tight">
-                                V: {awayTriplet.v ?? '-'} | N: {awayTriplet.n ?? '-'} | D: {awayTriplet.d ?? '-'}
+                            {/* Colonne 5 - Away */}
+                            <div className="text-center leading-tight min-w-0">
+                              <div className="font-semibold text-[11px] md:text-[15px] truncate">
+                                {match.short_name_away || match.away_team}
+                              </div>
+                              <div className="text-[10px] md:text-sm text-gray-600 truncate">
+                                {awayTriplet.v ?? '-'} | {awayTriplet.n ?? '-'} | {awayTriplet.d ?? '-'}
                               </div>
                             </div>
 
-                            {/* Colonne 6 */}
+                            {/* Colonne 6 - VAR */}
                             <div className="flex justify-center items-center">
                               <button
                                 type="button"
                                 onClick={() => openMatchVar(match.id)}
-                                className="w-10 h-10 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden"
+                                className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0"
                               >
                                 <Image
                                   src="/images/info.png"
@@ -1052,70 +1059,6 @@ export default function TierceScreen({
                                   className="rounded-full object-cover"
                                 />
                               </button>
-                            </div>
-                          </div>
-
-                          {/* MOBILE */}
-                          <div className="md:hidden space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-xs leading-tight">
-                                <div className="font-medium">
-                                  {new Date(match.date).toLocaleString('fr-FR', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })}
-                                </div>
-                                <div className={status.color}>{status.label}</div>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => openMatchVar(match.id)}
-                                className="w-9 h-9 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0"
-                              >
-                                <Image
-                                  src="/images/info.png"
-                                  alt="VAR"
-                                  width={36}
-                                  height={36}
-                                  className="rounded-full object-cover"
-                                />
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                              {/* HOME */}
-                              <div className="text-left min-w-0">
-                                <div className="font-semibold text-sm truncate">{match.home_team}</div>
-                                <div className="text-xs text-gray-600 truncate">
-                                  V: {homeTriplet.v ?? '-'} | N: {homeTriplet.n ?? '-'} | D: {homeTriplet.d ?? '-'}
-                                </div>
-                              </div>
-
-                              {/* CENTRE */}
-                              <div className="flex flex-col items-center gap-1">
-                                <div className="text-sm font-semibold">
-                                  {match.score_home ?? '-'} - {match.score_away ?? '-'}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <div className={`inline-flex items-center justify-center min-w-[36px] h-7 rounded-full border text-xs font-semibold px-2 ${perfClass}`}>
-                                    {perf ? perf.home_total : '-'}
-                                  </div>
-                                  <div className={`inline-flex items-center justify-center min-w-[36px] h-7 rounded-full border text-xs font-semibold px-2 ${perfClass}`}>
-                                    {perf ? perf.away_total : '-'}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* AWAY */}
-                              <div className="text-right min-w-0">
-                                <div className="font-semibold text-sm truncate">{match.away_team}</div>
-                                <div className="text-xs text-gray-600 truncate">
-                                  V: {awayTriplet.v ?? '-'} | N: {awayTriplet.n ?? '-'} | D: {awayTriplet.d ?? '-'}
-                                </div>
-                              </div>
                             </div>
                           </div>
                         </div>
