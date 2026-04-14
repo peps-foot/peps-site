@@ -903,7 +903,7 @@ export default function TierceScreen({
                   </h2>
 
                   <div className="space-y-2 min-w-[820px]">
-                    <div className="grid grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-2">
+                    <div className="grid grid-cols-[8%_30%_28%_20%_14%] border-b font-semibold text-sm items-center">
                       <div className="p-2 text-center">#</div>
                       <div className="p-2">Équipe</div>
                       <div className="p-2 text-center">V/N/D</div>
@@ -918,7 +918,7 @@ export default function TierceScreen({
                     ].map((row) => (
                       <div
                         key={row.order}
-                        className="grid grid-cols-[8%_30%_28%_20%_14%] border-b font-semibold text-sm"
+                        className="grid grid-cols-[8%_30%_28%_20%_14%] border-b text-sm items-center"
                       >
                         <div className="p-2 text-center">{row.order}</div>
                         <div className="p-2">{row.teamName}</div>
@@ -931,7 +931,7 @@ export default function TierceScreen({
                             type="button"
                             onClick={() => openVar(row.order as 1 | 2 | 3)}
                             disabled={row.teamName.includes('non choisie')}
-                            className="w-10 h-10 shrink-0 rounded-full border border-black bg-white p-[2px] flex items-center justify-center disabled:opacity-40"
+                            className="relative w-10 h-10 shrink-0 rounded-full border border-black bg-white overflow-hidden disabled:opacity-40"
                             title="Voir le détail"
                           >
                             <Image
