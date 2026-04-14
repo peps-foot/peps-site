@@ -926,12 +926,12 @@ export default function TierceScreen({
                         <div className={`p-2 text-center font-semibold ${row.pointsClass}`}>
                           {row.displayPoints}
                         </div>
-                        <div className="flex justify-center items-center w-fit mx-auto">
+                        <div className="p-2 flex justify-center">
                           <button
                             type="button"
                             onClick={() => openVar(row.order as 1 | 2 | 3)}
                             disabled={row.teamName.includes('non choisie')}
-                            className="w-10 h-10 max-w-[40px] rounded-full border border-black bg-white flex items-center justify-center overflow-hidden"
+                            className="w-10 h-10 shrink-0 rounded-full border border-black bg-white p-[2px] flex items-center justify-center disabled:opacity-40"
                             title="Voir le détail"
                           >
                             <Image
@@ -1040,12 +1040,11 @@ export default function TierceScreen({
                             </div>
 
                             {/* Colonne 6 Bouton VAR */}
-                            <div className="flex justify-center items-center">
+                            <div className="flex justify-center items-center w-fit mx-auto">
                               <button
                                 type="button"
                                 onClick={() => openMatchVar(match.id)}
                                 className="w-10 h-10 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden"
-                                title="Voir le détail du match"
                               >
                                 <Image
                                   src="/images/info.png"
