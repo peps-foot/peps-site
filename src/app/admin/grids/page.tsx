@@ -767,7 +767,7 @@ export default function AdminGridsPage() {
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='list'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('list')}>Liste Grilles</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='compet'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('compet')}>Créer compét</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='competList'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('competList')}>Liste compét</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='push' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('push')} >Envoyer Notifs</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='push' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('push')} >Envoyer Notif</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='xp' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('xp')} >Donner XP</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='eliminations' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('eliminations')}>Créer Éliminé</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='boosts' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('boosts')}>Donner Boosts</button>
