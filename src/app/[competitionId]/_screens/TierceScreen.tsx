@@ -902,8 +902,8 @@ export default function TierceScreen({
                     MON TICKET
                   </h2>
 
-                  <div className="w-full">
-                    <div className="grid grid-cols-[8%_30%_28%_20%_14%] border-b text-sm items-center">
+                  <div className="space-y-2 min-w-[820px]">
+                    <div className="grid grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-2">
                       <div className="p-2 text-center">#</div>
                       <div className="p-2">Équipe</div>
                       <div className="p-2 text-center">V/N/D</div>
