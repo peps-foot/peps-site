@@ -966,16 +966,16 @@ export default function TierceScreen({
             )}
 
             {view === 'matches' && (
-              <div className="border rounded-lg p-4 overflow-x-auto">
+              <div className="border rounded-lg p-4">
                 <h2 className="text-center font-semibold text-lg mb-4">
                   MATCHS DU TICKET
                 </h2>
 
-                <div className="space-y-3 min-w-[820px]">
-                  {sortedTicketMatches.length === 0 ? (
-                    <p className="text-center text-sm text-gray-500 italic">À venir</p>
-                  ) : (
-                    sortedTicketMatches.map((match) => {
+                {sortedTicketMatches.length === 0 ? (
+                  <p className="text-center text-sm text-gray-500 italic">À venir</p>
+                ) : (
+                  <div className="space-y-3">
+                    {sortedTicketMatches.map((match) => {
                       const status = getMatchStatusDisplay(match.status);
                       const homeTriplet = getHomeTriplet(match);
                       const awayTriplet = getAwayTriplet(match);
@@ -983,12 +983,10 @@ export default function TierceScreen({
                       const perf = matchPerf[match.id];
 
                       return (
-                        <div
-                          key={match.id}
-                          className="border rounded-lg px-3 py-1.5"
-                        >
-                          <div className="grid grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-2">
-                            {/* Colonne 1 - Date/Heure/status */}
+                        <div key={match.id} className="border rounded-lg px-3 py-2">
+                          {/* DESKTOP */}
+                          <div className="hidden md:grid grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-2">
+                            {/* Colonne 1 */}
                             <div className="text-center leading-tight">
                               <div className="font-medium">
                                 {new Date(match.date).toLocaleString('fr-FR', {
@@ -1003,7 +1001,7 @@ export default function TierceScreen({
                               </div>
                             </div>
 
-                            {/* Colonne 2 Home Team + Triplet */}
+                            {/* Colonne 2 */}
                             <div className="text-center">
                               <div className="font-semibold text-[15px] leading-tight">{match.home_team}</div>
                               <div className="text-sm text-gray-600 mt-0.5 leading-tight">
@@ -1011,7 +1009,7 @@ export default function TierceScreen({
                               </div>
                             </div>
 
-                            {/* Colonne 3 Score Home + Perf dans un rond */}
+                            {/* Colonne 3 */}
                             <div className="text-center">
                               <div className="text-[18px] font-semibold leading-none">
                                 {match.score_home ?? '-'}
@@ -1021,7 +1019,7 @@ export default function TierceScreen({
                               </div>
                             </div>
 
-                            {/* Colonne 4 Score Away + Perf dans un rond */}
+                            {/* Colonne 4 */}
                             <div className="text-center">
                               <div className="text-[18px] font-semibold leading-none">
                                 {match.score_away ?? '-'}
@@ -1031,16 +1029,16 @@ export default function TierceScreen({
                               </div>
                             </div>
 
-                            {/* Colonne 5 Away Team + Triplet*/}
+                            {/* Colonne 5 */}
                             <div className="text-center">
-                                <div className="font-semibold text-[15px] leading-tight">{match.away_team}</div>
-                                <div className="text-sm text-gray-600 mt-0.5 leading-tight">
+                              <div className="font-semibold text-[15px] leading-tight">{match.away_team}</div>
+                              <div className="text-sm text-gray-600 mt-0.5 leading-tight">
                                 V: {awayTriplet.v ?? '-'} | N: {awayTriplet.n ?? '-'} | D: {awayTriplet.d ?? '-'}
                               </div>
                             </div>
 
-                            {/* Colonne 6 Bouton VAR */}
-                            <div className="flex justify-center items-center w-fit mx-auto">
+                            {/* Colonne 6 */}
+                            <div className="flex justify-center items-center">
                               <button
                                 type="button"
                                 onClick={() => openMatchVar(match.id)}
@@ -1056,11 +1054,75 @@ export default function TierceScreen({
                               </button>
                             </div>
                           </div>
+
+                          {/* MOBILE */}
+                          <div className="md:hidden space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-xs leading-tight">
+                                <div className="font-medium">
+                                  {new Date(match.date).toLocaleString('fr-FR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                                <div className={status.color}>{status.label}</div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => openMatchVar(match.id)}
+                                className="w-9 h-9 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0"
+                              >
+                                <Image
+                                  src="/images/info.png"
+                                  alt="VAR"
+                                  width={36}
+                                  height={36}
+                                  className="rounded-full object-cover"
+                                />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                              {/* HOME */}
+                              <div className="text-left min-w-0">
+                                <div className="font-semibold text-sm truncate">{match.home_team}</div>
+                                <div className="text-xs text-gray-600 truncate">
+                                  V: {homeTriplet.v ?? '-'} | N: {homeTriplet.n ?? '-'} | D: {homeTriplet.d ?? '-'}
+                                </div>
+                              </div>
+
+                              {/* CENTRE */}
+                              <div className="flex flex-col items-center gap-1">
+                                <div className="text-sm font-semibold">
+                                  {match.score_home ?? '-'} - {match.score_away ?? '-'}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className={`inline-flex items-center justify-center min-w-[36px] h-7 rounded-full border text-xs font-semibold px-2 ${perfClass}`}>
+                                    {perf ? perf.home_total : '-'}
+                                  </div>
+                                  <div className={`inline-flex items-center justify-center min-w-[36px] h-7 rounded-full border text-xs font-semibold px-2 ${perfClass}`}>
+                                    {perf ? perf.away_total : '-'}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* AWAY */}
+                              <div className="text-right min-w-0">
+                                <div className="font-semibold text-sm truncate">{match.away_team}</div>
+                                <div className="text-xs text-gray-600 truncate">
+                                  V: {awayTriplet.v ?? '-'} | N: {awayTriplet.n ?? '-'} | D: {awayTriplet.d ?? '-'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       );
-                    })
-                  )}
-                </div>
+                    })}
+                  </div>
+                )}
               </div>
             )}
             </div>
