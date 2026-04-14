@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
 const API_KEY = '112a112da460820962f5e9fc0b261d2a';
-const SEASON = 2026;
+const SEASON = 2025;
 
 export async function GET() {
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -42,6 +42,103 @@ export async function GET() {
   }
 
   logs.push(`🟢 ${allFixtures.length} matchs au total récupérés`);
+
+  // 🏟️ Insertion / mise à jour des stades utiles
+  const venuesMap = new Map();
+
+  for (const item of allFixtures) {
+    const venue = item?.fixture?.venue;
+    if (!venue?.id) continue;
+
+    venuesMap.set(venue.id, {
+      id: venue.id,
+      name: venue.name ?? null,
+      city: venue.city ?? null,
+      address: null,
+      capacity: null,
+      surface: null,
+      image: null
+    });
+  }
+
+  const venuesToUpsert = Array.from(venuesMap.values());
+
+  logs.push(`🏟️ ${venuesToUpsert.length} stades uniques détectés`);
+
+  if (venuesToUpsert.length > 0) {
+    const { error: venuesError } = await supabase
+      .from('venues')
+      .upsert(venuesToUpsert, { onConflict: 'id' });
+
+    if (venuesError) {
+      logs.push(`❌ Erreur insertion venues : ${venuesError.message}`);
+      return NextResponse.json({ ok: false, logs });
+    }
+
+    logs.push('✅ Insertion / mise à jour des stades terminée');
+  }
+
+  // 🏟️ Compléter les détails des stades (capacity, address, surface, image)
+  const { data: venuesToComplete, error: venuesSelectError } = await supabase
+    .from('venues')
+    .select('id, name, capacity')
+    .is('capacity', null);
+
+  if (venuesSelectError) {
+    logs.push(`❌ Erreur récupération venues à compléter : ${venuesSelectError.message}`);
+    return NextResponse.json({ ok: false, logs });
+  }
+
+  logs.push(`🏟️ ${venuesToComplete.length} stades sans capacity à compléter`);
+
+  let updatedVenues = 0;
+
+  for (const venue of venuesToComplete) {
+    try {
+      const venueUrl = `https://v3.football.api-sports.io/venues?id=${venue.id}`;
+      logs.push(`🔵 Appel API venue : ${venueUrl}`);
+
+      const venueRes = await fetch(venueUrl, {
+        headers: { 'x-apisports-key': API_KEY }
+      });
+
+      const venueJson = await venueRes.json();
+      const venueData = venueJson?.response?.[0];
+
+      if (!venueData) {
+        logs.push(`⚠️ Aucun détail trouvé pour venue ${venue.id}`);
+        continue;
+      }
+
+      const payload = {
+        address: venueData.address ?? null,
+        capacity: venueData.capacity ?? null,
+        surface: venueData.surface ?? null,
+        image: venueData.image ?? null,
+      };
+
+      const { error: updateVenueError } = await supabase
+        .from('venues')
+        .update(payload)
+        .eq('id', venue.id);
+
+      if (updateVenueError) {
+        logs.push(`❌ Erreur update venue ${venue.id} : ${updateVenueError.message}`);
+        continue;
+      }
+
+      updatedVenues++;
+      logs.push(
+        `✅ Venue ${venue.id} mise à jour (capacity=${payload.capacity}, surface=${payload.surface})`
+      );
+
+      await new Promise((r) => setTimeout(r, 250));
+    } catch (e: any) {
+      logs.push(`❌ Exception venue ${venue.id} : ${e.message}`);
+    }
+  }
+
+  logs.push(`🟢 Détails stades mis à jour : ${updatedVenues}`);
 
   // 🔍 On récupère les équipes déjà présentes dans la table teams
   const { data: teamIdsInDb, error: fetchTeamsErr } = await supabase
@@ -95,6 +192,7 @@ logs.push(`ℹ️ Exclues: non-NS=${exclNonNS}, passées=${exclPasse}, teams_man
       away_team: item.teams.away.name,
       team_home_id: item.teams.home.id,
       team_away_id: item.teams.away.id,
+      venue_id: item.fixture.venue?.id ?? null,
       status: item.fixture.status.short,
       score_home: item.goals.home,
       score_away: item.goals.away,

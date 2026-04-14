@@ -5,6 +5,8 @@ import AdminPushPanel from '../../../components/AdminPushPanel';
 import AdminXpPanel from '../../../components/AdminXpPanel';
 import AdminEliminationsPanel from '../../../components/AdminEliminationsPanel';
 import AdminBoostPanel from '../../../components/AdminBoostPanel';
+import AdminAttendancePanel from '../../../components/AdminAttendancePanel';
+
 import {
   addGridToCompetition,
   removeGridFromCompetition,
@@ -59,7 +61,7 @@ export default function AdminGridsPage() {
   const supabase = useSupabase()
   // --- Onglets CRUD ---
   const [tab, setTab] = useState<
-    'create' | 'list' | 'compet' | 'competList' | 'push' | 'xp' | 'eliminations' | 'boosts' | 'tierceCreate' | 'tierceList'
+    'create' | 'list' | 'compet' | 'competList' | 'push' | 'xp' | 'eliminations' | 'boosts' | 'tierceCreate' | 'tierceList' | 'attendance'
   >('create');
 
   // États pour création/édition compétition
@@ -766,6 +768,7 @@ export default function AdminGridsPage() {
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='boosts' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('boosts')}>Donner Boosts</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='tierceCreate' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}  onClick={() => setTab('tierceCreate')} >Créer Ticket</button>
         <button className={`px-4 py-2 ml-4 -mb-px ${tab==='tierceList' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}  onClick={() => setTab('tierceList')} >Liste Tickets</button>
+        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='attendance' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}  onClick={() => setTab('attendance')} >Affluences</button>
       </div>
 
       {/* Création / Modification Grille */}
@@ -1137,37 +1140,37 @@ export default function AdminGridsPage() {
             </div>
           )}
 
-<div>
-  <label className="block mb-2 font-medium">Cap des bonus par joueur</label>
-  <div className="space-y-2 border rounded p-3">
-    {bonusDefs.map((b) => (
-      <div key={b.id} className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <div className="font-medium">{b.code}</div>
-          <div className="text-sm text-gray-500">{b.name}</div>
-        </div>
+          <div>
+            <label className="block mb-2 font-medium">Cap des bonus par joueur</label>
+            <div className="space-y-2 border rounded p-3">
+              {bonusDefs.map((b) => (
+                <div key={b.id} className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-medium">{b.code}</div>
+                    <div className="text-sm text-gray-500">{b.name}</div>
+                  </div>
 
-        <input
-          type="number"
-          min="1"
-          value={competBonusCaps[b.id] ?? ''}
-          onChange={(e) =>
-            setCompetBonusCaps((prev) => ({
-              ...prev,
-              [b.id]: e.target.value,
-            }))
-          }
-          className="w-24 border rounded p-2"
-          placeholder="∞"
-        />
-      </div>
-    ))}
-  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    value={competBonusCaps[b.id] ?? ''}
+                    onChange={(e) =>
+                      setCompetBonusCaps((prev) => ({
+                        ...prev,
+                        [b.id]: e.target.value,
+                      }))
+                    }
+                    className="w-24 border rounded p-2"
+                    placeholder="∞"
+                  />
+                </div>
+              ))}
+            </div>
 
-  <div className="text-xs text-gray-500 mt-2">
-    Laisse vide si tu ne veux pas limiter ce bonus.
-  </div>
-</div>
+            <div className="text-xs text-gray-500 mt-2">
+              Laisse vide si tu ne veux pas limiter ce bonus.
+            </div>
+          </div>
 
           <button
             type="submit"
@@ -1200,115 +1203,114 @@ export default function AdminGridsPage() {
                         </div>
                       </div>
                       <div className="space-x-2">
-<button
-  onClick={async () => {
-    setTab('compet');
-    setMessageCompet(null);
+                      <button
+                        onClick={async () => {
+                          setTab('compet');
+                          setMessageCompet(null);
 
-    setCompetName(c.name);
-    setEditingCompetId(c.id);
-    setCompetGameType((c.game_type as 'GRID' | 'TIERCE') || 'GRID');
-    setCompetDescription(c.description || '');
-    setCompetMode((c.mode as 'CLASSIC' | 'TOURNOI') || 'CLASSIC');
-    setCompetKind((c.kind as 'PUBLIC' | 'PRIVATE') || 'PUBLIC');
-    setCompetXpEnabled(!!c.xp_enabled);
+                          setCompetName(c.name);
+                          setEditingCompetId(c.id);
+                          setCompetGameType((c.game_type as 'GRID' | 'TIERCE') || 'GRID');
+                          setCompetDescription(c.description || '');
+                          setCompetMode((c.mode as 'CLASSIC' | 'TOURNOI') || 'CLASSIC');
+                          setCompetKind((c.kind as 'PUBLIC' | 'PRIVATE') || 'PUBLIC');
+                          setCompetXpEnabled(!!c.xp_enabled);
 
-    setSelCompetGrids([]);
-    setSelCompetTickets([]);
-    setCompetBonusCaps({});
+                          setSelCompetGrids([]);
+                          setSelCompetTickets([]);
+                          setCompetBonusCaps({});
 
-    // Charger les caps bonus
-    const { data: caps, error: capsErr } = await supabase
-      .from('competition_bonus_caps')
-      .select('bonus_definition,max_per_user')
-      .eq('competition_id', c.id);
+                          // Charger les caps bonus
+                          const { data: caps, error: capsErr } = await supabase
+                            .from('competition_bonus_caps')
+                            .select('bonus_definition,max_per_user')
+                            .eq('competition_id', c.id);
 
-    if (capsErr) {
-      console.error(capsErr);
-      setMessageCompet('❌ Erreur chargement caps bonus : ' + capsErr.message);
-      return;
-    }
+                          if (capsErr) {
+                            console.error(capsErr);
+                            setMessageCompet('❌ Erreur chargement caps bonus : ' + capsErr.message);
+                            return;
+                          }
 
-    const capsMap: Record<string, string> = {};
-    (caps || []).forEach((row) => {
-      capsMap[row.bonus_definition] = String(row.max_per_user);
-    });
-    setCompetBonusCaps(capsMap);
+                          const capsMap: Record<string, string> = {};
+                          (caps || []).forEach((row) => {
+                            capsMap[row.bonus_definition] = String(row.max_per_user);
+                          });
+                          setCompetBonusCaps(capsMap);
 
-    if (c.game_type === 'TIERCE') {
-      const { data: links, error: linksErr } = await supabase
-        .from('competition_tickets')
-        .select('ticket_id')
-        .eq('competition_id', c.id);
+                          if (c.game_type === 'TIERCE') {
+                            const { data: links, error: linksErr } = await supabase
+                              .from('competition_tickets')
+                              .select('ticket_id')
+                              .eq('competition_id', c.id);
 
-      if (linksErr) {
-        console.error(linksErr);
-        setMessageCompet('❌ Erreur chargement tickets : ' + linksErr.message);
-        return;
-      }
+                            if (linksErr) {
+                              console.error(linksErr);
+                              setMessageCompet('❌ Erreur chargement tickets : ' + linksErr.message);
+                              return;
+                            }
 
-      setSelCompetTickets(links?.map(x => x.ticket_id) || []);
-    } else {
-      const { data: links, error: linksErr } = await supabase
-        .from('competition_grids')
-        .select('grid_id')
-        .eq('competition_id', c.id);
+                            setSelCompetTickets(links?.map(x => x.ticket_id) || []);
+                          } else {
+                            const { data: links, error: linksErr } = await supabase
+                              .from('competition_grids')
+                              .select('grid_id')
+                              .eq('competition_id', c.id);
 
-      if (linksErr) {
-        console.error(linksErr);
-        setMessageCompet('❌ Erreur chargement grilles : ' + linksErr.message);
-        return;
-      }
+                            if (linksErr) {
+                              console.error(linksErr);
+                              setMessageCompet('❌ Erreur chargement grilles : ' + linksErr.message);
+                              return;
+                            }
 
-      setSelCompetGrids(links?.map(x => x.grid_id) || []);
-    }
-  }}
-  className="px-3 py-1 border rounded hover:bg-gray-100"
->
-  Modifier
-</button>
-      <button
-        onClick={async () => {
-          if (!confirm('Supprimer cette compétition (et détacher ses éléments) ?')) return;
+                            setSelCompetGrids(links?.map(x => x.grid_id) || []);
+                          }
+                        }}
+                        className="px-3 py-1 border rounded hover:bg-gray-100"
+                      >
+                        Modifier
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Supprimer cette compétition (et détacher ses éléments) ?')) return;
 
-          if (c.game_type === 'TIERCE') {
-            const { data: links } = await supabase
-              .from('competition_tickets')
-              .select('ticket_id')
-              .eq('competition_id', c.id);
+                          if (c.game_type === 'TIERCE') {
+                            const { data: links } = await supabase
+                              .from('competition_tickets')
+                              .select('ticket_id')
+                              .eq('competition_id', c.id);
 
-            for (const row of (links ?? [])) {
-              await removeTicketFromCompetition(c.id, row.ticket_id);
-            }
-          } else {
-            const { data: links } = await supabase
-              .from('competition_grids')
-              .select('grid_id')
-              .eq('competition_id', c.id);
+                            for (const row of (links ?? [])) {
+                              await removeTicketFromCompetition(c.id, row.ticket_id);
+                            }
+                          } else {
+                            const { data: links } = await supabase
+                              .from('competition_grids')
+                              .select('grid_id')
+                              .eq('competition_id', c.id);
 
-            for (const row of (links ?? [])) {
-              await removeGridFromCompetition(c.id, row.grid_id);
-            }
-          }
+                            for (const row of (links ?? [])) {
+                              await removeGridFromCompetition(c.id, row.grid_id);
+                            }
+                          }
 
-const { error: capsDelErr } = await supabase
-  .from('competition_bonus_caps')
-  .delete()
-  .eq('competition_id', c.id);
+                          const { error: capsDelErr } = await supabase
+                            .from('competition_bonus_caps')
+                            .delete()
+                            .eq('competition_id', c.id);
 
-if (capsDelErr) {
-  throw new Error('competition_bonus_caps.delete: ' + capsDelErr.message);
-}
+                          if (capsDelErr) {
+                            throw new Error('competition_bonus_caps.delete: ' + capsDelErr.message);
+                          }
 
-          await supabase.from('competitions').delete().eq('id', c.id);
+                          await supabase.from('competitions').delete().eq('id', c.id);
 
-          setComps(cs => cs.filter(x => x.id !== c.id));
-        }}
-        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-      >
-        Supprimer
-      </button>
-
+                          setComps(cs => cs.filter(x => x.id !== c.id));
+                        }}
+                        className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        Supprimer
+                      </button>
                       </div>
                     </li>
                   ))}
@@ -1547,6 +1549,13 @@ if (capsDelErr) {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Pour remplir les affluences */}
+      {tab === 'attendance' && (
+        <div className="mt-6">
+          <AdminAttendancePanel />
         </div>
       )}
     </div>

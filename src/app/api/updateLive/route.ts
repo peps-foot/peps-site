@@ -11,7 +11,7 @@ export async function GET() {
   const { data: matches, error } = await supabase
     .from("matches")
     .select("id, fixture_id")
-    .or(`and(date.lt.${now},status.eq.NS),status.eq.1H,status.eq.HT,status.eq.2H,status.eq.SUSP,status.eq.INT`)
+    .or(`and(date.lt.${now},status.eq.NS),status.eq.1H,status.eq.HT,status.eq.2H,status.eq.SUSP,status.eq.INT`);
 
   if (error) {
     console.error("❌ Erreur Supabase :", error);
@@ -84,7 +84,24 @@ export async function GET() {
 
   const matchIds = matchedRows.map((m) => m.id);
 
-  // 6. Récupère les grid_id liés aux match_ids
+  // 6. Met à jour les points TIERCE pour chaque match concerné
+  let totalUpdatedTierceMatches = 0;
+
+  for (const matchId of matchIds) {
+    const { error: tierceError } = await supabase.rpc("update_tierce_points_for_match", {
+      p_match_id: matchId,
+    });
+
+    if (tierceError) {
+      console.error(`❌ Erreur update_tierce_points_for_match pour match ${matchId} :`, tierceError);
+    } else {
+      totalUpdatedTierceMatches++;
+    }
+  }
+
+  console.log(`✅ Points TIERCE mis à jour pour ${totalUpdatedTierceMatches} matchs.`);
+
+  // 7. Récupère les grid_id liés aux match_ids
   const { data: gridItems, error: gridItemError } = await supabase
     .from("grid_items")
     .select("grid_id")
@@ -97,7 +114,7 @@ export async function GET() {
 
   const uniqueGridIds = [...new Set(gridItems.map((gi) => gi.grid_id))];
 
-  // 7. Met à jour les points des joueurs pour chaque grille
+  // 8. Met à jour les points des joueurs pour chaque grille
   let totalUpdatedGrids = 0;
   for (const gridId of uniqueGridIds) {
     const { error: rpcError } = await supabase.rpc("update_grid_points", {
@@ -116,6 +133,7 @@ export async function GET() {
   return NextResponse.json({
     status: "ok",
     updated_matches: updates.length,
+    updated_tierce_matches: totalUpdatedTierceMatches,
     updated_grids: totalUpdatedGrids,
   });
 }

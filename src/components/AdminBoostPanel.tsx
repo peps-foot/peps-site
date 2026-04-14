@@ -268,12 +268,15 @@ const validateBoosts = async () => {
     if (adminErr) throw new Error(adminErr.message);
 
     // 2) Agréger par joueur + bonus pour alimenter bonus_inventory
-    const grouped: Record<string, {
-      competition_id: string;
-      user_id: string;
-      bonus_definition: string;
-      quantity: number;
-    }> = {};
+    const grouped: Record<
+      string,
+      {
+        competition_id: string;
+        user_id: string;
+        bonus_definition: string;
+        quantity: number;
+      }
+    > = {};
 
     adminRows.forEach((row) => {
       const key = `${row.competition_id}__${row.user_id}__${row.bonus_definition}`;
@@ -293,39 +296,14 @@ const validateBoosts = async () => {
     const groupedRows = Object.values(grouped);
 
     for (const row of groupedRows) {
-      const { data: existingRows, error: existingErr } = await supabase
-        .from('bonus_inventory')
-        .select('id,quantity')
-        .eq('competition_id', row.competition_id)
-        .eq('user_id', row.user_id)
-        .eq('bonus_definition', row.bonus_definition)
-        .limit(1);
+      const { error } = await supabase.rpc('add_bonus_inventory', {
+        p_user_id: row.user_id,
+        p_competition_id: row.competition_id,
+        p_bonus_definition: row.bonus_definition,
+        p_quantity: row.quantity,
+      });
 
-      if (existingErr) throw new Error(existingErr.message);
-
-      const existing = existingRows?.[0];
-
-      if (existing) {
-        const currentQty = Number(existing.quantity || 0);
-
-        const { error: updateErr } = await supabase
-          .from('bonus_inventory')
-          .update({ quantity: currentQty + row.quantity })
-          .eq('id', existing.id);
-
-        if (updateErr) throw new Error(updateErr.message);
-      } else {
-        const { error: insertErr } = await supabase
-          .from('bonus_inventory')
-          .insert({
-            competition_id: row.competition_id,
-            user_id: row.user_id,
-            bonus_definition: row.bonus_definition,
-            quantity: row.quantity,
-          });
-
-        if (insertErr) throw new Error(insertErr.message);
-      }
+      if (error) throw new Error(error.message);
     }
 
     setMessage(`✅ ${adminRows.length} attribution(s) enregistrée(s).`);
