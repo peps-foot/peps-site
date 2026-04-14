@@ -971,7 +971,7 @@ export default function TierceScreen({
                   MATCHS DU TICKET
                 </h2>
 
-                <div className="space-y-3">
+                <div className="space-y-3 min-w-[820px]">
                   {sortedTicketMatches.length === 0 ? (
                     <p className="text-center text-sm text-gray-500 italic">À venir</p>
                   ) : (
@@ -987,7 +987,7 @@ export default function TierceScreen({
                           key={match.id}
                           className="border rounded-lg px-3 py-1.5"
                         >
-                          <div className="grid grid-cols-1 md:grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-2">
+                          <div className="grid grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-2">
                             {/* Colonne 1 - Date/Heure/status */}
                             <div className="text-center leading-tight">
                               <div className="font-medium">
