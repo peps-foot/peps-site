@@ -896,74 +896,74 @@ export default function TierceScreen({
 
             {/* COLONNE GAUCHE */}
             <div>
-              {view === 'ticket' && (
-                <div className="border rounded-lg p-4 overflow-x-auto">
-                  <h2 className="text-center font-semibold text-lg mb-4">
-                    MON TICKET
-                  </h2>
+            {view === 'ticket' && (
+              <div className="border rounded-lg p-4 overflow-x-auto">
+                <h2 className="text-center font-semibold text-lg mb-4">
+                  MON TICKET
+                </h2>
 
-                  <div className="space-y-2 min-w-[820px]">
-                    <div className="grid grid-cols-[8%_30%_28%_20%_14%] border-b font-semibold text-sm items-center">
-                      <div className="p-2 text-center">#</div>
-                      <div className="p-2">Équipe</div>
-                      <div className="p-2 text-center">V/N/D</div>
-                      <div className="p-2 text-center">PTS</div>
-                      <div className="p-2 text-center">VAR</div>
+                <div className="w-full">
+                  <div className="grid grid-cols-[8%_30%_28%_20%_14%] border-b font-semibold text-sm items-center">
+                    <div className="p-2 text-center">#</div>
+                    <div className="p-2">Équipe</div>
+                    <div className="p-2 text-center">V/N/D</div>
+                    <div className="p-2 text-center">PTS</div>
+                    <div className="p-2 text-center">VAR</div>
+                  </div>
+
+                  {[
+                    getTeamRowData(selectedTeam1, 1, allTeams),
+                    getTeamRowData(selectedTeam2, 2, allTeams),
+                    getTeamRowData(selectedTeam3, 3, allTeams),
+                  ].map((row) => (
+                    <div
+                      key={row.order}
+                      className="grid grid-cols-[8%_30%_28%_20%_14%] border-b text-sm items-center"
+                    >
+                      <div className="p-2 text-center">{row.order}</div>
+                      <div className="p-2">{row.teamName}</div>
+                      <div className="p-2 text-center">{row.triplet}</div>
+                      <div className={`p-2 text-center font-semibold ${row.pointsClass}`}>
+                        {row.displayPoints}
+                      </div>
+                      <div className="p-2 flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => openVar(row.order as 1 | 2 | 3)}
+                          disabled={row.teamName.includes('non choisie')}
+                          className="relative w-10 h-10 shrink-0 rounded-full border border-black bg-white overflow-hidden disabled:opacity-40"
+                          title="Voir le détail"
+                        >
+                          <Image
+                            src="/images/info.png"
+                            alt="VAR"
+                            fill
+                            className="object-cover rounded-full"
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="pt-3 text-xs space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
+                      <span>Match en cours</span>
                     </div>
 
-                    {[
-                      getTeamRowData(selectedTeam1, 1, allTeams),
-                      getTeamRowData(selectedTeam2, 2, allTeams),
-                      getTeamRowData(selectedTeam3, 3, allTeams),
-                    ].map((row) => (
-                      <div
-                        key={row.order}
-                        className="grid grid-cols-[8%_30%_28%_20%_14%] border-b text-sm items-center"
-                      >
-                        <div className="p-2 text-center">{row.order}</div>
-                        <div className="p-2">{row.teamName}</div>
-                        <div className="p-2 text-center">{row.triplet}</div>
-                        <div className={`p-2 text-center font-semibold ${row.pointsClass}`}>
-                          {row.displayPoints}
-                        </div>
-                        <div className="p-2 flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => openVar(row.order as 1 | 2 | 3)}
-                            disabled={row.teamName.includes('non choisie')}
-                            className="relative w-10 h-10 shrink-0 rounded-full border border-black bg-white overflow-hidden disabled:opacity-40"
-                            title="Voir le détail"
-                          >
-                            <Image
-                              src="/images/info.png"
-                              alt="VAR"
-                              fill
-                              className="object-cover rounded-full"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
+                      <span>Match terminé, affluence manquante</span>
+                    </div>
 
-                    <div className="pt-3 text-xs space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
-                        <span>Match en cours</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>
-                        <span>Match terminé, affluence manquante</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full bg-black inline-block"></span>
-                        <span>Points finaux</span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-black inline-block"></span>
+                      <span>Points finaux</span>
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
             {view === 'matches' && (
               <div className="border rounded-lg p-4 overflow-x-auto">
