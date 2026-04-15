@@ -986,8 +986,8 @@ export default function TierceScreen({
                       const perf = matchPerf[match.id];
 
                       return (
-                        <div key={match.id} className="border rounded-lg px-2 py-2 md:px-3 md:py-2">
-                          <div className="grid grid-cols-[12%_29%_10%_10%_29%_10%] items-center gap-1 md:gap-2">
+                        <div key={match.id} className="border rounded-lg px-2.5 py-2">
+                          <div className="grid grid-cols-[11%_25%_10%_10%_25%_11%] gap-1 items-center">
                             {/* Colonne 1 - Date / Heure / Status */}
                             <div className="text-left pl-1 leading-tight text-[10px] md:text-sm">
                               <div className="font-medium">
@@ -1052,13 +1052,13 @@ export default function TierceScreen({
                               <button
                                 type="button"
                                 onClick={() => openMatchVar(match.id)}
-                                className="w-7 h-7 md:w-10 md:h-10 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0"
+                                className="w-10 h-10 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0"
                               >
                                 <Image
                                   src="/images/info.png"
                                   alt="VAR"
-                                  width={32}
-                                  height={32}
+                                  width={40}
+                                  height={40}
                                   className="rounded-full object-cover"
                                 />
                               </button>
