@@ -1473,7 +1473,7 @@ export default function TierceScreen({
                   }
                   className="w-full border rounded px-3 py-2 text-left hover:bg-gray-50"
                 >
-                  <div className="grid grid-cols-[42%_26%_32%] items-center gap-2">
+                  <div className="grid grid-cols-[33%_33%_33%] items-center gap-2">
                     <div className="font-semibold text-[13px] sm:text-base truncate text-left">
                       <span className="hidden sm:inline">{team.teamName}</span>
                       <span className="sm:hidden">{team.shortName || team.teamName}</span>
