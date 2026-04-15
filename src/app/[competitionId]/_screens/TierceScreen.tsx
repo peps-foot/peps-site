@@ -895,7 +895,7 @@ export default function TierceScreen({
         {/* VUES À 2 COLONNES : ticket / matches */}
         {/* -------------------------------- */}
         {(view === 'ticket' || view === 'matches') && (
-          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4 items-start">
 
             {/* COLONNE GAUCHE */}
             <div>
@@ -1074,7 +1074,7 @@ export default function TierceScreen({
             </div>
 
             {/* COLONNE DROITE */}
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-4 mb-4 md:mb-0">
                 <h2 className="text-center font-semibold text-lg mb-4">
                   CHOIX DES ÉQUIPES
                 </h2>
