@@ -987,7 +987,7 @@ export default function TierceScreen({
 
                       return (
                         <div key={match.id} className="border rounded-lg px-2.5 py-2">
-                          <div className="grid grid-cols-[11%_25%_10%_10%_25%_11%] gap-1 items-center">
+                          <div className="grid grid-cols-[14%_25%_10%_10%_25%_11%] gap-1 items-center">
                             {/* Colonne 1 - Date / Heure / Status */}
                             <div className="text-left pl-1 leading-tight text-[10px] md:text-sm">
                               <div className="font-medium">
@@ -1009,7 +1009,7 @@ export default function TierceScreen({
 
                             {/* Colonne 2 - Home */}
                             <div className="text-center leading-tight min-w-0">
-                              <div className="font-semibold text-[12px] md:text-[16px] truncate">
+                              <div className="font-semibold tracking-tight text-[15px] md:text-[18px] truncate">
                                 {match.short_name_home || match.home_team}
                               </div>
                               <div className="text-[11px] md:text-sm text-gray-600 truncate">
@@ -1039,7 +1039,7 @@ export default function TierceScreen({
 
                             {/* Colonne 5 - Away */}
                             <div className="text-center leading-tight min-w-0">
-                              <div className="font-semibold text-[12px] md:text-[16px] truncate">
+                              <div className="font-semibold tracking-tight text-[15px] md:text-[18px] truncate">
                                 {match.short_name_away || match.away_team}
                               </div>
                               <div className="text-[11px] md:text-sm text-gray-600 truncate">
