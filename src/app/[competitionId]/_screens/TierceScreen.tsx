@@ -1446,10 +1446,10 @@ export default function TierceScreen({
 
           <div className="p-4 overflow-auto max-h-[65vh] space-y-2">
             <div className="w-full border rounded px-3 py-2 bg-gray-50">
-              <div className="grid grid-cols-[42%_26%_32%] items-center gap-2 text-xs font-semibold text-gray-500">
+              <div className="grid grid-cols-[33%_33%_33%] items-center gap-2 text-xs font-semibold text-gray-500">
                 <div className="text-left">Équipe</div>
                 <div className="text-left">VS</div>
-                <div className="text-center">V | N | D</div>
+                <div className="text-left">V | N | D</div>
               </div>
             </div>
 
@@ -1503,7 +1503,7 @@ export default function TierceScreen({
               ))
             )}
           </div>
-          
+
           </div>
         </div>
       )}
