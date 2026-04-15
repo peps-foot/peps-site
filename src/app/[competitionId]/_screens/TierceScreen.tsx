@@ -52,6 +52,7 @@ type AvailableTeam = {
   teamName: string;
   shortName: string | null;
   opponentName: string;
+  shortOpponentName: string | null;
   status: string | null;
   vPoints: number | null;
   nPoints: number | null;
@@ -369,6 +370,7 @@ export default function TierceScreen({
       teamName: match.home_team,
       shortName: match.short_name_home,
       opponentName: match.away_team,
+      shortOpponentName: match.short_name_away,
       status: match.status,
       vPoints: match.c1_points,
       nPoints: match.cn_points,
@@ -383,6 +385,7 @@ export default function TierceScreen({
       teamName: match.away_team,
       shortName: match.short_name_away,
       opponentName: match.home_team,
+      shortOpponentName: match.short_name_home,
       status: match.status,
       vPoints: match.c2_points !== null ? -match.c2_points : null,
       nPoints: match.cn_points !== null ? -match.cn_points : null,
@@ -1481,11 +1484,11 @@ export default function TierceScreen({
 
                     <div className="text-[11px] sm:text-sm text-gray-500 truncate text-left">
                       {team.side === 'home'
-                        ? `🏠 ${team.opponentName}`
-                        : `✈️ ${team.opponentName}`}
+                        ? `🏠 ${team.shortOpponentName || team.opponentName}`
+                        : `✈️ ${team.shortOpponentName || team.opponentName}`}
                     </div>
 
-                    <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-center gap-2">
+                    <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-start gap-2">
                       <span className={getPointsColor(team.vPoints)}>
                         {team.vPoints ?? '-'}
                       </span>
