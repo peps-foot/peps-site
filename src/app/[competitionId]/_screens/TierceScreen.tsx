@@ -1489,18 +1489,19 @@ export default function TierceScreen({
                     </div>
 
                     <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-start items-center">
-                      <span className={`inline-block w-8 text-left ${getPointsColor(team.vPoints)}`}>
+                      <span className={`inline-block w-7 text-center ${getPointsColor(team.vPoints)}`}>
                         {team.vPoints ?? '-'}
                       </span>
-                      <span className="mx-1 text-gray-500">|</span>
-                      <span className={`inline-block w-8 text-left ${getPointsColor(team.nPoints)}`}>
+                      <span className="mx-0.5 text-gray-500">|</span>
+                      <span className={`inline-block w-7 text-center ${getPointsColor(team.nPoints)}`}>
                         {team.nPoints ?? '-'}
                       </span>
-                      <span className="mx-1 text-gray-500">|</span>
-                      <span className={`inline-block w-8 text-left ${getPointsColor(team.dPoints)}`}>
+                      <span className="mx-0.5 text-gray-500">|</span>
+                      <span className={`inline-block w-7 text-center ${getPointsColor(team.dPoints)}`}>
                         {team.dPoints ?? '-'}
                       </span>
                     </div>
+                    
                   </div>
                 </button>
               ))
