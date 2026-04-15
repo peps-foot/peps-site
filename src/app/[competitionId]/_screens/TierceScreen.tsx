@@ -969,7 +969,7 @@ export default function TierceScreen({
             )}
 
             {view === 'matches' && (
-              <div className="border rounded-lg p-4">
+              <div className="border rounded-lg p-2 md:p-4">
                 <h2 className="text-center font-semibold text-lg mb-4">
                   MATCHS DU TICKET
                 </h2>
@@ -986,10 +986,10 @@ export default function TierceScreen({
                       const perf = matchPerf[match.id];
 
                       return (
-                        <div key={match.id} className="border rounded-lg px-3 py-2">
-                          <div className="grid grid-cols-[16%_26%_10%_10%_26%_12%] md:grid-cols-[15%_27%_9%_9%_27%_13%] items-center gap-1 md:gap-2">
+                        <div key={match.id} className="border rounded-lg px-2 py-2 md:px-3 md:py-2">
+                          <div className="grid grid-cols-[12%_29%_10%_10%_29%_10%] items-center gap-1 md:gap-2">
                             {/* Colonne 1 - Date / Heure / Status */}
-                            <div className="text-center leading-tight text-[10px] md:text-sm">
+                            <div className="text-left pl-1 leading-tight text-[10px] md:text-sm">
                               <div className="font-medium">
                                 {new Date(match.date).toLocaleDateString('fr-FR', {
                                   day: '2-digit',
@@ -1009,10 +1009,10 @@ export default function TierceScreen({
 
                             {/* Colonne 2 - Home */}
                             <div className="text-center leading-tight min-w-0">
-                              <div className="font-semibold text-[11px] md:text-[15px] truncate">
+                              <div className="font-semibold text-[12px] md:text-[16px] truncate">
                                 {match.short_name_home || match.home_team}
                               </div>
-                              <div className="text-[10px] md:text-sm text-gray-600 truncate">
+                              <div className="text-[11px] md:text-sm text-gray-600 truncate">
                                 {homeTriplet.v ?? '-'} | {homeTriplet.n ?? '-'} | {homeTriplet.d ?? '-'}
                               </div>
                             </div>
@@ -1039,10 +1039,10 @@ export default function TierceScreen({
 
                             {/* Colonne 5 - Away */}
                             <div className="text-center leading-tight min-w-0">
-                              <div className="font-semibold text-[11px] md:text-[15px] truncate">
+                              <div className="font-semibold text-[12px] md:text-[16px] truncate">
                                 {match.short_name_away || match.away_team}
                               </div>
-                              <div className="text-[10px] md:text-sm text-gray-600 truncate">
+                              <div className="text-[11px] md:text-sm text-gray-600 truncate">
                                 {awayTriplet.v ?? '-'} | {awayTriplet.n ?? '-'} | {awayTriplet.d ?? '-'}
                               </div>
                             </div>
@@ -1052,13 +1052,13 @@ export default function TierceScreen({
                               <button
                                 type="button"
                                 onClick={() => openMatchVar(match.id)}
-                                className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0"
+                                className="w-7 h-7 md:w-10 md:h-10 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0"
                               >
                                 <Image
                                   src="/images/info.png"
                                   alt="VAR"
-                                  width={40}
-                                  height={40}
+                                  width={32}
+                                  height={32}
                                   className="rounded-full object-cover"
                                 />
                               </button>
@@ -1501,7 +1501,7 @@ export default function TierceScreen({
                         {team.dPoints ?? '-'}
                       </span>
                     </div>
-                    
+
                   </div>
                 </button>
               ))
