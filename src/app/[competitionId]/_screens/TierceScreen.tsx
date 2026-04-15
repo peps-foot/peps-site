@@ -1171,7 +1171,7 @@ export default function TierceScreen({
                 <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                   <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                     <tr>
-                      <th className="text-left px-4 py-3">Position</th>
+                      <th className="text-left px-4 py-3">#</th>
                       <th className="text-left px-4 py-3">Pseudo</th>
                       <th className="text-left px-4 py-3">Points</th>
                     </tr>
@@ -1229,7 +1229,7 @@ export default function TierceScreen({
                 <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                   <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                     <tr>
-                      <th className="text-left px-4 py-3">Position</th>
+                      <th className="text-left px-4 py-3">#</th>
                       <th className="text-left px-4 py-3">Pseudo</th>
                       <th className="text-left px-4 py-3">Points</th>
                     </tr>
@@ -1488,16 +1488,16 @@ export default function TierceScreen({
                         : `✈️ ${team.shortOpponentName || team.opponentName}`}
                     </div>
 
-                    <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-start gap-2">
-                      <span className={getPointsColor(team.vPoints)}>
+                    <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-start items-center">
+                      <span className={`inline-block w-8 text-left ${getPointsColor(team.vPoints)}`}>
                         {team.vPoints ?? '-'}
                       </span>
-                      <span>|</span>
-                      <span className={getPointsColor(team.nPoints)}>
+                      <span className="mx-1 text-gray-500">|</span>
+                      <span className={`inline-block w-8 text-left ${getPointsColor(team.nPoints)}`}>
                         {team.nPoints ?? '-'}
                       </span>
-                      <span>|</span>
-                      <span className={getPointsColor(team.dPoints)}>
+                      <span className="mx-1 text-gray-500">|</span>
+                      <span className={`inline-block w-8 text-left ${getPointsColor(team.dPoints)}`}>
                         {team.dPoints ?? '-'}
                       </span>
                     </div>
