@@ -823,7 +823,7 @@ export default function TierceScreen({
               }`}
               title="Voir mon ticket"
             >
-              T
+              Ticket
             </button>
 
             {/* 2) MATCHS */}
@@ -879,7 +879,7 @@ export default function TierceScreen({
               }`}
               title="Infos compétition"
             >
-              i
+              Règles
             </button>
           </div>
 
