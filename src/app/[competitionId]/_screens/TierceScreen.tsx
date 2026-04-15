@@ -1401,7 +1401,7 @@ export default function TierceScreen({
       {/* ============================== */}
       {isPickerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
+          <div className="bg-white rounded-lg shadow-lg w-[96vw] max-w-3xl max-h-[85vh] overflow-hidden">
             <div className="relative p-4">
               <h3 className="text-lg font-semibold text-center">
                 Choisir l&apos;équipe {pickerSlot}
@@ -1444,57 +1444,66 @@ export default function TierceScreen({
               </button>
             </div>
 
-            <div className="p-4 overflow-auto max-h-[65vh] space-y-2">
-              {availableTeams.length === 0 ? (
-                <p className="text-gray-600">Aucune équipe disponible.</p>
-              ) : (
-                sortedTeams.map((team) => (
-                  <button
-                    key={team.key}
-                    type="button"
-                    onClick={() =>
-                      handlePickTeam({
-                        teamId: team.teamId,
-                        teamName: team.teamName,
-                        matchId: team.matchId,
-                        pointsOdds: null,
-                        pointsGoals: null,
-                        pointsStadium: null,
-                        pointsTotal: null,
-                      })
-                    }
-                    className="w-full border rounded px-3 py-2 text-left hover:bg-gray-50"
-                  >
-                    <div className="grid grid-cols-[40%_30%_30%] items-center gap-2">
-                      <div className="font-semibold truncate text-left">
-                        <span className="hidden sm:inline">{team.teamName}</span>
-                        <span className="sm:hidden">{team.shortName || team.teamName}</span>
-                      </div>
-
-                      <div className="text-xs text-gray-500 truncate text-left">
-                        {team.side === 'home'
-                          ? `🏠 ${team.opponentName}`
-                          : `✈️ ${team.opponentName}`}
-                      </div>
-
-                      <div className="text-sm flex justify-center gap-2 whitespace-nowrap">
-                        <span className={getPointsColor(team.vPoints)}>
-                          V: {team.vPoints ?? '-'}
-                        </span>
-                        <span>|</span>
-                        <span className={getPointsColor(team.nPoints)}>
-                          N: {team.nPoints ?? '-'}
-                        </span>
-                        <span>|</span>
-                        <span className={getPointsColor(team.dPoints)}>
-                          D: {team.dPoints ?? '-'}
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
+          <div className="p-4 overflow-auto max-h-[65vh] space-y-2">
+            <div className="w-full border rounded px-3 py-2 bg-gray-50">
+              <div className="grid grid-cols-[42%_26%_32%] items-center gap-2 text-xs font-semibold text-gray-500">
+                <div className="text-left">Équipe</div>
+                <div className="text-left">VS</div>
+                <div className="text-center">V | N | D</div>
+              </div>
             </div>
+
+            {availableTeams.length === 0 ? (
+              <p className="text-gray-600">Aucune équipe disponible.</p>
+            ) : (
+              sortedTeams.map((team) => (
+                <button
+                  key={team.key}
+                  type="button"
+                  onClick={() =>
+                    handlePickTeam({
+                      teamId: team.teamId,
+                      teamName: team.teamName,
+                      matchId: team.matchId,
+                      pointsOdds: null,
+                      pointsGoals: null,
+                      pointsStadium: null,
+                      pointsTotal: null,
+                    })
+                  }
+                  className="w-full border rounded px-3 py-2 text-left hover:bg-gray-50"
+                >
+                  <div className="grid grid-cols-[42%_26%_32%] items-center gap-2">
+                    <div className="font-semibold text-[13px] sm:text-base truncate text-left">
+                      <span className="hidden sm:inline">{team.teamName}</span>
+                      <span className="sm:hidden">{team.shortName || team.teamName}</span>
+                    </div>
+
+                    <div className="text-[11px] sm:text-sm text-gray-500 truncate text-left">
+                      {team.side === 'home'
+                        ? `🏠 ${team.opponentName}`
+                        : `✈️ ${team.opponentName}`}
+                    </div>
+
+                    <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-center gap-2">
+                      <span className={getPointsColor(team.vPoints)}>
+                        {team.vPoints ?? '-'}
+                      </span>
+                      <span>|</span>
+                      <span className={getPointsColor(team.nPoints)}>
+                        {team.nPoints ?? '-'}
+                      </span>
+                      <span>|</span>
+                      <span className={getPointsColor(team.dPoints)}>
+                        {team.dPoints ?? '-'}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+          
           </div>
         </div>
       )}
