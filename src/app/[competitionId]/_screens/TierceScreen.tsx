@@ -572,6 +572,50 @@ export default function TierceScreen({
     ? matchPerf[selectedMatchVarId] ?? null
     : null;
 
+  // Pop up vue des tickets des autres
+  const [publicTicketsOpen, setPublicTicketsOpen] = useState(false);
+  const [publicTickets, setPublicTickets] = useState<any[]>([]);
+  const [publicTicketsLoading, setPublicTicketsLoading] = useState(false);
+  const [selectedPublicTicketIndex, setSelectedPublicTicketIndex] = useState(0);
+  const [selectedUserName, setSelectedUserName] = useState<string | null>(null);
+
+  const openPublicTickets = async (userId: string, username: string) => {
+    setSelectedUserName(username);
+    setPublicTicketsOpen(true);
+    setPublicTicketsLoading(true);
+
+    const { data, error } = await supabase.rpc(
+      'get_tierce_public_tickets_for_user',
+      {
+        p_competition_id: competitionId,
+        p_user_id: userId,
+      }
+    );
+
+    if (!error && data) {
+      // regrouper par ticket_id
+      const grouped: Record<string, any[]> = {};
+
+      data.forEach((row: any) => {
+        if (!grouped[row.ticket_id]) grouped[row.ticket_id] = [];
+        grouped[row.ticket_id].push(row);
+      });
+
+      const ticketsArray = Object.values(grouped);
+
+      setPublicTickets(ticketsArray);
+
+      // 👉 ouvrir sur ticket courant
+      const index = ticketsArray.findIndex(
+        (t: any) => t[0].ticket_id === currentTicket?.id
+      );
+
+      setSelectedPublicTicketIndex(index >= 0 ? index : 0);
+    }
+
+    setPublicTicketsLoading(false);
+  };
+
   // Navigation entre tickets
   const prevTicket = () => {setCurrentIdx((prev) => Math.max(prev - 1, 0));  };
   const nextTicket = () => {setCurrentIdx((prev) => tickets.length === 0 ? 0 : Math.min(prev + 1, tickets.length - 1));};
@@ -835,7 +879,7 @@ export default function TierceScreen({
               }`}
               title="Voir les matchs"
             >
-              M
+              Matchs
             </button>
 
             {/* 3) TOTAL POINTS */}
@@ -1167,6 +1211,12 @@ export default function TierceScreen({
             )}
 
             {!lbLoading && lbRows.length > 0 && (
+              <div className="text-center text-sm text-gray-500 mb-4">
+                Clique sur une ligne pour voir les tickets des autres joueurs.
+              </div>
+            )}
+
+            {!lbLoading && lbRows.length > 0 && (
               <div className="max-w-2xl mx-auto">
                 <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                   <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
@@ -1182,7 +1232,8 @@ export default function TierceScreen({
                       return (
                         <tr
                           key={row.user_id}
-                          className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}
+                          onClick={() => openPublicTickets(row.user_id, row.username)}
+                          className={`border-t transition cursor-pointer hover:bg-gray-100 ${me ? 'bg-orange-100 font-bold' : ''}`}
                         >
                           <td className="px-4 py-2">{row.rank}</td>
                           <td className="px-4 py-2">{row.username}</td>
@@ -1225,6 +1276,12 @@ export default function TierceScreen({
             )}
 
             {!lbLoading && lbRows.length > 0 && (
+              <div className="text-center text-sm text-gray-500 mb-4">
+                Clique sur une ligne pour voir les tickets des autres joueurs.
+              </div>
+            )}
+
+            {!lbLoading && lbRows.length > 0 && (
               <div className="max-w-2xl mx-auto">
                 <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                   <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
@@ -1240,7 +1297,8 @@ export default function TierceScreen({
                       return (
                         <tr
                           key={row.user_id}
-                          className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}
+                          onClick={() => openPublicTickets(row.user_id, row.username)}
+                          className={`border-t transition cursor-pointer hover:bg-gray-100 ${me ? 'bg-orange-100 font-bold' : ''}`}
                         >
                           <td className="px-4 py-2">{row.rank}</td>
                           <td className="px-4 py-2">{row.username}</td>
@@ -1678,6 +1736,90 @@ export default function TierceScreen({
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================== */}
+      {/* 🔹 POP-UP VUE DES TICKETS DES AUTRES */}
+      {/* ============================== */}
+      {publicTicketsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b p-4">
+              <h3 className="text-lg font-semibold">
+                Tickets de {selectedUserName}
+              </h3>
+              <button
+                onClick={() => setPublicTicketsOpen(false)}
+                className="px-3 py-1 border rounded"
+              >
+                Fermer
+              </button>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-4 space-y-4">
+              {publicTicketsLoading ? (
+                <p className="text-center text-gray-500">Chargement...</p>
+              ) : publicTickets.length === 0 ? (
+                <p className="text-center text-gray-500">Aucun ticket</p>
+              ) : (
+                <>
+                  {/* Navigation */}
+                  <div className="flex justify-between items-center">
+                    <button
+                      onClick={() =>
+                        setSelectedPublicTicketIndex((i) => Math.max(0, i - 1))
+                      }
+                      disabled={selectedPublicTicketIndex === 0}
+                    >
+                      ◀
+                    </button>
+
+                    <span className="text-sm font-medium">
+                      {publicTickets[selectedPublicTicketIndex][0].ticket_title}
+                    </span>
+
+                    <button
+                      onClick={() =>
+                        setSelectedPublicTicketIndex((i) =>
+                          Math.min(publicTickets.length - 1, i + 1)
+                        )
+                      }
+                      disabled={selectedPublicTicketIndex === publicTickets.length - 1}
+                    >
+                      ▶
+                    </button>
+                  </div>
+
+                  {/* Tableau ticket */}
+                  <div className="border rounded">
+                    {publicTickets[selectedPublicTicketIndex].map((row: any) => (
+                      <div
+                        key={row.pick_order}
+                        className="flex justify-between border-b px-3 py-2 text-sm"
+                      >
+                        <span>{row.pick_order}</span>
+                        <span>{row.team_name}</span>
+                        <span>
+                          {row.weighted_points_visible ?? '-'}
+                        </span>
+                      </div>
+                    ))}
+
+                    <div className="flex justify-between px-3 py-2 font-semibold">
+                      <span>Total</span>
+                      <span>
+                        {publicTickets[selectedPublicTicketIndex][0].ticket_total_visible}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
