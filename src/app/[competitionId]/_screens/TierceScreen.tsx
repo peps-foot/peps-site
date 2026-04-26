@@ -1396,12 +1396,14 @@ export default function TierceScreen({
             {/* COLONNE DROITE */}
               <div className="border rounded-lg p-4 mb-4 md:mb-0">
                 <h2 className="text-center font-semibold text-lg mb-4">
-                  ⚽ {availableCount} équipes disponibles
+                  {availableCount === 0
+                    ? '🚫 Plus d’équipe disponible'
+                    : `⚽ ${availableCount} équipes disponibles`}
                 </h2>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">Sélectionne l'équipe 1, gain +10%</div>
+                    <div className="font-medium">Choisis l'équipe 1, gain +10%</div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1428,7 +1430,7 @@ export default function TierceScreen({
                   </div>
 
                   <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">Sélectionne l'équipe 2, gain +5%</div>
+                    <div className="font-medium">Choisis l'équipe 2, gain +5%</div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1455,7 +1457,7 @@ export default function TierceScreen({
                   </div>
 
                   <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">Sélectionne l'équipe 3</div>
+                    <div className="font-medium">Choisis l'équipe 3</div>
                     <button
                       type="button"
                       onClick={() => {

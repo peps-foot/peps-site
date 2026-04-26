@@ -9,6 +9,11 @@ import {
   isFcmSupported,
   subscribeToken,
 } from '../lib/firebaseClient';
+import {
+  isIosInstalled,
+  isWebPushSupported,
+  subscribeIosToken,
+} from '../lib/iosPush';
 
 type Prefs = {
   allow_admin_broadcast: boolean;
@@ -30,16 +35,24 @@ export default function NotificationsSettings() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Détection "TWA" (Trusted Web Activity) vs web
-  const platform = useMemo<'web' | 'twa'>(() => {
-    // Heuristique TWA fiable : referrer android-app://
-    if (typeof document !== 'undefined' && document.referrer?.startsWith('android-app://')) {
-      return 'twa';
-    }
+  // Détection précise de la plateforme
+  const platform = useMemo<'web' | 'twa' | 'ios'>(() => {
+    if (typeof document === 'undefined') return 'web';
+    // PWA iOS installée sur l'écran d'accueil
+    if (isIosInstalled()) return 'ios';
+    // TWA Android (Play Store)
+    if (document.referrer?.startsWith('android-app://')) return 'twa';
     return 'web';
   }, []);
 
-  // Charger l’utilisateur + ses prefs
+  // Message d'info spécifique iOS non installé
+  const isIosNotInstalled = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    return isIos && !isIosInstalled();
+  }, []);
+
+  // Charger l'utilisateur + ses prefs
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -68,87 +81,96 @@ export default function NotificationsSettings() {
     return () => { alive = false; };
   }, []);
 
-const handleSave = async () => {
-  if (!userId) {
-    setMsg('Connecte-toi pour enregistrer tes préférences.');
-    return;
-  }
-  setLoading(true);
-  setMsg(null);
+  const handleSave = async () => {
+    if (!userId) {
+      setMsg('Connecte-toi pour enregistrer tes préférences.');
+      return;
+    }
+    setLoading(true);
+    setMsg(null);
 
-  try {
-    // 1) Enregistrer les préférences côté BDD
-    const res = await fetch('/api/push/prefs', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, prefs }),
-    });
-    const js = await res.json();
-    if (!js?.ok) throw new Error('save prefs failed');
+    try {
+      // 1) Enregistrer les préférences côté BDD
+      const res = await fetch('/api/push/prefs', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, prefs }),
+      });
+      const js = await res.json();
+      if (!js?.ok) throw new Error('save prefs failed');
 
-    // 2) Si le joueur veut des notifs, on prépare le canal (permission + token + subscribe)
-    const wants =
-      prefs.allow_admin_broadcast ||
-      prefs.allow_grid_done ||
-      prefs.allow_match_reminder_24h ||
-      prefs.allow_match_reminder_1h;
+      const wants =
+        prefs.allow_admin_broadcast ||
+        prefs.allow_grid_done ||
+        prefs.allow_match_reminder_24h ||
+        prefs.allow_match_reminder_1h;
 
-    if (wants) {
-      const supported = await isFcmSupported();
-      const isIos =
-        typeof navigator !== 'undefined' &&
-        /iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-
-      if (!supported) {
-        // Cas : iOS
-        if (isIos) {
-          setMsg("Échec ❌ (notifications impossibles sur iPhone pour l'instant).");
-        } else {
-          // Cas : navigateur non compatible
-          setMsg(
-            "Échec ❌ (notifications impossibles sur ce navigateur, essayez d'ouvrir www.peps-foot.com dans un autre navigateur)."
-          );
-        }
+      if (!wants) {
+        setMsg('Enregistré ✅');
         setLoading(false);
         return;
       }
 
-      // Permission si nécessaire
+      // 2) Demander la permission si nécessaire
       if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
         const p = await askNotificationPermission();
         if (p !== 'granted') {
-          setMsg("Échec ❌ (permission refusée : aucune notification ne sera reçue).");
+          setMsg('Échec ❌ (permission refusée : aucune notification ne sera reçue).');
           setLoading(false);
           return;
         }
       }
 
-      // Token + enregistrement côté serveur
-      const token = await getFcmToken();
-      if (token) {
-        await subscribeToken(platform, userId);
-        localStorage.setItem('peps_push_token', token);
-        setMsg('Enregistré ✅');
+      // 3) Abonnement selon la plateforme
+      if (platform === 'ios') {
+        // ── iOS : Web Push natif (pas FCM) ──
+        if (!isWebPushSupported()) {
+          setMsg('Ton iPhone ne supporte pas encore les notifications (iOS 16.4+ requis).');
+          setLoading(false);
+          return;
+        }
+        const result = await subscribeIosToken(userId);
+        if (result.ok) {
+          setMsg('Enregistré ✅ (notifications activées sur iPhone)');
+        } else {
+          setMsg('Échec ❌ (impossible de créer la subscription iOS, réessaie).');
+        }
       } else {
-        // Tout semble ok mais pas de token => on propose d’essayer un autre navigateur
-        setMsg(
-          "Échec ❌ (réessayez plus tard ou essayez d'ouvrir www.peps-foot.com dans un autre navigateur)."
-        );
+        // ── Android / desktop : FCM ──
+        const supported = await isFcmSupported();
+        if (!supported) {
+          setMsg("Échec ❌ (notifications impossibles sur ce navigateur, essaie d'ouvrir www.peps-foot.com dans Chrome).");
+          setLoading(false);
+          return;
+        }
+        const token = await getFcmToken();
+        if (token) {
+          await subscribeToken(platform as 'web' | 'twa', userId);
+          localStorage.setItem('peps_push_token', token);
+          setMsg('Enregistré ✅');
+        } else {
+          setMsg("Échec ❌ (réessaie plus tard ou essaie dans Chrome).");
+        }
       }
-    } else {
-      // L'utilisateur ne veut pas de notifications, on enregistre juste les préférences
-      setMsg('Enregistré ✅');
+    } catch {
+      setMsg('Échec ❌ (erreur : sauvegarde impossible).');
+    } finally {
+      setLoading(false);
     }
-  } catch {
-    setMsg("Échec ❌ (erreur : sauvegarde impossible).");
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="max-w-xl mx-auto rounded-xl border p-4 space-y-3">
+
+      {/* Avertissement iOS non installé */}
+      {isIosNotInstalled && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+          <strong>iPhone détecté !</strong> Pour recevoir des notifications, tu dois d&apos;abord{' '}
+          <strong>ajouter PEPS à ton écran d&apos;accueil</strong> depuis Safari (bouton Partager →
+          &quot;Sur l&apos;écran d&apos;accueil&quot;), puis relancer l&apos;app depuis l&apos;icône.
+        </div>
+      )}
+
       <div className="space-y-2">
         <label className="flex items-center gap-2">
           <input
