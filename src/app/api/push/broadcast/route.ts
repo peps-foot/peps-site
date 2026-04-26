@@ -23,7 +23,7 @@ const VAPID_PUBLIC_KEY = 'BIIjmxt6CvJjd8EiHDtyBWgIvoDKO7eUjNJ_7FuN7vonLqolOVeWei
 // ⚠️ À REMPLIR : ta clé privée VAPID (différente de la clé Firebase Admin)
 // Pour la récupérer : va sur https://console.firebase.google.com → ton projet → Paramètres → Cloud Messaging
 // → Web Push certificates → la clé privée associée à ta clé publique VAPID
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'REMPLACE_PAR_TA_CLE_PRIVEE_VAPID';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'aDNoUdMC-E95kgkI4qI-HL76jvvybdFU7vBDxTgoW-0';
 
 webpush.setVapidDetails(
   'mailto:contact@peps-foot.com', // remplace par ton email admin
