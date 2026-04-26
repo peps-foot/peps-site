@@ -101,15 +101,18 @@ export default function TierceScreen({
   const [selectedTeam3Points, setSelectedTeam3Points] = useState<number | null>(null);
 
   const getTeamRowData = (
-  selectedTeam: SelectedTeam | null,
-  order: 1 | 2 | 3,
-  allTeams: AvailableTeam[]
-) => {
+    selectedTeam: SelectedTeam | null,
+    order: 1 | 2 | 3,
+    allTeams: AvailableTeam[]
+  ) => {
     if (!selectedTeam) {
       return {
         order,
         teamName: `Équipe ${order} non choisie`,
         triplet: '- / - / -',
+        vPoints: null,
+        nPoints: null,
+        dPoints: null,
         displayPoints: '-',
         pointsClass: 'text-black',
         matchStarted: false,
@@ -119,10 +122,6 @@ export default function TierceScreen({
     const team = allTeams.find(
       (t) => t.teamId === selectedTeam.teamId && t.matchId === selectedTeam.matchId
     );
-
-    //const leg = entryId
-      //? undefined
-      //: undefined;
 
     const match = ticketMatches.find((m) => m.id === selectedTeam.matchId);
 
@@ -141,9 +140,16 @@ export default function TierceScreen({
     const weightedPoints =
       typeof legPoints === 'number' ? Math.round(legPoints * coeff * 10) / 10 : null;
 
-    const isLive = match?.status && !['NS', 'FT', 'AET', 'PEN', 'AWD', 'WO', 'BT', 'P', 'ET', 'PST', 'CANC', 'ABD'].includes(match.status);
-    const isFinished = match?.status && ['FT', 'AET', 'PEN', 'AWD', 'WO', 'BT', 'P', 'ET'].includes(match.status);
-    const missingAttendance = isFinished && (match?.attendance == null || match?.venue_id == null);
+    const isLive =
+      match?.status &&
+      !['NS', 'FT', 'AET', 'PEN', 'AWD', 'WO', 'BT', 'P', 'ET', 'PST', 'CANC', 'ABD'].includes(match.status);
+
+    const isFinished =
+      match?.status &&
+      ['FT', 'AET', 'PEN', 'AWD', 'WO', 'BT', 'P', 'ET'].includes(match.status);
+
+    const missingAttendance =
+      isFinished && (match?.attendance == null || match?.venue_id == null);
 
     let pointsClass = 'text-black';
     if (isLive) pointsClass = 'text-orange-600';
@@ -153,6 +159,9 @@ export default function TierceScreen({
       order,
       teamName: selectedTeam.teamName,
       triplet: `${v} / ${n} / ${d}`,
+      vPoints: team?.vPoints ?? null,
+      nPoints: team?.nPoints ?? null,
+      dPoints: team?.dPoints ?? null,
       displayPoints: weightedPoints ?? '-',
       pointsClass,
       matchStarted: match?.status !== 'NS',
@@ -322,10 +331,135 @@ export default function TierceScreen({
     setPickerSlot(null);
   };
   const handlePickTeam = async (team: SelectedTeam) => {
-      const resolvedEntryId = entryId ?? await getOrCreateEntry();
-      if (!resolvedEntryId || !pickerSlot) return;
+    const resolvedEntryId = entryId ?? await getOrCreateEntry();
+    if (!resolvedEntryId || !pickerSlot) return;
 
-    // 1) upsert de la ligne du slot
+    const currentTeam =
+      pickerSlot === 1 ? selectedTeam1 :
+      pickerSlot === 2 ? selectedTeam2 :
+      selectedTeam3;
+
+    const selectedTeams = [
+      { slot: 1 as const, team: selectedTeam1 },
+      { slot: 2 as const, team: selectedTeam2 },
+      { slot: 3 as const, team: selectedTeam3 },
+    ];
+
+    const existing = selectedTeams.find(
+      (item) =>
+        item.team?.teamId === team.teamId &&
+        item.team?.matchId === team.matchId
+    );
+
+    // Cas 1 : on reclique sur la même équipe du même slot
+    if (existing?.slot === pickerSlot) {
+      closePicker();
+      return;
+    }
+
+    // Cas 2 : équipe déjà choisie ailleurs ET slot actuel déjà rempli => inversion
+    if (existing && existing.team && currentTeam) {
+      const slotsToSwap = [pickerSlot, existing.slot];
+
+      // 1) On supprime les deux anciennes lignes
+      const { error: deleteError } = await supabase
+        .from('tierce_entry_legs')
+        .delete()
+        .eq('entry_id', resolvedEntryId)
+        .in('pick_order', slotsToSwap);
+
+      if (deleteError) {
+        console.error('Erreur suppression swap:', deleteError);
+        return;
+      }
+
+      // 2) On recrée les deux lignes inversées
+      const { error: insertError } = await supabase
+        .from('tierce_entry_legs')
+        .insert([
+          {
+            entry_id: resolvedEntryId,
+            team_id: existing.team.teamId,
+            match_id: existing.team.matchId,
+            pick_order: pickerSlot,
+          },
+          {
+            entry_id: resolvedEntryId,
+            team_id: currentTeam.teamId,
+            match_id: currentTeam.matchId,
+            pick_order: existing.slot,
+          },
+        ]);
+
+      if (insertError) {
+        console.error('Erreur insertion swap:', insertError);
+        return;
+      }
+
+      // 3) Mise à jour locale
+      if (pickerSlot === 1) setSelectedTeam1(existing.team);
+      if (pickerSlot === 2) setSelectedTeam2(existing.team);
+      if (pickerSlot === 3) setSelectedTeam3(existing.team);
+
+      if (existing.slot === 1) setSelectedTeam1(currentTeam);
+      if (existing.slot === 2) setSelectedTeam2(currentTeam);
+      if (existing.slot === 3) setSelectedTeam3(currentTeam);
+
+      setSelectedTeam1Points(null);
+      setSelectedTeam2Points(null);
+      setSelectedTeam3Points(null);
+
+      closePicker();
+      return;
+    }
+
+    // Cas 3 : équipe déjà choisie ailleurs mais slot actuel vide
+    // => on la met dans le slot actuel et on vide l’ancien slot
+    if (existing && existing.team && !currentTeam) {
+      const { error: deleteError } = await supabase
+        .from('tierce_entry_legs')
+        .delete()
+        .eq('entry_id', resolvedEntryId)
+        .eq('pick_order', existing.slot);
+
+      if (deleteError) {
+        console.error('Erreur suppression déplacement:', deleteError);
+        return;
+      }
+
+      const { error: insertError } = await supabase
+        .from('tierce_entry_legs')
+        .insert([
+          {
+            entry_id: resolvedEntryId,
+            team_id: existing.team.teamId,
+            match_id: existing.team.matchId,
+            pick_order: pickerSlot,
+          },
+        ]);
+
+      if (insertError) {
+        console.error('Erreur insertion déplacement:', insertError);
+        return;
+      }
+
+      if (existing.slot === 1) setSelectedTeam1(null);
+      if (existing.slot === 2) setSelectedTeam2(null);
+      if (existing.slot === 3) setSelectedTeam3(null);
+
+      if (pickerSlot === 1) setSelectedTeam1(existing.team);
+      if (pickerSlot === 2) setSelectedTeam2(existing.team);
+      if (pickerSlot === 3) setSelectedTeam3(existing.team);
+
+      setSelectedTeam1Points(null);
+      setSelectedTeam2Points(null);
+      setSelectedTeam3Points(null);
+
+      closePicker();
+      return;
+    }
+
+    // Cas 4 : équipe libre => sélection normale
     const { error } = await supabase
       .from('tierce_entry_legs')
       .upsert(
@@ -342,17 +476,21 @@ export default function TierceScreen({
         }
       );
 
-    if (error) return;
+    if (error) {
+      console.error('Erreur sélection équipe:', error);
+      return;
+    }
 
-    // 2) mise à jour locale
     if (pickerSlot === 1) {
       setSelectedTeam1(team);
       setSelectedTeam1Points(null);
     }
+
     if (pickerSlot === 2) {
       setSelectedTeam2(team);
       setSelectedTeam2Points(null);
     }
+
     if (pickerSlot === 3) {
       setSelectedTeam3(team);
       setSelectedTeam3Points(null);
@@ -393,24 +531,15 @@ export default function TierceScreen({
     },
   ]);
   const availableTeams = allTeams.filter((team) => {
-    // 1) on ne garde que les matchs à venir
+    // On ne garde que les matchs à venir
     if (team.status !== 'NS') return false;
 
-    // 2) on autorise l'équipe déjà présente dans le slot en cours de modification
-    const currentSelection =
-      pickerSlot === 1 ? selectedTeam1 :
-      pickerSlot === 2 ? selectedTeam2 :
-      pickerSlot === 3 ? selectedTeam3 :
-      null;
-
-    // 3) on retire les équipes déjà choisies ailleurs
-    const selectedElsewhere = [selectedTeam1, selectedTeam2, selectedTeam3]
-      .filter(Boolean)
-      .filter((team) => team?.teamName !== currentSelection?.teamName)
-      .map((team) => team!.teamName);
-
-    return !selectedElsewhere.includes(team.teamName);
+    // On garde toutes les équipes disponibles,
+    // même si elles sont déjà choisies ailleurs,
+    // pour permettre les inversions.
+    return true;
   });
+  const availableCount = availableTeams.length;
   const [sortMode, setSortMode] = useState<'date' | 'fav' | 'outsider'>('date');
   const sortedTeams = [...availableTeams].sort((a, b) => {
     if (sortMode === 'date') {
@@ -578,22 +707,35 @@ export default function TierceScreen({
   const [publicTicketsLoading, setPublicTicketsLoading] = useState(false);
   const [selectedPublicTicketIndex, setSelectedPublicTicketIndex] = useState(0);
   const [selectedUserName, setSelectedUserName] = useState<string | null>(null);
+  const [playersList, setPlayersList] = useState<any[]>([]);
+  const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(0);
 
   const openPublicTickets = async (userId: string, username: string) => {
     setSelectedUserName(username);
     setPublicTicketsOpen(true);
     setPublicTicketsLoading(true);
 
-    const { data, error } = await supabase.rpc(
-      'get_tierce_public_tickets_for_user',
-      {
-        p_competition_id: competitionId,
-        p_user_id: userId,
-      }
-    );
+    try {
+      const { data, error } = await supabase.rpc(
+        'get_tierce_public_tickets_for_user',
+        {
+          p_competition_id: competitionId,
+          p_user_id: userId,
+        }
+      );
 
-    if (!error && data) {
-      // regrouper par ticket_id
+      if (error) {
+        console.error('Erreur RPC:', error);
+        setPublicTickets([]);
+        return;
+      }
+
+      if (!data) {
+        setPublicTickets([]);
+        return;
+      }
+
+      // 🧠 Regroupement par ticket_id
       const grouped: Record<string, any[]> = {};
 
       data.forEach((row: any) => {
@@ -605,15 +747,36 @@ export default function TierceScreen({
 
       setPublicTickets(ticketsArray);
 
-      // 👉 ouvrir sur ticket courant
+      // 🎯 Sélection du ticket courant si possible
       const index = ticketsArray.findIndex(
         (t: any) => t[0].ticket_id === currentTicket?.id
       );
 
       setSelectedPublicTicketIndex(index >= 0 ? index : 0);
-    }
 
-    setPublicTicketsLoading(false);
+    } catch (err) {
+      console.error('Erreur chargement tickets:', err);
+      setPublicTickets([]);
+    } finally {
+      setPublicTicketsLoading(false);
+    }
+  };
+
+  const changePlayer = async (direction: 'prev' | 'next') => {
+    if (playersList.length === 0) return;
+
+    const newIndex =
+      direction === 'prev'
+        ? Math.max(0, selectedPlayerIndex - 1)
+        : Math.min(playersList.length - 1, selectedPlayerIndex + 1);
+
+    const player = playersList[newIndex];
+
+    if (!player) return;
+
+    setSelectedPlayerIndex(newIndex);
+
+    await openPublicTickets(player.user_id, player.username);
   };
 
   // Navigation entre tickets
@@ -654,7 +817,62 @@ export default function TierceScreen({
       }
 
       setTickets(ticketRows);
-      setCurrentIdx(0);
+
+      // Chercher le ticket à ouvrir par défaut
+      const { data: matchLinks, error: matchLinksError } = await supabase
+        .from('tierce_ticket_matches')
+        .select(`
+          ticket_id,
+          matches (
+            id,
+            status,
+            date
+          )
+        `)
+        .in('ticket_id', ticketIds);
+
+      if (matchLinksError || !matchLinks) {
+        setCurrentIdx(ticketRows.length > 0 ? ticketRows.length - 1 : 0);
+        return;
+      }
+
+      const finishedStatuses = ['FT', 'AET', 'PEN', 'AWD', 'WO', 'BT', 'P', 'ET'];
+
+      const statusesByTicket: Record<string, string[]> = {};
+
+      matchLinks.forEach((row: any) => {
+        if (!statusesByTicket[row.ticket_id]) {
+          statusesByTicket[row.ticket_id] = [];
+        }
+
+        if (row.matches?.status) {
+          statusesByTicket[row.ticket_id].push(row.matches.status);
+        }
+      });
+
+      // Priorité 1 : premier ticket avec au moins un match non terminé
+      const firstActiveIndex = ticketRows.findIndex((ticket) =>
+        statusesByTicket[ticket.id]?.some(
+          (status) => !finishedStatuses.includes(status)
+        )
+      );
+
+      // Priorité 2 : premier ticket avec au moins un match NS
+      const firstUpcomingIndex = ticketRows.findIndex((ticket) =>
+        statusesByTicket[ticket.id]?.some((status) => status === 'NS')
+      );
+
+      // Priorité 3 : dernier ticket
+      const indexToOpen =
+        firstActiveIndex >= 0
+          ? firstActiveIndex
+          : firstUpcomingIndex >= 0
+          ? firstUpcomingIndex
+          : ticketRows.length > 0
+          ? ticketRows.length - 1
+          : 0;
+
+      setCurrentIdx(indexToOpen);
     })();
   }, [competitionId]);
 
@@ -857,34 +1075,46 @@ export default function TierceScreen({
           </div>
 
           {/* B) BOUTONS DE VUES */}
-          <div className="border rounded-lg p-4 flex items-center justify-center gap-4 flex-wrap">
+          <div className="border rounded-lg p-3 flex items-center gap-4 overflow-x-auto whitespace-nowrap md:justify-center">
             {/* 1) TICKET */}
             <button
               onClick={() => setView('ticket')}
               aria-pressed={view === 'ticket'}
-              className={`w-12 h-12 rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
+              className={`w-12 h-12 shrink-0 sm:basis-auto rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
                 view === 'ticket' ? 'ring-2 ring-orange-500 bg-orange-50' : ''
               }`}
               title="Voir mon ticket"
             >
-              Ticket
+              <Image
+                src="/images/icons/ticket.png"
+                alt="Ticket"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
             </button>
 
             {/* 2) MATCHS */}
             <button
               onClick={() => setView('matches')}
               aria-pressed={view === 'matches'}
-              className={`w-12 h-12 rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
+              className={`w-12 h-12 shrink-0 sm:basis-auto rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
                 view === 'matches' ? 'ring-2 ring-orange-500 bg-orange-50' : ''
               }`}
               title="Voir les matchs"
             >
-              Matchs
+              <Image
+                src="/images/icons/info.png"
+                alt="Matchs"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
             </button>
 
             {/* 3) TOTAL POINTS */}
             <div
-              className="w-12 h-12 rounded-full border border-black bg-white flex items-center justify-center font-semibold"
+              className="w-12 h-12 shrink-0 sm:basis-auto rounded-full border border-black bg-white flex items-center justify-center font-semibold"
               title="Points du ticket"
             >
               {totalTicketPoints ?? '-'}
@@ -894,36 +1124,54 @@ export default function TierceScreen({
             <button
               onClick={() => setView('rankGeneral')}
               aria-pressed={view === 'rankGeneral'}
-              className={`w-12 h-12 rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
+              className={`w-12 h-12 shrink-0 sm:basis-auto rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
                 view === 'rankGeneral' ? 'ring-2 ring-orange-500 bg-orange-50' : ''
               }`}
               title="Classement général"
             >
-              G
+              <Image
+                src="/images/icons/podium.png"
+                alt="Podium"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
             </button>
 
             {/* 5) CLASSEMENT TICKET */}
             <button
               onClick={() => setView('rankTicket')}
               aria-pressed={view === 'rankTicket'}
-              className={`w-12 h-12 rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
+              className={`w-12 h-12 shrink-0 sm:basis-auto rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
                 view === 'rankTicket' ? 'ring-2 ring-orange-500 bg-orange-50' : ''
               }`}
               title="Classement du ticket"
             >
-              C
+              <Image
+                src="/images/icons/classement.png"
+                alt="Classement"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
             </button>
 
-            {/* 6) INFOS */}
+            {/* 6) REGLES */}
             <button
               onClick={() => setView('info')}
               aria-pressed={view === 'info'}
-              className={`w-12 h-12 rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
+              className={`w-12 h-12 shrink-0 sm:basis-auto rounded-full border border-black bg-white p-[3px] flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none ${
                 view === 'info' ? 'ring-2 ring-orange-500 bg-orange-50' : ''
               }`}
               title="Infos compétition"
             >
-              Règles
+              <Image
+                src="/images/icons/règles.png"
+                alt="Règles"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
             </button>
           </div>
 
@@ -946,15 +1194,23 @@ export default function TierceScreen({
             {view === 'ticket' && (
               <div className="border rounded-lg p-4 overflow-x-auto">
                 <h2 className="text-center font-semibold text-lg mb-4">
-                  MON TICKET
+                  🎯 Choisis tes 3 équipes
                 </h2>
 
                 <div className="w-full">
                   <div className="grid grid-cols-[8%_30%_28%_20%_14%] border-b font-semibold text-sm items-center">
                     <div className="p-2 text-center">#</div>
                     <div className="p-2">Équipe</div>
-                    <div className="p-2 text-center">V/N/D</div>
-                    <div className="p-2 text-center">PTS</div>
+                    <div className="p-2">
+                      <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-start items-center">
+                        <span className="inline-block w-7 text-center">V</span>
+                        <span className="mx-0.5 text-gray-500">|</span>
+                        <span className="inline-block w-7 text-center">N</span>
+                        <span className="mx-0.5 text-gray-500">|</span>
+                        <span className="inline-block w-7 text-center">D</span>
+                      </div>
+                    </div>
+                    <div className="p-2 text-center">Points</div>
                     <div className="p-2 text-center">VAR</div>
                   </div>
 
@@ -967,9 +1223,29 @@ export default function TierceScreen({
                       key={row.order}
                       className="grid grid-cols-[8%_30%_28%_20%_14%] border-b text-sm items-center"
                     >
-                      <div className="p-2 text-center">{row.order}</div>
+                      <div className="p-2 text-center">
+                        {row.teamName.includes('non choisie') ? (
+                          row.order
+                        ) : (
+                          <span className="text-green-600 font-bold text-lg">✓</span>
+                        )}
+                      </div>
                       <div className="p-2">{row.teamName}</div>
-                      <div className="p-2 text-center">{row.triplet}</div>
+                      <div className="p-2">
+                        <div className="text-[12px] sm:text-sm whitespace-nowrap flex justify-start items-center">
+                          <span className={`inline-block w-7 text-center ${getPointsColor(row.vPoints)}`}>
+                            {row.vPoints ?? '-'}
+                          </span>
+                          <span className="mx-0.5 text-gray-500">|</span>
+                          <span className={`inline-block w-7 text-center ${getPointsColor(row.nPoints)}`}>
+                            {row.nPoints ?? '-'}
+                          </span>
+                          <span className="mx-0.5 text-gray-500">|</span>
+                          <span className={`inline-block w-7 text-center ${getPointsColor(row.dPoints)}`}>
+                            {row.dPoints ?? '-'}
+                          </span>
+                        </div>
+                      </div>
                       <div className={`p-2 text-center font-semibold ${row.pointsClass}`}>
                         {row.displayPoints}
                       </div>
@@ -1120,7 +1396,7 @@ export default function TierceScreen({
             {/* COLONNE DROITE */}
               <div className="border rounded-lg p-4 mb-4 md:mb-0">
                 <h2 className="text-center font-semibold text-lg mb-4">
-                  CHOIX DES ÉQUIPES
+                  ⚽ {availableCount} équipes disponibles
                 </h2>
 
                 <div className="space-y-4">
@@ -1134,13 +1410,20 @@ export default function TierceScreen({
                         }
                       }}
                       disabled={selectedTeam1 ? isMatchStarted(selectedTeam1.matchId) : false}
-                      className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      className="w-32 px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
                     >
-                      {selectedTeam1
-                        ? isMatchStarted(selectedTeam1.matchId)
-                          ? 'EN JEU'
-                          : 'Modifier'
-                        : 'Choisir'}
+                      {selectedTeam1 ? (
+                        isMatchStarted(selectedTeam1.matchId) ? (
+                          <>
+                            <span>🔒</span>
+                            <span>EN JEU</span>
+                          </>
+                        ) : (
+                          'Modifier'
+                        )
+                      ) : (
+                        'Choisir'
+                      )}
                     </button>
                   </div>
 
@@ -1154,13 +1437,20 @@ export default function TierceScreen({
                         }
                       }}
                       disabled={selectedTeam2 ? isMatchStarted(selectedTeam2.matchId) : false}
-                      className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      className="w-32 px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
                     >
-                      {selectedTeam2
-                        ? isMatchStarted(selectedTeam2.matchId)
-                          ? 'EN JEU'
-                          : 'Modifier'
-                        : 'Choisir'}
+                      {selectedTeam2 ? (
+                        isMatchStarted(selectedTeam2.matchId) ? (
+                          <>
+                            <span>🔒</span>
+                            <span>EN JEU</span>
+                          </>
+                        ) : (
+                          'Modifier'
+                        )
+                      ) : (
+                        'Choisir'
+                      )}
                     </button>
                   </div>
 
@@ -1174,13 +1464,20 @@ export default function TierceScreen({
                         }
                       }}
                       disabled={selectedTeam3 ? isMatchStarted(selectedTeam3.matchId) : false}
-                      className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      className="w-32 px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
                     >
-                      {selectedTeam3
-                        ? isMatchStarted(selectedTeam3.matchId)
-                          ? 'EN JEU'
-                          : 'Modifier'
-                        : 'Choisir'}
+                      {selectedTeam3 ? (
+                        isMatchStarted(selectedTeam3.matchId) ? (
+                          <>
+                            <span>🔒</span>
+                            <span>EN JEU</span>
+                          </>
+                        ) : (
+                          'Modifier'
+                        )
+                      ) : (
+                        'Choisir'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1232,7 +1529,12 @@ export default function TierceScreen({
                       return (
                         <tr
                           key={row.user_id}
-                          onClick={() => openPublicTickets(row.user_id, row.username)}
+                          onClick={() => {
+                            setPlayersList(lbRows);
+                            const index = lbRows.findIndex((u: any) => u.user_id === row.user_id);
+                            setSelectedPlayerIndex(index >= 0 ? index : 0);
+                            openPublicTickets(row.user_id, row.username);
+                          }}
                           className={`border-t transition cursor-pointer hover:bg-gray-100 ${me ? 'bg-orange-100 font-bold' : ''}`}
                         >
                           <td className="px-4 py-2">{row.rank}</td>
@@ -1297,7 +1599,12 @@ export default function TierceScreen({
                       return (
                         <tr
                           key={row.user_id}
-                          onClick={() => openPublicTickets(row.user_id, row.username)}
+                          onClick={() => {
+                            setPlayersList(lbRows);
+                            const index = lbRows.findIndex((u: any) => u.user_id === row.user_id);
+                            setSelectedPlayerIndex(index >= 0 ? index : 0);
+                            openPublicTickets(row.user_id, row.username);
+                          }}
                           className={`border-t transition cursor-pointer hover:bg-gray-100 ${me ? 'bg-orange-100 font-bold' : ''}`}
                         >
                           <td className="px-4 py-2">{row.rank}</td>
@@ -1320,7 +1627,7 @@ export default function TierceScreen({
         )}
 
         {/* -------------------------------- */}
-        {/* VUE PLEINE LARGEUR : infos */}
+        {/* VUE PLEINE LARGEUR : règles */}
         {/* -------------------------------- */}
         {view === 'info' && (
           <div className="max-w-3xl mx-auto space-y-4">
@@ -1342,12 +1649,12 @@ export default function TierceScreen({
               {openInfoSection === 1 && (
                 <div className="px-4 pb-4 text-sm text-gray-700 space-y-2">
                   <p>
-                    Lors d&apos;une journée de Ligue 1, sélectionne les <strong>3 équipes</strong> qui vont le plus performer selon toi.
+                    Sélectionne les <strong>3 équipes</strong> qui vont faire les meilleures performances du week-end.
                   </p>
                   <p>
                     La performance d&apos;une équipe dépend de 3 critères :
                     <br />• sa <strong>cote de résultat</strong>
-                    <br />• son <strong>écart de buts</strong> lié au score
+                    <br />• l&apos;<strong>écart de buts</strong>
                     <br />• l&apos;<strong>affluence du stade</strong>
                   </p>
                   <p>
@@ -1375,12 +1682,12 @@ export default function TierceScreen({
                     La performance d&apos;une équipe est calculée avec la formule :
                   </p>
 
-                  <div className="max-w-xs mx-auto border rounded-lg py-3 px-4 text-center font-semibold text-base">
-                    45 + C + E + S
+                  <div className="max-w-xs mx-auto border rounded-lg py-3 px-4 text-center font-semibold text-base tracking-wide">
+                    45 ± C ± E + S
                   </div>
 
                   <p>
-                    • <strong>C (Cote)</strong> : valeur visible dans le triplet <strong>Victoire / Nul / Défaite</strong>
+                    • <strong>C (Cote)</strong> : valeurs visibles dans le triplet <strong>Victoire / Nul / Défaite</strong>
                     <br />• <strong>E (Écart)</strong> : différence de buts × 5
                     <br />• <strong>S (Supporters)</strong> : taux de remplissage du stade divisé par 10
                   </p>
@@ -1405,36 +1712,36 @@ export default function TierceScreen({
               {openInfoSection === 3 && (
                 <div className="px-4 pb-4 text-sm text-gray-700 space-y-3">
                   <p>
-                    On calcule ici la <strong>performance de l'équipe de France</strong> avec le triplet :
+                    On calcule ici la <strong>performance de l'équipe de France</strong> avec :
                     <br />
-                    <span className="font-semibold">Victoire : 13 | Nul : -6 | Défaite : -25</span>
+                    <span className="font-semibold">Victoire : 17 | Nul : -8 | Défaite : -33</span>
                     <br />
-                    Stade rempli à <strong>95%</strong> → S = 9.5
+                    Stade rempli à <strong>90%</strong> → S = 9
                   </p>
 
                   <div className="space-y-3">
                     <p>
-                      <strong>1.</strong> La France gagne <strong>3-0</strong>
+                      <strong>Exemple 1 :</strong> La France gagne <strong>3-0</strong>
                       <br />
-                      C = 13 | E = 15 | S = 9.5
+                      C = 17 | E = 15 | S = 9
                       <br />
-                      👉 <strong>45 + 13 + 15 + 9.5 = 82.5</strong>
+                      👉 <strong>45 + 17 + 15 + 9 = 86</strong>
                     </p>
 
                     <p>
-                      <strong>2.</strong> La France fait <strong>1-1</strong>
+                      <strong>Exemple 2 :</strong> La France fait <strong>1-1</strong>
                       <br />
-                      C = -6 | E = 0 | S = 9.5
+                      C = -8 | E = 0 | S = 9
                       <br />
-                      👉 <strong>45 - 6 + 0 + 9.5 = 48.5</strong>
+                      👉 <strong>45 - 8 + 0 + 9 = 43</strong>
                     </p>
 
                     <p>
-                      <strong>3.</strong> La France perd <strong>0-1</strong>
+                      <strong>Exemple 3 :</strong> La France perd <strong>0-1</strong>
                       <br />
-                      C = -25 | E = -10 | S = 9.5
+                      C = -33 | E = -5 | S = 9
                       <br />
-                      👉 <strong>45 - 25 - 5 + 9.5 = 24.5</strong>
+                      👉 <strong>45 - 33 - 5 + 9 = 16</strong>
                     </p>
                   </div>
                 </div>
@@ -1749,16 +2056,39 @@ export default function TierceScreen({
           <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b p-4">
-              <h3 className="text-lg font-semibold">
-                Tickets de {selectedUserName}
-              </h3>
+            <div className="flex items-center justify-between border-b p-3">
+
+              {/* Flèche gauche */}
+              <button
+                onClick={() => changePlayer('prev')}
+                disabled={selectedPlayerIndex === 0}
+                className="text-lg px-2"
+              >
+                ◀
+              </button>
+
+              {/* Nom joueur */}
+              <div className="text-center font-semibold text-base flex-1">
+                {selectedUserName}
+              </div>
+
+              {/* Flèche droite */}
+              <button
+                onClick={() => changePlayer('next')}
+                disabled={selectedPlayerIndex === playersList.length - 1}
+                className="text-lg px-2"
+              >
+                ▶
+              </button>
+
+              {/* Croix fermer */}
               <button
                 onClick={() => setPublicTicketsOpen(false)}
-                className="px-3 py-1 border rounded"
+                className="ml-3 text-xl font-bold"
               >
-                Fermer
+                ✕
               </button>
+
             </div>
 
             {/* Contenu */}
@@ -1798,25 +2128,57 @@ export default function TierceScreen({
 
                   {/* Tableau ticket */}
                   <div className="border rounded">
-                    {publicTickets[selectedPublicTicketIndex].map((row: any) => (
-                      <div
-                        key={row.pick_order}
-                        className="flex justify-between border-b px-3 py-2 text-sm"
-                      >
-                        <span>{row.pick_order}</span>
-                        <span>{row.team_name}</span>
-                        <span>
-                          {row.weighted_points_visible ?? '-'}
-                        </span>
-                      </div>
-                    ))}
+                    {(() => {
+                      const ticket = publicTickets[selectedPublicTicketIndex];
+                      const playedCount = ticket[0].ticket_played_count;
 
-                    <div className="flex justify-between px-3 py-2 font-semibold">
-                      <span>Total</span>
-                      <span>
-                        {publicTickets[selectedPublicTicketIndex][0].ticket_total_visible}
-                      </span>
-                    </div>
+                      // ✅ Cas ticket non joué
+                      if (playedCount === 0) {
+                        return (
+                          <div className="p-4 text-center text-gray-500 italic">
+                            Ticket non joué
+                          </div>
+                        );
+                      }
+
+                      // ✅ Sinon affichage normal des 3 lignes
+                      return (
+                        <>
+                          {ticket.map((row: any) => {
+                            // 🎨 couleur selon état
+                            let colorClass = 'text-gray-500';
+
+                            if (row.point_state === 'live') colorClass = 'text-orange-600';
+                            if (row.point_state === 'missing_attendance') colorClass = 'text-blue-600';
+                            if (row.point_state === 'final') colorClass = 'text-black';
+
+                            return (
+                              <div
+                                key={`${row.ticket_id}-${row.pick_order}`}
+                                className="flex justify-between border-b px-3 py-2 text-sm"
+                              >
+                                <span>{row.pick_order}</span>
+
+                                <span className="text-center flex-1">
+                                  {row.team_name}
+                                </span>
+
+                                <span className={colorClass}>
+                                  {row.weighted_points_visible ?? '-'}
+                                </span>
+                              </div>
+                            );
+                          })}
+
+                          <div className="flex justify-between px-3 py-2 font-semibold">
+                            <span>Total</span>
+                            <span>
+                              {ticket[0].ticket_total_visible}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </>
               )}

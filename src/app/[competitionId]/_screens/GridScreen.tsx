@@ -189,30 +189,30 @@ export default function HomePage() {
 
   const [showOffside, setShowOffside] = useState(false);
   const pathname = '/' + competitionId;
+
   // 👉 Change l’index ET met à jour l’URL en shallow routing
-const goToPage = (i: number) => {
-  setCurrentIdx(i);
-  const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
-  params.set('page', String(i));
-  params.set('view', view); // ✅ garder la vue active
-  router.replace(`/${competitionId}?${params.toString()}`);
-};
+  const goToPage = (i: number) => {
+    setCurrentIdx(i);
+    const params = new URLSearchParams(Array.from(searchParams?.entries?.() ?? []));
+    params.set('page', String(i));
+    params.set('view', view); // ✅ garder la vue active
+    router.replace(`/${competitionId}?${params.toString()}`);
+  };
 
   // 👉 Fonctions de navigation
   const prevGrid = () => {
     if (currentIdx > 0) goToPage(currentIdx - 1); // ← vers grille précédente
   };
-
   const nextGrid = () => {
     if (currentIdx < grids.length - 1) goToPage(currentIdx + 1); // → vers grille suivante
   };
 
   const [lastMatchData, setLastMatchData] = useState<RawMatchRow[]>([]);
-
   const [showPopup, setShowPopup] = useState(false);
   const [popupMatchStatus, setPopupMatchStatus] = useState<'NS' | 'OTHER' | null>(null);
   const [popupMatch, setPopupMatch] = useState<PopupMatch | null>(null);
   const [otherPicks, setOtherPicks] = useState<any[]>([]);
+
   // 👉 Pour les tris du pop-up pronos des autres
   const [sortMode, setSortMode] = useState<'rank' | 'alpha'>('rank');
 
@@ -260,47 +260,44 @@ const goToPage = (i: number) => {
   );
 
   // Pour le POP-UP BONUS
-
   // Pour retirer les match NS et les match ayant déjà un bonus des listes pop-ups
-    // Rendu d'une ligne BONUS
-// map id -> {code, category_id}
-const bonusDefById = React.useMemo(() => {
-  const m: Record<string, { code: string; category_id: string }> = {};
-  for (const d of bonusDefs ?? []) m[d.id] = { code: d.code, category_id: d.category_id };
-  return m;
-}, [bonusDefs]);
+  // Rendu d'une ligne BONUS
+    // map id -> {code, category_id}
+    const bonusDefById = React.useMemo(() => {
+      const m: Record<string, { code: string; category_id: string }> = {};
+      for (const d of bonusDefs ?? []) m[d.id] = { code: d.code, category_id: d.category_id };
+      return m;
+    }, [bonusDefs]);
 
-// liste des codes joués sur la grille
-const codesPlayed: string[] = React.useMemo(
-  () =>
-    gridBonuses
-      .map(gb => bonusDefById[gb.bonus_definition]?.code)
-      .filter(Boolean) as string[],
-  [gridBonuses, bonusDefById]
-);
+    // liste des codes joués sur la grille
+    const codesPlayed: string[] = React.useMemo(
+      () =>
+        gridBonuses
+          .map(gb => bonusDefById[gb.bonus_definition]?.code)
+          .filter(Boolean) as string[],
+      [gridBonuses, bonusDefById]
+    );
   // ids des matches déjà pris (toutes catégories confondues)
-type RiberyParams = { match_win?: string; match_zero?: string };
+  type RiberyParams = { match_win?: string; match_zero?: string };
 
-const takenMatchIds = React.useMemo(() => {
-  const s = new Set<string>();
-  for (const gb of gridBonuses ?? []) {
-    if (gb.match_id) s.add(String(gb.match_id));
+  const takenMatchIds = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const gb of gridBonuses ?? []) {
+      if (gb.match_id) s.add(String(gb.match_id));
 
-    // Sécurise RIBERY : ajoute match_win et match_zero
-    const def  = bonusDefById[gb.bonus_definition];
-    const code = def?.code;
-    if (code === 'RIBERY') {
-      const rp = gb.parameters as RiberyParams | undefined;
-      const win  = rp?.match_win  ? String(rp.match_win)  : '';
-      const zero = rp?.match_zero ? String(rp.match_zero) : '';
-      if (win)  s.add(win);
-      if (zero) s.add(zero);
+      // Sécurise RIBERY : ajoute match_win et match_zero
+      const def  = bonusDefById[gb.bonus_definition];
+      const code = def?.code;
+      if (code === 'RIBERY') {
+        const rp = gb.parameters as RiberyParams | undefined;
+        const win  = rp?.match_win  ? String(rp.match_win)  : '';
+        const zero = rp?.match_zero ? String(rp.match_zero) : '';
+        if (win)  s.add(win);
+        if (zero) s.add(zero);
+      }
     }
-  }
-  return s;
-}, [gridBonuses, bonusDefById]);
-
-
+    return s;
+  }, [gridBonuses, bonusDefById]);
 
 // Helper commun : match visible si NS, pas locké, et pas déjà pris
 const isMatchSelectable = (m:any) =>
@@ -1531,6 +1528,7 @@ return early ? (
                 </svg>
               </button>
 
+              {/* Titre de la grille choisie */}
               <span className="text-2xl font-semibold">
                 {currentGrid?.title || "Chargement..."}
               </span>
@@ -1548,7 +1546,7 @@ return early ? (
               </button>
             </div>
 
-            {/* B) 1N2 • POINTS • PODIUM • STATS */}
+            {/* B) 1N2 • POINTS • PODIUM • STATS • REGLES */}
             <div className="border rounded-lg p-4 flex items-center justify-center gap-4">
               {/* 1) Aller à la GRILLE */}
               <button
@@ -1559,13 +1557,13 @@ return early ? (
                             ${view==='grid' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
                 title="Voir la grille"
               >
-  <Image
-    src="/images/icons/grille.png"   // ton PNG (sans cercle noir)
-    alt="Grille"
-    width={40}
-    height={40}
-    className="rounded-full object-cover"
-  />
+              <Image
+                src="/images/icons/grille.png"   // ton PNG (sans cercle noir)
+                alt="Grille"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
               </button>
 
               {/* 2) POINTS (non cliquable) */}
@@ -1606,13 +1604,13 @@ return early ? (
                             ${view==='rankGrid' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
                 title="Classement de la grille"
               >
-  <Image
-    src="/images/icons/classement.png"   // ton PNG (sans cercle noir)
-    alt="Classement"
-    width={40}
-    height={40}
-    className="rounded-full object-cover"
-  />
+              <Image
+                src="/images/icons/classement.png"   // ton PNG (sans cercle noir)
+                alt="Classement"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
               </button>
 
               {/* 5) INFOS COMPÉT (uniquement pour PRIVATE) */}
@@ -1679,61 +1677,60 @@ return early ? (
                   </tr>
                 </thead>
                 <tbody>
-{lbRows.map(row => {
-  const me = row.user_id === user?.id;
-  const terminator = isTerminator(row);
-  const xpClassic = Math.max(0, 11 - Number(row.rank || 0));
+                {lbRows.map(row => {
+                  const me = row.user_id === user?.id;
+                  const terminator = isTerminator(row);
+                  const xpClassic = Math.max(0, 11 - Number(row.rank || 0));
 
-  const rowClass = me
-    ? 'bg-orange-100 font-bold'
-    : terminator
-      ? 'bg-gray-200 font-semibold'
-      : 'hover:bg-gray-50';
+                  const rowClass = me
+                    ? 'bg-orange-100 font-bold'
+                    : terminator
+                      ? 'bg-gray-200 font-semibold'
+                      : 'hover:bg-gray-50';
 
-  return (
-    <tr
-      key={row.user_id}
-      className={`border-t transition ${rowClass}`}
-    >
-      {/* Position */}
-      <td className="px-4 py-2">{row.rank}</td>
+                  return (
+                    <tr
+                      key={row.user_id}
+                      className={`border-t transition ${rowClass}`}
+                    >
+                      {/* Position */}
+                      <td className="px-4 py-2">{row.rank}</td>
 
-      {/* Avatar */}
-      <td className="px-4 py-2">
-        {row.avatar ? (
-          <Image
-            src={row.avatar}
-            alt={`Avatar ${row.username}`}
-            width={28}
-            height={28}
-            className="rounded-full object-cover"
-          />
-        ) : (
-          <div className="w-7 h-7" />
-        )}
-      </td>
+                      {/* Avatar */}
+                      <td className="px-4 py-2">
+                        {row.avatar ? (
+                          <Image
+                            src={row.avatar}
+                            alt={`Avatar ${row.username}`}
+                            width={28}
+                            height={28}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-7 h-7" />
+                        )}
+                      </td>
 
-      {/* Pseudo */}
-      <td className="px-4 py-2">
-        {row.username}
-        {terminator && (
-          <span className="ml-2 text-xs text-gray-700">
-            (à battre)
-          </span>
-        )}
-      </td>
+                      {/* Pseudo */}
+                      <td className="px-4 py-2">
+                        {row.username}
+                        {terminator && (
+                          <span className="ml-2 text-xs text-gray-700">
+                            (à battre)
+                          </span>
+                        )}
+                      </td>
 
-      {/* Points */}
-      <td className="px-4 py-2">{row.total_points}</td>
+                      {/* Points */}
+                      <td className="px-4 py-2">{row.total_points}</td>
 
-      {/* XP */}
-      {xpEnabled && competition?.mode === 'CLASSIC' && (
-        <td className="px-4 py-2">{xpClassic}</td>
-      )}
-    </tr>
-  );
-})}
-
+                      {/* XP */}
+                      {xpEnabled && competition?.mode === 'CLASSIC' && (
+                        <td className="px-4 py-2">{xpClassic}</td>
+                      )}
+                    </tr>
+                  );
+                })}
                 </tbody>
               </table>
             </div>
@@ -1803,258 +1800,254 @@ return early ? (
         </div>
       )}
 
-
-
       {/* 2) CONTENU PRINCIPAL : GRILLE (2/3) & BONUS (1/3) */}
       <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'grid' ? 'hidden' : ''}`}>
         {/* ── GRILLE ── */}
         <div className="w-full lg:w-2/3">
           <div className="border rounded-lg">
-    <button
-      type="button"
-      onClick={() => setOpenGrille(!openGrille)}
-      className="w-full flex items-center px-4 py-3"
-    >
-      <span className="font-semibold text-center flex-1">
-        {gate.state === 'joueur'
-          ? "Fais tes pronos !"
-          : gate.state === "elimine" || gate.state === "spectateur"
-          ? "Suis la compet"
-          : "Chargement..."}
-      </span>
-      <span className="text-xl shrink-0">
-        {openGrille ? "▲" : "▼"}
-      </span>
-    </button>
-                    {openGrille && (
-                      <div className="-mx-4 px-4 pb-4 space-y-2">
-                        <div className="space-y-1">
-                          {loadingGrid ? (
-                            <div className="p-6 text-center">🔄 Chargement de la grille…</div>
-                          ) : (
-                            matches.map((m) => {
-                              const upperStatus = m.status?.toUpperCase?.() ?? '';
+            <button
+              type="button"
+              onClick={() => setOpenGrille(!openGrille)}
+              className="w-full flex items-center px-4 py-3"
+            >
+              <span className="font-semibold text-center flex-1">
+                {gate.state === 'joueur'
+                  ? "Fais tes pronos !"
+                  : gate.state === "elimine" || gate.state === "spectateur"
+                  ? "Suis la compet"
+                  : "Chargement..."}
+              </span>
+              <span className="text-xl shrink-0">
+                {openGrille ? "▲" : "▼"}
+              </span>
+            </button>
+            
+            {openGrille && (
+              <div className="-mx-4 px-4 pb-4 space-y-2">
+                <div className="space-y-1">
+                  {loadingGrid ? (
+                    <div className="p-6 text-center">🔄 Chargement de la grille…</div>
+                  ) : (
+                    matches.map((m) => {
+                      const upperStatus = m.status?.toUpperCase?.() ?? '';
 
-                              // 1) Bonus actif
-                              const bonusEntry = gridBonuses[0];
-                              const bonusDef = bonusDefs.find(d => d.id === bonusEntry?.bonus_definition);
-                              const bonusCode = bonusDef?.code || '';
-                              const params = bonusEntry?.parameters || {};
-                              //const matchWin = (params as Partial<{ match_win: string }>).match_win ?? '';
-                              //const matchZero = (params as Partial<{ match_zero: string }>).match_zero ?? '';
+                      // 1) Bonus actif
+                      const bonusEntry = gridBonuses[0];
+                      const bonusDef = bonusDefs.find(d => d.id === bonusEntry?.bonus_definition);
+                      const bonusCode = bonusDef?.code || '';
+                      const params = bonusEntry?.parameters || {};
+                      //const matchWin = (params as Partial<{ match_win: string }>).match_win ?? '';
+                      //const matchZero = (params as Partial<{ match_zero: string }>).match_zero ?? '';
 
-                              // 1bis) Pour le bonus BIELSA
-                              //const paramsPick = (params as { pick?: '1' | 'N' | '2' }).pick;
-                              //const isBielsaActive = bonusCode === 'BIELSA' && !!bielsaMatchId;
-                              //const isMutedByBielsa = isBielsaActive && m.id !== bielsaMatchId;
-                              //const isBielsaThis   = isBielsaActive && m.id === bielsaMatchId;
-                              //const isBielsaOther  = isBielsaActive && m.id !== bielsaMatchId;
+                      // 1bis) Pour le bonus BIELSA
+                      //const paramsPick = (params as { pick?: '1' | 'N' | '2' }).pick;
+                      //const isBielsaActive = bonusCode === 'BIELSA' && !!bielsaMatchId;
+                      //const isMutedByBielsa = isBielsaActive && m.id !== bielsaMatchId;
+                      //const isBielsaThis   = isBielsaActive && m.id === bielsaMatchId;
+                      //const isBielsaOther  = isBielsaActive && m.id !== bielsaMatchId;
 
-            const overlay: OverlayEntry = byMatch[String(m.id)] ?? { disabled: false, picks: undefined, codes: [] };
-            const entry = byMatch[String(m.id)];
-            const disabledByOverlay = globalDisabled || Boolean(entry?.disabled);
-            const picksFromOverlay = entry?.picks as ('1'|'N'|'2')[] | undefined;
-            const codesHere = entry?.codes ?? [];
-            const hasRiberyHere = codesHere.includes('RIBERY');
-            const hasAnyBonusHere = codesHere.length > 0;
-            const firstCode = hasRiberyHere ? 'RIBERY' : codesHere[0]; // un seul code par match, sauf RIBERY qui peut marquer 2 matchs
+                      const overlay: OverlayEntry = byMatch[String(m.id)] ?? { disabled: false, picks: undefined, codes: [] };
+                      const entry = byMatch[String(m.id)];
+                      const disabledByOverlay = globalDisabled || Boolean(entry?.disabled);
+                      const picksFromOverlay = entry?.picks as ('1'|'N'|'2')[] | undefined;
+                      const codesHere = entry?.codes ?? [];
+                      const hasRiberyHere = codesHere.includes('RIBERY');
+                      const hasAnyBonusHere = codesHere.length > 0;
+                      const firstCode = hasRiberyHere ? 'RIBERY' : codesHere[0]; // un seul code par match, sauf RIBERY qui peut marquer 2 matchs
 
-            // 2) Version unifiée basée sur l'overlay
-            let picksForThisMatch: string[] = globalDisabled
-              ? (picksFromOverlay ?? [])              // BIELSA actif → n’afficher des croix que si l’overlay en met (BIELSA)
-              : (picksFromOverlay ?? (m.pick ? [m.pick] : []));  // cas normal → fallback sur le pick de la grille
+                      // 2) Version unifiée basée sur l'overlay
+                      let picksForThisMatch: string[] = globalDisabled
+                        ? (picksFromOverlay ?? [])              // BIELSA actif → n’afficher des croix que si l’overlay en met (BIELSA)
+                        : (picksFromOverlay ?? (m.pick ? [m.pick] : []));  // cas normal → fallback sur le pick de la grille
 
-            let isDisabled =
-              disabledByOverlay ||                       // overlay (bonus posé / BIELSA global)
-              upperStatus !== 'NS' ||                    // match démarré
-              ['SUSP','INT','PST'].includes(upperStatus) ||
-              !!m.is_locked ||                           // verrou interne
-              isReadOnly;                                // spectateur / éliminé
+                      let isDisabled =
+                        disabledByOverlay ||                       // overlay (bonus posé / BIELSA global)
+                        upperStatus !== 'NS' ||                    // match démarré
+                        ['SUSP','INT','PST'].includes(upperStatus) ||
+                        !!m.is_locked ||                           // verrou interne
+                        isReadOnly;                                // spectateur / éliminé
 
+                      return (
+                        <div
+                          key={m.id}
+                          className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_11%] gap-2 items-center"
+                        >
+                        {/* LIGNE 1 */}
+                        <div className="text-center text-sm">{fmtDate(m.date)}</div>
 
-                              return (
-                                <div
-                                  key={m.id}
-                                  className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_11%] gap-2 items-center"
-                                >
-                                {/* LIGNE 1 */}
-                                <div className="text-center text-sm">{fmtDate(m.date)}</div>
-
-                                {/* Nom équipe domicile : short sur mobile, complet sur PC */}
-                                <div className="text-center font-medium">
-                                  <span className="sm:hidden">{m.short_name_home}</span>
-                                  <span className="hidden sm:inline">{m.home_team}</span>
-                                </div>
-
-                                {/* Boutons 1/N/2 */}
-            {/* Boutons 1/N/2 */}
-            <div className="grid grid-cols-3 gap-[16px] justify-items-center">
-              {(['1', 'N', '2'] as const).map((opt) => {
-                const isX = picksForThisMatch.includes(opt);   // croix décidée par l’overlay
-                return (
-                  <div
-                    key={opt}
-                    onClick={() => !isDisabled && handlePick(m.id, opt)}
-                    className={`w-7 h-6 border rounded flex items-center justify-center text-sm ${
-                      isDisabled ? 'opacity-50' : 'cursor-pointer'
-                    }`}
-                  >
-                    {isX ? (
-                      <div className="relative w-6 sm:w-8 h-6 sm:h-8">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <svg viewBox="0 0 100 100" className="w-full h-full">
-                            <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="8" />
-                            <line x1="90" y1="10" x2="10" y2="90" stroke="black" strokeWidth="8" />
-                          </svg>
+                        {/* Nom équipe domicile : short sur mobile, complet sur PC */}
+                        <div className="text-center font-medium">
+                          <span className="sm:hidden">{m.short_name_home}</span>
+                          <span className="hidden sm:inline">{m.home_team}</span>
                         </div>
-                      </div>
-                    ) : (
-                      opt
-                    )}
-                  </div>
-                );
-              })}
-            </div>
 
-
-                                {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
-                                <div className="text-center font-medium">
-                                  <span className="sm:hidden">{m.short_name_away}</span>
-                                  <span className="hidden sm:inline">{m.away_team}</span>
-                                </div>
-                                
-                                {/* BONUS */}
-                                  <div className="flex justify-center">
-                                    <button
-                                      onClick={async () => {
-                                        setOtherPicks([]);
-
-                                        const status = String(m.status ?? '').trim().toUpperCase();
-                                        setPopupMatchStatus(status === 'NS' ? 'NS' : 'OTHER');
-
-                                        // ⬇️ capture toutes les infos d’en-tête du match cliqué
-                                        setPopupMatch({
-                                          id: String(m.id),
-                                          home: m.short_name_home || m.home_team || 'Équipe A',
-                                          away: m.short_name_away || m.away_team || 'Équipe B',
-                                          base1: m.base_1_points ?? null,
-                                          baseN: m.base_n_points ?? null,
-                                          base2: m.base_2_points ?? null,
-                                        });
-
-                                        setShowPopup(true);
-
-                                      // Charge les autres pronos via la RPC simple (grille + match)
-                                      const { data, error } = await supabase.rpc('get_other_picks_basic', {
-                                        p_grid_id: grid.id,
-                                        p_match_id: m.id,
-                                        p_competition_id: competitionId,
-                                      });
-
-                                      setOtherPicks(data ?? []);
-
-                                      }}
-                                      className="focus:outline-none"
-                                    >
-                                      {/* ton rendu d'icône bonus inchangé */}
-                                      {hasAnyBonusHere ? (
-                                            <Image
-                                              src={bonusLogos[firstCode]}
-                                              alt={`${firstCode} bonus`}
-                                              width={32}
-                                              height={32}
-                                              className="rounded-full"
-                                            />
-                                          ) : (
-                                            <Image
-                                              src={bonusLogos['INFO']}
-                                              alt="bonus inconnu"
-                                              width={32}
-                                              height={32}
-                                              className="rounded-full"
-                                            />
-                                          )}
-                                     </button>
+                        {/* Boutons 1/N/2 */}
+                        <div className="grid grid-cols-3 gap-[16px] justify-items-center">
+                          {(['1', 'N', '2'] as const).map((opt) => {
+                            const isX = picksForThisMatch.includes(opt);   // croix décidée par l’overlay
+                            return (
+                              <div
+                                key={opt}
+                                onClick={() => !isDisabled && handlePick(m.id, opt)}
+                                className={`w-7 h-6 border rounded flex items-center justify-center text-sm ${
+                                  isDisabled ? 'opacity-50' : 'cursor-pointer'
+                                }`}
+                              >
+                                {isX ? (
+                                  <div className="relative w-6 sm:w-8 h-6 sm:h-8">
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <svg viewBox="0 0 100 100" className="w-full h-full">
+                                        <line x1="10" y1="10" x2="90" y2="90" stroke="black" strokeWidth="8" />
+                                        <line x1="90" y1="10" x2="10" y2="90" stroke="black" strokeWidth="8" />
+                                      </svg>
+                                    </div>
                                   </div>
-
-                                  {/* LIGNE 2 */}
-                                  {(() => {
-                                    const { label, color } = getMatchLabelAndColor(m.status ?? '');
-                                    const isNS = m.status === 'NS';
-
-                                    return (
-                                      <>
-                                        <div className={`text-center text-xs ${color}`}>
-                                          {label}
-                                        </div>
-
-                                        <div className="text-center font-semibold">
-                                          {isNS ? (
-                                            (m as any).home_logo ? (
-                                              <img
-                                                src={(m as any).home_logo}
-                                                alt={m.home_team}
-                                                className="w-5 h-5 mx-auto object-contain"
-                                                loading="lazy"
-                                              />
-                                            ) : (
-                                              ''
-                                            )
-                                          ) : (
-                                            m.score_home ?? ''
-                                          )}
-                                        </div>
-
-                                        <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
-                                          <div>{m.base_1_points ?? '-'}</div>
-                                          <div>{m.base_n_points ?? '-'}</div>
-                                          <div>{m.base_2_points ?? '-'}</div>
-                                        </div>
-
-                                        <div className="text-center font-semibold">
-                                          {isNS ? (
-                                            (m as any).away_logo ? (
-                                              <img
-                                                src={(m as any).away_logo}
-                                                alt={m.away_team}
-                                                className="w-5 h-5 mx-auto object-contain"
-                                                loading="lazy"
-                                              />
-                                            ) : (
-                                              ''
-                                            )
-                                          ) : (
-                                            m.score_away ?? ''
-                                          )}
-                                        </div>
-
-                                        <div className="text-center text-sm">
-                                          {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
-                                        </div>
-                                      </>
-                                    );
-                                  })()}
-
-                                </div>
-                              )
-                            })
-                          )}
+                                ) : (
+                                  opt
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
-                    )}
+
+                        {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
+                        <div className="text-center font-medium">
+                          <span className="sm:hidden">{m.short_name_away}</span>
+                          <span className="hidden sm:inline">{m.away_team}</span>
+                        </div>
+                        
+                        {/* BONUS */}
+                          <div className="flex justify-center">
+                            <button
+                              onClick={async () => {
+                                setOtherPicks([]);
+
+                                const status = String(m.status ?? '').trim().toUpperCase();
+                                setPopupMatchStatus(status === 'NS' ? 'NS' : 'OTHER');
+
+                                // ⬇️ capture toutes les infos d’en-tête du match cliqué
+                                setPopupMatch({
+                                  id: String(m.id),
+                                  home: m.short_name_home || m.home_team || 'Équipe A',
+                                  away: m.short_name_away || m.away_team || 'Équipe B',
+                                  base1: m.base_1_points ?? null,
+                                  baseN: m.base_n_points ?? null,
+                                  base2: m.base_2_points ?? null,
+                                });
+
+                                setShowPopup(true);
+
+                              // Charge les autres pronos via la RPC simple (grille + match)
+                              const { data, error } = await supabase.rpc('get_other_picks_basic', {
+                                p_grid_id: grid.id,
+                                p_match_id: m.id,
+                                p_competition_id: competitionId,
+                              });
+
+                              setOtherPicks(data ?? []);
+
+                              }}
+                              className="focus:outline-none"
+                            >
+                              {/* ton rendu d'icône bonus inchangé */}
+                              {hasAnyBonusHere ? (
+                                    <Image
+                                      src={bonusLogos[firstCode]}
+                                      alt={`${firstCode} bonus`}
+                                      width={32}
+                                      height={32}
+                                      className="rounded-full"
+                                    />
+                                  ) : (
+                                    <Image
+                                      src={bonusLogos['INFO']}
+                                      alt="bonus inconnu"
+                                      width={32}
+                                      height={32}
+                                      className="rounded-full"
+                                    />
+                                  )}
+                              </button>
+                          </div>
+
+                        {/* LIGNE 2 */}
+                        {(() => {
+                        const { label, color } = getMatchLabelAndColor(m.status ?? '');
+                        const isNS = m.status === 'NS';
+
+                        return (
+                          <>
+                            <div className={`text-center text-xs ${color}`}>
+                              {label}
+                            </div>
+
+                            <div className="text-center font-semibold">
+                              {isNS ? (
+                                (m as any).home_logo ? (
+                                  <img
+                                    src={(m as any).home_logo}
+                                    alt={m.home_team}
+                                    className="w-5 h-5 mx-auto object-contain"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  ''
+                                )
+                              ) : (
+                                m.score_home ?? ''
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
+                              <div>{m.base_1_points ?? '-'}</div>
+                              <div>{m.base_n_points ?? '-'}</div>
+                              <div>{m.base_2_points ?? '-'}</div>
+                            </div>
+
+                            <div className="text-center font-semibold">
+                              {isNS ? (
+                                (m as any).away_logo ? (
+                                  <img
+                                    src={(m as any).away_logo}
+                                    alt={m.away_team}
+                                    className="w-5 h-5 mx-auto object-contain"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  ''
+                                )
+                              ) : (
+                                m.score_away ?? ''
+                              )}
+                            </div>
+
+                            <div className="text-center text-sm">
+                              {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
+                            </div>
+                          </>
+                        );
+                        })()}
+
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── BONUS ── */}
+        {/* ── ZONE BONUS ── */}
         <div className="w-full lg:w-1/3 space-y-4">
           {/* Gate sur le BONUS */}
-{isTournamentCompetition(competition) && (gate.state === 'elimine' || gate.state === 'spectateur') ? (
-  <img
-    src={getGateImageSrc({ gateState: gate.state, competition })}
-    alt={gate.state === 'elimine' ? 'Éliminé' : 'Spectateur'}
-    className="w-full h-auto rounded-lg shadow-md"
-  />
-) : (
+          {isTournamentCompetition(competition) && (gate.state === 'elimine' || gate.state === 'spectateur') ? (
+            <img
+              src={getGateImageSrc({ gateState: gate.state, competition })}
+              alt={gate.state === 'elimine' ? 'Éliminé' : 'Spectateur'}
+              className="w-full h-auto rounded-lg shadow-md"
+            />
+          ) : (
             <>
               {/* Accordéon CROIX */}
               <div className="border rounded-lg">
@@ -2144,6 +2137,8 @@ return early ? (
           )}
         </div>
 
+      {/* 3) VUES DES POP UP */}
+
         {/* ── message d'erreur si un joueur parie trop tard = hors jeu ── */}
         {showOffside && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -2225,144 +2220,142 @@ return early ? (
                   <Image src="/NS.png" alt="Match pas commencé" width={260} height={260} className="mx-auto" />
                 </div>
               ) : (
-<div className="mt-4 max-h-96 overflow-y-auto">
-  {otherPicks.length === 0 ? (
-    <div className="flex flex-col items-center justify-center py-10 text-gray-500">
-      <Image src="/images/empty-box.png" alt="" width={56} height={56} />
-      <p className="mt-3 text-sm">Aucun prono trouvé pour ce match dans la compétition.</p>
-    </div>
-  ) : (
-    <div className="mx-auto w-full max-w-[520px]">
-      <ul className="flex flex-col gap-0">
-        {(sortMode === 'alpha'
-            ? [...otherPicks].sort((a: any, b: any) => (a.username ?? '').localeCompare(b.username ?? '', 'fr', {sensitivity:'base'}))
-            : otherPicks
-          ).map((p: any) => {
+              <div className="mt-4 max-h-96 overflow-y-auto">
+                {otherPicks.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+                    <Image src="/images/empty-box.png" alt="" width={56} height={56} />
+                    <p className="mt-3 text-sm">Aucun prono trouvé pour ce match dans la compétition.</p>
+                  </div>
+                ) : (
+                  <div className="mx-auto w-full max-w-[520px]">
+                    <ul className="flex flex-col gap-0">
+                      {(sortMode === 'alpha'
+                          ? [...otherPicks].sort((a: any, b: any) => (a.username ?? '').localeCompare(b.username ?? '', 'fr', {sensitivity:'base'}))
+                          : otherPicks
+                        ).map((p: any) => {
 
-  // 1) normalise depuis p.pick si les flags n'existent pas
-  const pickVal = String(p.pick ?? '').toUpperCase();
-  const pick1 = p.pick_1 ?? (pickVal === '1');
-  const pickN  = p.pick_n ?? (pickVal === 'N');
-  const pick2 = p.pick_2 ?? (pickVal === '2');
+                // 1) normalise depuis p.pick si les flags n'existent pas
+                const pickVal = String(p.pick ?? '').toUpperCase();
+                const pick1 = p.pick_1 ?? (pickVal === '1');
+                const pickN  = p.pick_n ?? (pickVal === 'N');
+                const pick2 = p.pick_2 ?? (pickVal === '2');
 
-  const bielsaShadow = !!p.has_bielsa_grid && !p.has_bonus;
+                const bielsaShadow = !!p.has_bielsa_grid && !p.has_bonus;
 
-const showDisabledSquares = bielsaShadow;
+                const showDisabledSquares = bielsaShadow;
 
-// si BIELSA shadow : on force aucune croix
-const pick1Final = showDisabledSquares ? false : pick1;
-const pickNFinal = showDisabledSquares ? false : pickN;
-const pick2Final = showDisabledSquares ? false : pick2;
+                // si BIELSA shadow : on force aucune croix
+                const pick1Final = showDisabledSquares ? false : pick1;
+                const pickNFinal = showDisabledSquares ? false : pickN;
+                const pick2Final = showDisabledSquares ? false : pick2;
 
-const Square = ({ label, active, disabled }: { label: '1'|'N'|'2'; active: boolean; disabled?: boolean }) => (
-  <span
-    aria-disabled="true"
-    tabIndex={-1}
-    className={`relative inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md border leading-none
-      ${disabled ? 'bg-gray-200 border-gray-300' : 'bg-white'}
-      ${active ? 'border-gray-700' : disabled ? 'border-gray-300' : 'border-gray-300'}
-    `}
-    title={
-      disabled
-        ? `BIELSA actif sur la grille`
-        : active
-          ? `Pick ${label} (sélectionné)`
-          : `Pick ${label}`
-    }
-  >
-    {active ? (
-      <svg viewBox="0 0 30 30" className="absolute inset-0 block">
-        <line x1="2" y1="2" x2="28" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
-        <line x1="28" y1="2" x2="2" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-    ) : (
-      <span className={`text-[14px] font-normal ${disabled ? 'text-gray-400' : 'text-gray-800'}`}>
-        {label}
-      </span>
-    )}
-  </span>
-);
-
-const hasBielsaGrid = !!p.has_bielsa_grid;
-
-const bonusSrc =
-  p.bonus_code && bonusLogos[p.bonus_code]
-    ? bonusLogos[p.bonus_code]
-    : p.has_bonus
-      ? bonusLogos['INFO']
-      : hasBielsaGrid
-        ? bonusLogos['BIELSA']
-        : null;
-
-          // 🔸 surlignage “comme le classement”
-          const isMe = p.user_id === user?.id; // pour colorer la ligne du joueur
-          const isOut = !!p.is_eliminated; // pour griser les lignes des éliminés en TOURNOI
-
-          return (
-            <li
-              key={p.user_id}
-className={`grid h-[32px] grid-cols-7 px-3 rounded-xl border ${
-  isMe
-    ? 'bg-orange-100 border-orange-300'
-    : isOut
-      ? 'bg-gray-300 border-gray-500 text-gray-600 opacity-75 grayscale'
-      : 'bg-white border-gray-300'
-}`}
-              aria-current={isMe ? 'true' : undefined}
-            >
-              {/* 1–3 : pseudo */}
-              <div className="col-span-3 h-full min-w-0">
-                <div className="flex h-full items-center">
-                  <span className={`truncate leading-none ${isMe ? 'font-bold' : 'font-medium'}`}>
-                    {p.username}
+                const Square = ({ label, active, disabled }: { label: '1'|'N'|'2'; active: boolean; disabled?: boolean }) => (
+                  <span
+                    aria-disabled="true"
+                    tabIndex={-1}
+                    className={`relative inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-md border leading-none
+                      ${disabled ? 'bg-gray-200 border-gray-300' : 'bg-white'}
+                      ${active ? 'border-gray-700' : disabled ? 'border-gray-300' : 'border-gray-300'}
+                    `}
+                    title={
+                      disabled
+                        ? `BIELSA actif sur la grille`
+                        : active
+                          ? `Pick ${label} (sélectionné)`
+                          : `Pick ${label}`
+                    }
+                  >
+                    {active ? (
+                      <svg viewBox="0 0 30 30" className="absolute inset-0 block">
+                        <line x1="2" y1="2" x2="28" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+                        <line x1="28" y1="2" x2="2" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    ) : (
+                      <span className={`text-[14px] font-normal ${disabled ? 'text-gray-400' : 'text-gray-800'}`}>
+                        {label}
+                      </span>
+                    )}
                   </span>
-                </div>
+                );
+
+                const hasBielsaGrid = !!p.has_bielsa_grid;
+
+              const bonusSrc =
+                p.bonus_code && bonusLogos[p.bonus_code]
+                  ? bonusLogos[p.bonus_code]
+                  : p.has_bonus
+                    ? bonusLogos['INFO']
+                    : hasBielsaGrid
+                      ? bonusLogos['BIELSA']
+                      : null;
+
+                        // 🔸 surlignage “comme le classement”
+                        const isMe = p.user_id === user?.id; // pour colorer la ligne du joueur
+                        const isOut = !!p.is_eliminated; // pour griser les lignes des éliminés en TOURNOI
+
+                        return (
+                          <li
+                            key={p.user_id}
+                            className={`grid h-[32px] grid-cols-7 px-3 rounded-xl border ${
+                              isMe
+                                ? 'bg-orange-100 border-orange-300'
+                                : isOut
+                                  ? 'bg-gray-300 border-gray-500 text-gray-600 opacity-75 grayscale'
+                                  : 'bg-white border-gray-300'
+                            }`}
+                            aria-current={isMe ? 'true' : undefined}
+                          >
+                            {/* 1–3 : pseudo */}
+                            <div className="col-span-3 h-full min-w-0">
+                              <div className="flex h-full items-center">
+                                <span className={`truncate leading-none ${isMe ? 'font-bold' : 'font-medium'}`}>
+                                  {p.username}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* 4 : 1 */}
+                            <div className="col-span-1 h-full">
+                              <div className="flex h-full items-center justify-center">
+                                <Square label="1" active={pick1Final} disabled={showDisabledSquares} />
+                              </div>
+                            </div>
+
+                            {/* 5 : N */}
+                            <div className="col-span-1 h-full">
+                              <div className="flex h-full items-center justify-center">
+                                <Square label="N" active={pickNFinal} disabled={showDisabledSquares} />
+                              </div>
+                            </div>
+
+                            {/* 6 : 2 */}
+                            <div className="col-span-1 h-full">
+                              <div className="flex h-full items-center justify-center">
+                                <Square label="2" active={pick2Final} disabled={showDisabledSquares} />
+                              </div>
+                            </div>
+
+                            {/* 7 : bonus 30×30 */}
+                            <div className="col-span-1 h-full">
+                              <div className="flex h-full items-center justify-end">
+                                {bonusSrc && (
+                                <Image
+                                  src={bonusSrc}
+                                  alt="Bonus joué"
+                                  width={30}
+                                  height={30}
+                                  className="block rounded-full"
+                                />
+                                )}
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               </div>
-
-              {/* 4 : 1 */}
-              <div className="col-span-1 h-full">
-                <div className="flex h-full items-center justify-center">
-                  <Square label="1" active={pick1Final} disabled={showDisabledSquares} />
-                </div>
-              </div>
-
-              {/* 5 : N */}
-              <div className="col-span-1 h-full">
-                <div className="flex h-full items-center justify-center">
-                  <Square label="N" active={pickNFinal} disabled={showDisabledSquares} />
-                </div>
-              </div>
-
-              {/* 6 : 2 */}
-              <div className="col-span-1 h-full">
-                <div className="flex h-full items-center justify-center">
-                  <Square label="2" active={pick2Final} disabled={showDisabledSquares} />
-                </div>
-              </div>
-
-              {/* 7 : bonus 30×30 */}
-              <div className="col-span-1 h-full">
-                <div className="flex h-full items-center justify-end">
-                  {bonusSrc && (
-  <Image
-    src={bonusSrc}
-    alt="Bonus joué"
-    width={30}
-    height={30}
-    className="block rounded-full"
-  />
-                  )}
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  )}
-</div>
-
-
               )}
             </div>
           </div>
