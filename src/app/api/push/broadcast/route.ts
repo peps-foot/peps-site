@@ -150,11 +150,8 @@ export async function POST(req: Request) {
           token: t,
           webpush: {
             headers: { Urgency: 'high', TTL: '10' },
-            data: {
-              title, body, url,
-              icon: icon || '/images/notifications/peps-notif-icon-192.png',
-              tag: 'peps-broadcast',
-            },
+            notification: { title, body, icon: icon || '/images/notifications/peps-notif-icon-192.png' },
+            data: { url, tag: 'peps-broadcast' },
           },
         });
         return true;

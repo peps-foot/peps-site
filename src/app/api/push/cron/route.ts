@@ -83,9 +83,10 @@ async function sendPush(token: string, title: string, body: string, url: string,
       token,
       webpush: {
         headers: { Urgency: 'high', TTL: '10' },
-        data: { title, body, url, icon, tag },
-        // Pas de fcmOptions.link : évite que FCM affiche une notif native automatique
-        // en plus de celle gérée par le SW → sinon doublon systématique
+        // Le bloc notification dit à FCM quoi afficher directement —
+        // plus fiable que de laisser le SW reconstruire la notif.
+        notification: { title, body, icon },
+        data: { url, tag },
       },
     });
     return 'ok';

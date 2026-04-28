@@ -71,13 +71,8 @@ export async function POST(req: Request) {
       token,
       webpush: {
         headers: { Urgency: 'high', TTL: '10', Topic: 'peps-send' },
-        data: {
-          title,
-          body,
-          url,
-          icon: '/icon-512x512.png',
-          tag: 'peps-broadcast',
-        },
+        notification: { title, body, icon: '/images/notifications/peps-notif-icon-192.png' },
+        data: { url, tag: 'peps-broadcast' },
       },
     });
     return Response.json({ ok: true, platform: 'fcm', id });

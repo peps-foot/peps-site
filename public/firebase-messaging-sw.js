@@ -29,15 +29,8 @@ if (!self.__PEPS_BG_BOUND__) {
     try {
       console.log('[PEPS][SW] onBackgroundMessage', payload);
 
-      // Si FCM a un bloc notification intégré, on ne re-notifie pas (évite doublon)
-      if (payload && payload.notification) {
-        console.log('[PEPS][SW] skip: payload.notification présent');
-        return;
-      }
-
-      // On affiche toujours la notif — même si l'app est ouverte.
-      // Le foreground ne fait plus rien (PushBootstrap ne showNotification plus).
-
+      // FCM fournit maintenant un bloc notification avec le bon titre/body.
+      // On l'utilise directement — data contient url et tag en complément.
       const n = payload.notification || {};
       const d = payload.data || {};
 

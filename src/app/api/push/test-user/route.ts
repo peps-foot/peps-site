@@ -87,13 +87,8 @@ export async function GET(req: Request) {
         token,
         webpush: {
           headers: { Urgency: 'high', TTL: '10' },
-          data: {
-            title: '🔔 TEST DIRECT',
-            body: 'Ceci est un test direct FCM',
-            url: 'https://www.peps-foot.com/',
-            icon: '/icon-512x512.png',
-            tag: 'peps-test',
-          },
+          notification: { title: '🔔 TEST DIRECT', body: 'Ceci est un test direct FCM', icon: '/images/notifications/peps-notif-icon-192.png' },
+          data: { url: 'https://www.peps-foot.com/', tag: 'peps-test' },
         },
       });
       sent++;
