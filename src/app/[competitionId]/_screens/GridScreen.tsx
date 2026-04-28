@@ -2036,7 +2036,7 @@ return early ? (
                       return (
                         <div
                           key={row.match_id}
-                          className="grid grid-cols-[1fr_auto_1fr_24px_32px] items-center gap-2 border-b px-2 py-2 text-sm"
+                          className="grid grid-cols-[1fr_auto_1fr_28px_28px] items-center gap-2 border-b px-2 py-2 text-sm"
                         >
                           {/* Équipe domicile */}
                           <div className="truncate text-center min-w-0">
@@ -2084,14 +2084,24 @@ return early ? (
                       );
                     })}
 
-                    <div className="flex justify-between px-3 py-2 font-semibold">
-                      <span>Total grille</span>
-                      <span>
+                    <div className="grid grid-cols-3 items-center px-3 py-2 font-semibold">
+                      
+                      {/* vide à gauche */}
+                      <div />
+
+                      {/* texte centré */}
+                      <div className="text-center">
+                        Total grille
+                      </div>
+
+                      {/* points à droite */}
+                      <div className="text-right tabular-nums">
                         {publicPlayerGrids[selectedPublicGridIndex]?.rows.reduce(
                           (sum: number, row: any) => sum + Number(row.points ?? 0),
                           0
                         )}
-                      </span>
+                      </div>
+
                     </div>
                   </div>
                 </>
