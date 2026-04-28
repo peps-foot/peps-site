@@ -2020,7 +2020,7 @@ return early ? (
                           row.pick_2;
 
                         return (
-                          <span className="relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-300 bg-white text-xs">
+                          <span className="relative inline-flex h-6 w-6 items-center justify-center rounded-md border border-gray-300 bg-white text-xs">
                             {active ? (
                               <svg viewBox="0 0 30 30" className="absolute inset-0 block">
                                 <line x1="2" y1="2" x2="28" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
@@ -2036,7 +2036,7 @@ return early ? (
                       return (
                         <div
                           key={row.match_id}
-                          className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2 border-b px-2 py-2 text-sm"
+                          className="grid grid-cols-[1fr_auto_1fr_24px_32px] items-center gap-2 border-b px-2 py-2 text-sm"
                         >
                           {/* Équipe domicile */}
                           <div className="truncate text-center min-w-0">
@@ -2061,20 +2061,24 @@ return early ? (
                             {row.short_name_away ?? row.away_team}
                           </div>
 
-                          {/* Bonus et Points */}
-                          <div className="flex items-center justify-end gap-1 min-w-[50px]">
-                            {bonusSrc && (
+                          {/* Bonus */}
+                          <div className="flex justify-center">
+                            {bonusSrc ? (
                               <Image
                                 src={bonusSrc}
                                 alt="Bonus joué"
-                                width={20}
-                                height={20}
+                                width={24}
+                                height={24}
                                 className="rounded-full"
                               />
+                            ) : (
+                              <span className="text-gray-300">—</span>
                             )}
-                            <span className="text-xs font-medium">
-                              {row.points ?? '-'}
-                            </span>
+                          </div>
+
+                          {/* Points */}
+                          <div className="w-[32px] text-right font-medium tabular-nums">
+                            {row.points ?? '-'}
                           </div>
                         </div>
                       );
