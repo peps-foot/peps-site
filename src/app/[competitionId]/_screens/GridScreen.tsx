@@ -2036,7 +2036,7 @@ return early ? (
                       return (
                         <div
                           key={row.match_id}
-                          className="grid grid-cols-[1fr_auto_1fr_28px_28px] items-center gap-1 border-b px-2 py-2 text-sm"
+                          className="grid grid-cols-[1fr_auto_1fr_28px_28px] items-center gap-2 border-b px-2 py-2 text-sm"
                         >
                           {/* Équipe domicile */}
                           <div className="truncate text-center min-w-0">
@@ -2062,7 +2062,7 @@ return early ? (
                           </div>
 
                           {/* Bonus */}
-                          <div className="flex justify-center">
+                          <div className="flex items-center justify-end">
                             {bonusSrc ? (
                               <Image
                                 src={bonusSrc}
