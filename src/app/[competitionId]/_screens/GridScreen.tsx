@@ -1883,7 +1883,7 @@ return early ? (
 
           {!lbLoading && lbRows.length > 0 && (
             <div className="text-center text-sm text-gray-500 mb-4">
-              Clique sur une ligne pour voir ses grilles 👀
+              Clique sur un pseudo pour voir ses grilles 👀
             </div>
           )}
 
@@ -2036,7 +2036,7 @@ return early ? (
                       return (
                         <div
                           key={row.match_id}
-                          className="grid grid-cols-[1fr_auto_1fr_28px_28px] items-center gap-2 border-b px-2 py-2 text-sm"
+                          className="grid grid-cols-[1fr_auto_1fr_28px_28px] items-center gap-1 border-b px-2 py-2 text-sm"
                         >
                           {/* Équipe domicile */}
                           <div className="truncate text-center min-w-0">
