@@ -85,8 +85,8 @@ async function sendPush(token: string, title: string, body: string, url: string,
         headers: { Urgency: 'high', TTL: '10' },
         // Le bloc notification dit à FCM quoi afficher directement —
         // plus fiable que de laisser le SW reconstruire la notif.
-        notification: { title, body, icon },
-        data: { url, tag },
+        // Pas de bloc notification — le SW affiche via onBackgroundMessage
+        data: { title, body, icon, url, tag },
       },
     });
     return 'ok';
@@ -345,7 +345,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
     if (!logged) { log('skip log conflict', { uid, matchId }); continue; }
 
     const title = kind === 'H24' ? '⏰ Rappel J-1' : '⏰ Rappel H-1';
-    const body  = 'Tu as des matchs non pariés qui démarrent bientôt.';
+    const body  = 'Viens faire tes pronos !';
     const result = await sendPush(token, title, body, 'https://www.peps-foot.com/', 'peps-reminder');
 
     if (result === 'ok') {
@@ -510,7 +510,7 @@ async function handleGridDone(only: string | null): Promise<number> {
       const result = await sendPush(
         token,
         '🎉 Grille terminée',
-        'Les résultats sont là. Viens voir ton score !',
+        'Les résultats sont tombés. Viens voir !',
         'https://www.peps-foot.com/',
         'peps-grid-done'
       );

@@ -150,8 +150,8 @@ export async function POST(req: Request) {
           token: t,
           webpush: {
             headers: { Urgency: 'high', TTL: '10' },
-            notification: { title, body, icon: icon || '/images/notifications/peps-notif-icon-192.png' },
-            data: { url, tag: 'peps-broadcast' },
+            // Pas de bloc notification — le SW affiche via onBackgroundMessage
+            data: { title, body, icon: icon || '/images/notifications/peps-notif-icon-192.png', url, tag: 'peps-broadcast' },
           },
         });
         return true;

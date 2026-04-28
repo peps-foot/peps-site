@@ -87,8 +87,8 @@ export async function GET(req: Request) {
         token,
         webpush: {
           headers: { Urgency: 'high', TTL: '10' },
-          notification: { title: '🔔 TEST DIRECT', body: 'Ceci est un test direct FCM', icon: '/images/notifications/peps-notif-icon-192.png' },
-          data: { url: 'https://www.peps-foot.com/', tag: 'peps-test' },
+          // Pas de bloc notification — le SW affiche via onBackgroundMessage
+          data: { title: '🔔 TEST DIRECT', body: 'Ceci est un test direct FCM', icon: '/images/notifications/peps-notif-icon-192.png', url: 'https://www.peps-foot.com/', tag: 'peps-test' },
         },
       });
       sent++;

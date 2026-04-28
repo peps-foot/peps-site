@@ -1,4 +1,5 @@
 // public/firebase-messaging-sw.js
+// v4 — push natif iOS uniquement, FCM gère Android via onBackgroundMessage
 /* eslint-disable no-undef */
 
 // Firebase compat (pour Android / desktop via FCM)
