@@ -17,7 +17,7 @@ const VAPID_PUBLIC_KEY  = 'BIIjmxt6CvJjd8EiHDtyBWgIvoDKO7eUjNJ_7FuN7vonLqolOVeWe
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'aDNoUdMC-E95kgkI4qI-HL76jvvybdFU7vBDxTgoW-0';
 
 webpush.setVapidDetails(
-  'mailto:contact@peps-foot.com',
+  'mailto:hello@peps-foot.com',
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY,
 );
@@ -94,7 +94,6 @@ export async function GET(req: Request) {
             icon: '/icon-512x512.png',
             tag: 'peps-test',
           },
-          fcmOptions: { link: 'https://www.peps-foot.com/' },
         },
       });
       sent++;

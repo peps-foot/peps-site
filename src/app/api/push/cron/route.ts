@@ -84,7 +84,8 @@ async function sendPush(token: string, title: string, body: string, url: string,
       webpush: {
         headers: { Urgency: 'high', TTL: '10' },
         data: { title, body, url, icon, tag },
-        fcmOptions: { link: url },
+        // Pas de fcmOptions.link : évite que FCM affiche une notif native automatique
+        // en plus de celle gérée par le SW → sinon doublon systématique
       },
     });
     return 'ok';
@@ -206,7 +207,19 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
 
   // 3) Récupérer les compétitions concernées
   const compIds = Array.from(new Set(gms.map(r => String(r.competition_id)).filter(Boolean)));
-  const gridIds = Array.from(new Set(gms.map(r => String(r.grid_id)).filter(Boolean)));
+
+  // gridIds des matchs dans la fenêtre (pour savoir quels matchs notifier)
+  const gridIdsInWindow = Array.from(new Set(gms.map(r => String(r.grid_id)).filter(Boolean)));
+
+  // ⚠️ Pour les bonus, on charge TOUTES les grilles de ces compétitions —
+  // pas seulement celles des matchs dans la fenêtre. Sinon un bonus BIELSA posé
+  // sur un match hors fenêtre (mais dans la même grille) serait manqué.
+  const { data: allGridsInComps, error: agErr } = await supabase
+    .from('grids')
+    .select('id')
+    .in('competition_id', compIds);
+  if (agErr) throw new Error('grids for comps: ' + agErr.message);
+  const allGridIds = (allGridsInComps || []).map(g => String(g.id));
 
   // 4) Charger les membres, éliminés, préférences, bonus, tokens en parallèle
   const [membersSet, eliminatedSet, prefsRaw, bonusRows, tokensRows] = await Promise.all([
@@ -218,11 +231,12 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
       .select('user_id, allow_match_reminder_24h, allow_match_reminder_1h')
       .then(r => { if (r.error) throw new Error('push_prefs: ' + r.error.message); return r.data || []; }),
 
-    // Tous les bonus sur ces grilles (pour filtrer bonus sur match + BIELSA sur grille)
+    // Bonus sur TOUTES les grilles des compétitions concernées
+    // (nécessaire pour détecter BIELSA posé sur un match hors fenêtre)
     supabase
       .from('grid_bonus')
       .select('user_id, grid_id, match_id, bonus_definition, parameters')
-      .in('grid_id', gridIds)
+      .in('grid_id', allGridIds)
       .then(r => { if (r.error) throw new Error('grid_bonus: ' + r.error.message); return r.data || []; }),
 
     supabase

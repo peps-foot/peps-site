@@ -8,10 +8,10 @@ import { messaging } from '../../../../lib/firebaseAdmin';
 const webpush = require('web-push') as typeof import('web-push');
 
 const VAPID_PUBLIC_KEY  = 'BIIjmxt6CvJjd8EiHDtyBWgIvoDKO7eUjNJ_7FuN7vonLqolOVeWeilCoE2jIpeyN6Y02PZJ87B5MPRuywucWZE';
-const VAPID_PRIVATE_KEY = 'aDNoUdMC-E95kgkI4qI-HL76jvvybdFU7vBDxTgoW-0';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'aDNoUdMC-E95kgkI4qI-HL76jvvybdFU7vBDxTgoW-0';
 
 webpush.setVapidDetails(
-  'mailto:contact@peps-foot.com',
+  'mailto:hello@peps-foot.com',
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY,
 );
@@ -78,7 +78,6 @@ export async function POST(req: Request) {
           icon: '/icon-512x512.png',
           tag: 'peps-broadcast',
         },
-        fcmOptions: { link: url },
       },
     });
     return Response.json({ ok: true, platform: 'fcm', id });

@@ -26,7 +26,7 @@ const VAPID_PUBLIC_KEY = 'BIIjmxt6CvJjd8EiHDtyBWgIvoDKO7eUjNJ_7FuN7vonLqolOVeWei
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'aDNoUdMC-E95kgkI4qI-HL76jvvybdFU7vBDxTgoW-0';
 
 webpush.setVapidDetails(
-  'mailto:contact@peps-foot.com', // remplace par ton email admin
+  'mailto:hello@peps-foot.com', // remplace par ton email admin
   VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY,
 );
@@ -155,7 +155,6 @@ export async function POST(req: Request) {
               icon: icon || '/images/notifications/peps-notif-icon-192.png',
               tag: 'peps-broadcast',
             },
-            fcmOptions: { link: url },
           },
         });
         return true;
