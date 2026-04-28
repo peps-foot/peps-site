@@ -14,7 +14,7 @@ function getEliminationVariantFromCompetition(competition: any): string {
   const name = (competition?.name ?? '').toLowerCase();
 
   if (name.includes('shark')) return 'shark';
-  if (name.includes('totem')) return 'totem';
+  if (name.includes('lanta')) return 'totem';
   if (name.includes('terminator')) return 'terminator';
 
   return 'default';

@@ -108,7 +108,7 @@ export default function TierceScreen({
     if (!selectedTeam) {
       return {
         order,
-        teamName: `Équipe ${order} non choisie`,
+        teamName: 'Choisis une équipe',
         triplet: '- / - / -',
         vPoints: null,
         nPoints: null,
@@ -116,6 +116,7 @@ export default function TierceScreen({
         displayPoints: '-',
         pointsClass: 'text-black',
         matchStarted: false,
+        isEmpty: true,
       };
     }
 
@@ -556,6 +557,22 @@ export default function TierceScreen({
 
     return 0;
   });
+
+  // Pour gérer le titre tu ticket
+  const selectedTeams = [
+    { slot: 1 as const, team: selectedTeam1 },
+    { slot: 2 as const, team: selectedTeam2 },
+    { slot: 3 as const, team: selectedTeam3 },
+  ];
+
+  const selectedCount = selectedTeams.filter((item) => item.team).length;
+
+  const getTitle = () => {
+    if (selectedCount === 0) return '🎯 Choisis 3 équipes';
+    if (selectedCount === 1) return '🎯 Plus que 2 équipes';
+    if (selectedCount === 2) return '🎯 Plus qu’1 équipe';
+    return '✅ Ticket validé';
+  };
 
   // Mettre les valeurs V/N/D en couleur
   const getPointsColor = (value: number | null) => {
@@ -1193,8 +1210,14 @@ export default function TierceScreen({
             <div>
             {view === 'ticket' && (
               <div className="border rounded-lg p-4 overflow-x-auto">
-                <h2 className="text-center font-semibold text-lg mb-4">
-                  🎯 Choisis tes 3 équipes
+                <h2
+                  className={`text-center font-semibold text-lg mb-4 transition-all duration-300 ${
+                    selectedCount === 3
+                      ? 'text-green-600 scale-110'
+                      : 'scale-100'
+                  }`}
+                >
+                  {getTitle()}
                 </h2>
 
                 <div className="w-full">
@@ -1224,7 +1247,7 @@ export default function TierceScreen({
                       className="grid grid-cols-[8%_30%_28%_20%_14%] border-b text-sm items-center"
                     >
                       <div className="p-2 text-center">
-                        {row.teamName.includes('non choisie') ? (
+                        {row.isEmpty ? (
                           row.order
                         ) : (
                           <span className="text-green-600 font-bold text-lg">✓</span>
@@ -1253,7 +1276,7 @@ export default function TierceScreen({
                         <button
                           type="button"
                           onClick={() => openVar(row.order as 1 | 2 | 3)}
-                          disabled={row.teamName.includes('non choisie')}
+                          disabled={row.isEmpty}
                           className="relative w-10 h-10 shrink-0 rounded-full border border-black bg-white overflow-hidden disabled:opacity-40"
                           title="Voir le détail"
                         >
@@ -1403,7 +1426,7 @@ export default function TierceScreen({
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">Choisis l'équipe 1, gain +10%</div>
+                    <div className="font-medium">🥇 Équipe 1 → +10%</div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1412,7 +1435,13 @@ export default function TierceScreen({
                         }
                       }}
                       disabled={selectedTeam1 ? isMatchStarted(selectedTeam1.matchId) : false}
-                      className="w-32 px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
+                        className={`w-32 px-4 py-2 border rounded flex items-center justify-center gap-1 whitespace-nowrap transition-all ${
+                          selectedTeam1
+                            ? isMatchStarted(selectedTeam1.matchId)
+                              ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                              : 'bg-white text-black border-gray-400 hover:bg-gray-100'
+                            : 'bg-white text-black border-black hover:bg-gray-100'
+                        }`}
                     >
                       {selectedTeam1 ? (
                         isMatchStarted(selectedTeam1.matchId) ? (
@@ -1421,16 +1450,22 @@ export default function TierceScreen({
                             <span>EN JEU</span>
                           </>
                         ) : (
-                          'Modifier'
+                          <>
+                            <span>✏️</span>
+                            <span>Modifier</span>
+                          </>
                         )
                       ) : (
-                        'Choisir'
+                        <>
+                          <span>➕</span>
+                          <span>Choisir</span>
+                        </>
                       )}
                     </button>
                   </div>
 
                   <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">Choisis l'équipe 2, gain +5%</div>
+                    <div className="font-medium">🥈 Équipe 2 → +5%</div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1439,7 +1474,13 @@ export default function TierceScreen({
                         }
                       }}
                       disabled={selectedTeam2 ? isMatchStarted(selectedTeam2.matchId) : false}
-                      className="w-32 px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
+                        className={`w-32 px-4 py-2 border rounded flex items-center justify-center gap-1 whitespace-nowrap transition-all ${
+                          selectedTeam2
+                            ? isMatchStarted(selectedTeam2.matchId)
+                              ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                              : 'bg-white text-black border-gray-400 hover:bg-gray-100'
+                            : 'bg-white text-black border-black hover:bg-gray-100'
+                        }`}
                     >
                       {selectedTeam2 ? (
                         isMatchStarted(selectedTeam2.matchId) ? (
@@ -1448,16 +1489,22 @@ export default function TierceScreen({
                             <span>EN JEU</span>
                           </>
                         ) : (
-                          'Modifier'
+                          <>
+                            <span>✏️</span>
+                            <span>Modifier</span>
+                          </>
                         )
                       ) : (
-                        'Choisir'
+                        <>
+                          <span>➕</span>
+                          <span>Choisir</span>
+                        </>
                       )}
                     </button>
                   </div>
 
                   <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">Choisis l'équipe 3</div>
+                    <div className="font-medium">🥉 Équipe 3</div>
                     <button
                       type="button"
                       onClick={() => {
@@ -1466,7 +1513,13 @@ export default function TierceScreen({
                         }
                       }}
                       disabled={selectedTeam3 ? isMatchStarted(selectedTeam3.matchId) : false}
-                      className="w-32 px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center gap-1 whitespace-nowrap"
+                        className={`w-32 px-4 py-2 border rounded flex items-center justify-center gap-1 whitespace-nowrap transition-all ${
+                          selectedTeam3
+                            ? isMatchStarted(selectedTeam3.matchId)
+                              ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                              : 'bg-white text-black border-gray-400 hover:bg-gray-100'
+                            : 'bg-white text-black border-black hover:bg-gray-100'
+                        }`}
                     >
                       {selectedTeam3 ? (
                         isMatchStarted(selectedTeam3.matchId) ? (
@@ -1475,10 +1528,16 @@ export default function TierceScreen({
                             <span>EN JEU</span>
                           </>
                         ) : (
-                          'Modifier'
+                          <>
+                            <span>✏️</span>
+                            <span>Modifier</span>
+                          </>
                         )
                       ) : (
-                        'Choisir'
+                        <>
+                          <span>➕</span>
+                          <span>Choisir</span>
+                        </>
                       )}
                     </button>
                   </div>

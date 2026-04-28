@@ -64,7 +64,7 @@ export type BonusDef = {
   id: string;
   code: 'KANTE' | 'RIBERY' | 'ZLATAN' | 'BIELSA' | 'BUTS' | 'ECART' | 'CLEAN SHEET' | 'CLEAN_SHEET' | 'BOOST_1' | 'BOOST_2' | 'BOOST_3';
   description: string;
-  category_id: string;      // 👈 ajoute ça
+  category_id: string;
   parameters?: BonusParameters;
   rule: string | null;
 };

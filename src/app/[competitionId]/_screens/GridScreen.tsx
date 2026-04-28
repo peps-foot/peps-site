@@ -611,7 +611,6 @@ const isCreator = false;
 
 // cas spécial des bonus spéciaux
 const specialsForUser = (defsSpecial ?? []).filter(def => userInventory.some(inv => inv.bonus_definition === def.id));
-const specialsDefs = defsSpecial ?? [];
 
 // auto-ouverture des zones bonus
 const hasCroix   = (defsCroix?.length ?? 0) > 0;
@@ -1503,6 +1502,46 @@ const hasStartedPickedMatch = matches.some(m =>
   !!m.pick && (m.status?.toUpperCase?.() !== 'NS')
 );
 
+// Pour gérer l'affichage des titres des zones GRILLE et BONUS
+const validatedMatchesCount = matches.filter((m) => {
+  const entry = byMatch[String(m.id)];
+  const picksFromOverlay = entry?.picks as ('1' | 'N' | '2')[] | undefined;
+  const codesHere = entry?.codes ?? [];
+
+  const picksForThisMatch = globalDisabled
+    ? (picksFromOverlay ?? [])
+    : (picksFromOverlay ?? (m.pick ? [m.pick] : []));
+
+  return globalDisabled || picksForThisMatch.length > 0 || codesHere.length > 0;
+}).length;
+
+const totalMatchesCount = matches.length;
+
+const getGridTitle = () => {
+  if (totalMatchesCount === 0) return '🎯 Fais tes pronos';
+  if (validatedMatchesCount === 0) return '🎯 Fais tes pronos';
+  if (validatedMatchesCount < totalMatchesCount) return '🎯 Termine tes pronos';
+  return '✅ Pronos complets';
+};
+
+const hasBonusCroix = Object.values(byMatch).some(entry =>
+  (entry?.codes ?? []).some(code =>
+    ['KANTE', 'RIBERY', 'ZLATAN'].includes(code)
+  )
+);
+
+const hasBonusScore = Object.values(byMatch).some(entry =>
+  (entry?.codes ?? []).some(code =>
+    ['BUTS', 'ECART', 'CLEAN SHEET', 'CLEAN_SHEET'].includes(code)
+  )
+);
+
+const hasBonusSpecial = Object.values(byMatch).some(entry =>
+  (entry?.codes ?? []).some(code =>
+    code.startsWith('BOOST') || code === 'BIELSA'
+  )
+);
+
 // Début du JSX
 return early ? (
   <div>Chargement… ({early})</div>
@@ -1812,9 +1851,9 @@ return early ? (
             >
               <span className="font-semibold text-center flex-1">
                 {gate.state === 'joueur'
-                  ? "Fais tes pronos !"
+                  ? getGridTitle()
                   : gate.state === "elimine" || gate.state === "spectateur"
-                  ? "Suis la compet"
+                  ? "👀 Suis la compet"
                   : "Chargement..."}
               </span>
               <span className="text-xl shrink-0">
@@ -1865,7 +1904,11 @@ return early ? (
                         upperStatus !== 'NS' ||                    // match démarré
                         ['SUSP','INT','PST'].includes(upperStatus) ||
                         !!m.is_locked ||                           // verrou interne
-                        isReadOnly;                                // spectateur / éliminé
+                        isReadOnly;                               // spectateur / éliminé
+                      const isMatchValidated =
+                        globalDisabled ||
+                        picksForThisMatch.length > 0 ||
+                        hasAnyBonusHere;
 
                       return (
                         <div
@@ -2022,7 +2065,13 @@ return early ? (
                             </div>
 
                             <div className="text-center text-sm">
-                              {m.score_home != null ? `${m.points || 0} pts` : '? pts'}
+                              {m.score_home != null ? (
+                                `${m.points || 0} pts`
+                              ) : isMatchValidated ? (
+                                <span className="text-green-600 font-bold text-lg">✓</span>
+                              ) : (
+                                '? pts'
+                              )}
                             </div>
                           </>
                         );
@@ -2032,6 +2081,9 @@ return early ? (
                       )
                     })
                   )}
+                  <div className="text-center text-sm mt-3 text-gray-600">
+                    🎁 Boost tes points avec les bonus 👇
+                  </div>
                 </div>
               </div>
             )}
@@ -2060,7 +2112,7 @@ return early ? (
                   className="w-full flex items-center justify-between px-4 py-3"
                 >
                   <span className="font-semibold text-center w-full">
-                    Joue ton bonus CROIX
+                    {hasBonusCroix ? '✅ Bonus CROIX activé' : '🎯 Choisis un Bonus CROIX'}
                   </span>
                   <span className="text-xl">{openCroix ? "▲" : "▼"}</span>
                 </button>
@@ -2088,7 +2140,7 @@ return early ? (
                   className="w-full flex items-center justify-between px-4 py-3"
                 >
                   <span className="font-semibold text-center w-full">
-                    Joue ton bonus SCORE
+                    {hasBonusScore ? '✅ Bonus SCORE activé' : '🎯 Choisis un Bonus SCORE'}
                   </span>
                   <span className="text-xl">{openScore ? "▲" : "▼"}</span>
                 </button>
@@ -2107,28 +2159,37 @@ return early ? (
 
               {/* Accordéon SPÉCIAUX */}
               <div className="border rounded-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTouched(true);
-                    setOpenSpecial((v) => !v);
-                  }}
-                  className="w-full flex items-center justify-between px-4 py-3"
-                >
-                  <span className="font-semibold text-center w-full">
-                    T'as un bonus SPÉCIAL ?
-                  </span>
-                  <span className="text-xl">{openSpecial ? "▲" : "▼"}</span>
-                </button>
+                {specialsForUser.length === 0 ? (
+                  // 👉 CAS : aucun bonus spécial
+                  <div className="border rounded-lg px-4 py-3 text-center text-sm text-gray-500 bg-gray-50">
+                    <div>🎁 Bonus spécial à débloquer</div>
+                    <div className="text-xs mt-1">
+                      🏆 Fini sur le podium d’une grille pour en gagner un
+                    </div>
+                  </div>
+                ) : (
+                  // 👉 CAS : bonus dispo → ton accordéon normal
+                  <div className="border rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTouched(true);
+                        setOpenSpecial((v) => !v);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3"
+                    >
+                      <span className="font-semibold text-center w-full">
+                        {hasBonusSpecial
+                          ? '✅ Bonus SPÉCIAL activé'
+                          : '🎯 Choisis un bonus SPÉCIAL'}
+                      </span>
+                      <span className="text-xl">{openSpecial ? "▲" : "▼"}</span>
+                    </button>
 
-                {openSpecial && (
-                  <div className="px-4 pb-4 space-y-3">
-                    {specialsDefs.length === 0 ? (
-                      <div className="text-sm text-gray-500">
-                        Aucun bonus spécial défini.
+                    {openSpecial && (
+                      <div className="px-4 pb-4 space-y-3">
+                        {specialsForUser.map(renderBonusRow)}
                       </div>
-                    ) : (
-                      specialsDefs.map(renderBonusRow)
                     )}
                   </div>
                 )}
