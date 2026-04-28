@@ -2036,7 +2036,7 @@ return early ? (
                       return (
                         <div
                           key={row.match_id}
-                          className="grid grid-cols-[1fr_auto_1fr_28px_38px] items-center gap-2 border-b px-2 py-2 text-sm"
+                          className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2 border-b px-2 py-2 text-sm"
                         >
                           {/* Équipe domicile */}
                           <div className="truncate text-center min-w-0">
@@ -2061,24 +2061,20 @@ return early ? (
                             {row.short_name_away ?? row.away_team}
                           </div>
 
-                          {/* Bonus */}
-                          <div className="flex justify-center">
-                            {bonusSrc ? (
+                          {/* Bonus et Points */}
+                          <div className="flex items-center justify-end gap-1 min-w-[50px]">
+                            {bonusSrc && (
                               <Image
                                 src={bonusSrc}
                                 alt="Bonus joué"
-                                width={24}
-                                height={24}
+                                width={20}
+                                height={20}
                                 className="rounded-full"
                               />
-                            ) : (
-                              <span className="text-gray-300">—</span>
                             )}
-                          </div>
-
-                          {/* Points */}
-                          <div className="text-right font-medium">
-                            {row.points ?? '-'}
+                            <span className="text-xs font-medium">
+                              {row.points ?? '-'}
+                            </span>
                           </div>
                         </div>
                       );
