@@ -101,5 +101,5 @@ export type Competition = {
   name: string;
   description: string | null;
   icon?: string | null;
-  mode: CompetitionMode; // ← ajouté
+  mode: CompetitionMode;
 };

@@ -2062,19 +2062,15 @@ return early ? (
                           </div>
 
                           {/* Bonus */}
-                          <div className="flex items-center justify-end w-full">
-                            {bonusSrc ? (
-                              <div className="flex justify-end w-full">
-                                <Image
-                                  src={bonusSrc}
-                                  alt="Bonus joué"
-                                  width={24}
-                                  height={24}
-                                  className="block rounded-full"
-                                />
-                              </div>
-                            ) : (
-                              <span className="block text-gray-300">—</span>
+                          <div className="flex items-center justify-center w-[28px]">
+                            {bonusSrc && (
+                              <Image
+                                src={bonusSrc}
+                                alt="Bonus joué"
+                                width={24}
+                                height={24}
+                                className="block rounded-full"
+                              />
                             )}
                           </div>
 
@@ -2187,7 +2183,7 @@ return early ? (
                       return (
                         <div
                           key={m.id}
-                          className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_11%] gap-2 items-center"
+                          className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_11%] gap-x-2 gap-y-0 items-center"
                         >
                         {/* LIGNE 1 */}
                         <div className="text-center text-sm">{fmtDate(m.date)}</div>
@@ -2315,7 +2311,7 @@ return early ? (
                               )}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center mt-1">
+                            <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center">
                               <div>{m.base_1_points ?? '-'}</div>
                               <div>{m.base_n_points ?? '-'}</div>
                               <div>{m.base_2_points ?? '-'}</div>
@@ -2356,7 +2352,7 @@ return early ? (
                     })
                   )}
                   <div className="text-center text-sm mt-3 text-gray-600">
-                    🎁 Boost tes points avec les bonus 👇
+                    ⚡ Booste tes points avec les bonus 👇
                   </div>
                 </div>
               </div>

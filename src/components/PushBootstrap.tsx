@@ -41,37 +41,23 @@ export default function PushBootstrap() {
     }
   }, []);
 
-  // 2) Réception foreground (affichage via SW quand c’est possible)
+  // 2) Réception foreground
+  // On n'affiche PAS de notification ici : si l'app est ouverte, l'utilisateur
+  // voit déjà l'interface. Le SW (onBackgroundMessage) gère l'affichage quand
+  // l'app est en arrière-plan. Afficher ici créerait un doublon.
   useEffect(() => {
     let unsub: undefined | (() => void);
     let alive = true;
     try {
       if (typeof window === 'undefined') return;
-      if (!('Notification' in window)) return; // ← garde iOS
+      if (!('Notification' in window)) return;
       if (!('serviceWorker' in navigator)) return;
 
       (async () => {
-        unsub = await onForegroundMessage(async (p: any) => {
+        unsub = await onForegroundMessage((p: any) => {
           if (!alive) return;
-          try {
-            const n = p?.notification || {};
-            const d = p?.data || {};
-            const title = n.title || d.title || 'PEPS';
-            const body  = n.body  || d.body  || '';
-            const icon  = d.icon || '/icon-512x512.png';
-            const tag   = d.tag  || `peps-reminder-${Date.now()}`;
-            const url   = d.url  || '/';
-
-            const reg = await navigator.serviceWorker.ready;
-            // showNotification peut être absent (iOS en foreground)
-            if (typeof (reg as any).showNotification !== 'function') return;
-
-            (reg as any).showNotification(title, {
-              body, icon, tag, renotify: true, data: { url },
-            } as any);
-          } catch {
-            // no-op
-          }
+          // Log uniquement pour debug — pas d'affichage de notif en foreground
+          console.log('[PEPS][FCM] message reçu en foreground (pas affiché):', p?.data?.title);
         });
       })();
     } catch {
