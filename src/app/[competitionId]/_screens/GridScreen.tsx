@@ -2062,17 +2062,19 @@ return early ? (
                           </div>
 
                           {/* Bonus */}
-                          <div className="flex items-center justify-end">
+                          <div className="flex items-center justify-end w-full">
                             {bonusSrc ? (
-                              <Image
-                                src={bonusSrc}
-                                alt="Bonus joué"
-                                width={24}
-                                height={24}
-                                className="rounded-full"
-                              />
+                              <div className="flex justify-end w-full">
+                                <Image
+                                  src={bonusSrc}
+                                  alt="Bonus joué"
+                                  width={24}
+                                  height={24}
+                                  className="block rounded-full"
+                                />
+                              </div>
                             ) : (
-                              <span className="text-gray-300">—</span>
+                              <span className="block text-gray-300">—</span>
                             )}
                           </div>
 
