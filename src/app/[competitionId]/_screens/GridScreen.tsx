@@ -403,7 +403,7 @@ const isMatchSelectable = (m:any) =>
     if (popupKind === 'SPECIAL') return handleBonusValidateSpeciauxLocal();
   }, [popupKind, handleBonusValidateCroixLocal, handleBonusValidateScoreLocal, handleBonusValidateSpeciauxLocal]);
 
-// 6) Choix d'un match dans une pop-up Bonus
+  // 6) Choix d'un match dans une pop-up Bonus
   function MatchDropdown({
     value,
     onChange,
@@ -636,8 +636,8 @@ const isTerminator = (row: LeaderboardRow) =>
   const gridId = currentGrid?.id ? String(currentGrid.id) : null;
 
   // 2) Déduire le mode + variante image
-const modeRaw = String(competition?.mode ?? '');
-const mode: 'CLASSIC' | 'TOURNOI' = modeRaw.trim().toUpperCase() === 'TOURNOI' ? 'TOURNOI' : 'CLASSIC';
+  const modeRaw = String(competition?.mode ?? '');
+  const mode: 'CLASSIC' | 'TOURNOI' = modeRaw.trim().toUpperCase() === 'TOURNOI' ? 'TOURNOI' : 'CLASSIC';
 
   // 6) Gate
   const gate = usePlayerGate(userId, competitionId, gridId || '', mode);
@@ -648,14 +648,14 @@ const mode: 'CLASSIC' | 'TOURNOI' = modeRaw.trim().toUpperCase() === 'TOURNOI' ?
   else if (!gridId) early = 'NO_GRID';
   else if (gate.state === 'loading') early = 'GATE_LOADING';
 
-// après chargement complet, déterminer l’affichage
-if (!loadingGrids && grids.length === 0) {
-  return <div className="p-6 text-center">Aucune grille disponible pour cette compétition.</div>;
-}
-if (!loadingGrids && grids.length > 0 && !gridId) {
-  console.log('[page] no gridId yet but grids loaded, waiting index selection…');
-  return <div>Initialisation de la grille…</div>;
-}
+  // après chargement complet, déterminer l’affichage
+  if (!loadingGrids && grids.length === 0) {
+    return <div className="p-6 text-center">Aucune grille disponible pour cette compétition.</div>;
+  }
+  if (!loadingGrids && grids.length > 0 && !gridId) {
+    console.log('[page] no gridId yet but grids loaded, waiting index selection…');
+    return <div>Initialisation de la grille…</div>;
+  }
 
   // joueur ? sinon tout devient lecture seule
   const isReadOnly = gate.state !== 'joueur';
@@ -746,21 +746,106 @@ if (!loadingGrids && grids.length > 0 && !gridId) {
     setMyRank(rows.find(r => r.user_id === user?.id)?.rank ?? null);
   }
 
-// fermeture automatique selon le status (mais jamais ouverture auto)
-useEffect(() => {
-  if (gate.state === 'elimine' || gate.state === 'spectateur') {
-    setOpenGrille(false);
+  // Pour afficher les grilles des autres joueurs
+  const [publicGridOpen, setPublicGridOpen] = useState(false);
+  const [publicGridLoading, setPublicGridLoading] = useState(false);
+
+  const [selectedPlayerIndex, setSelectedPlayerIndex] = useState(0);
+  const [selectedPublicGridIndex, setSelectedPublicGridIndex] = useState(0);
+
+  const [playersList, setPlayersList] = useState<LeaderboardRow[]>([]);
+  const [publicPlayerGrids, setPublicPlayerGrids] = useState<any[]>([]);
+
+  async function loadPublicPlayerGrids(playerId: string) {
+    if (!competitionId) return;
+
+    setPublicGridLoading(true);
+
+    const { data, error } = await supabase.rpc('get_public_player_grids', {
+      p_competition_id: competitionId,
+      p_player_id: playerId,
+    });
+
+    if (error) {
+      console.error('Erreur public grids:', error);
+      setPublicPlayerGrids([]);
+      setPublicGridLoading(false);
+      return;
+    }
+
+    const grouped = Object.values(
+      (data ?? []).reduce((acc: any, row: any) => {
+        const gridId = row.grid_id;
+
+        if (!acc[gridId]) {
+          acc[gridId] = {
+            grid_id: gridId,
+            title: row.grid_title ?? 'Grille',
+            rows: [],
+          };
+        }
+
+        acc[gridId].rows.push(row);
+        return acc;
+      }, {})
+    );
+
+    const sortedGrouped = grouped.sort((a: any, b: any) => {
+      const indexA = grids.findIndex(g => String(g.id) === String(a.grid_id));
+      const indexB = grids.findIndex(g => String(g.id) === String(b.grid_id));
+
+      return indexA - indexB;
+    });
+
+    setPublicPlayerGrids(sortedGrouped);
+    setPublicGridLoading(false);
   }
-  // si 'joueur' ou 'loading' : on ne touche à rien
-}, [gate.state]);
+
+  async function openPublicGrid(playerId: string) {
+    console.log('OPEN PUBLIC GRID', playerId);
+
+    const index = lbRows.findIndex(r => r.user_id === playerId);
+
+    setPlayersList(lbRows);
+    setSelectedPlayerIndex(index >= 0 ? index : 0);
+    const currentGridId = currentGrid?.id;
+    const publicIndex = grids.findIndex(g => String(g.id) === String(currentGridId));
+    setSelectedPublicGridIndex(publicIndex >= 0 ? publicIndex : 0);
+    setPublicGridOpen(true);
+
+    await loadPublicPlayerGrids(playerId);
+  }
+
+  async function changePublicPlayer(direction: 'prev' | 'next') {
+    const nextIndex =
+      direction === 'prev'
+        ? Math.max(0, selectedPlayerIndex - 1)
+        : Math.min(playersList.length - 1, selectedPlayerIndex + 1);
+
+    const nextPlayer = playersList[nextIndex];
+    if (!nextPlayer) return;
+
+    setSelectedPlayerIndex(nextIndex);
+    setSelectedPublicGridIndex(currentIdx);
+
+    await loadPublicPlayerGrids(nextPlayer.user_id);
+  }
+
+  // fermeture automatique selon le status (mais jamais ouverture auto)
+  useEffect(() => {
+    if (gate.state === 'elimine' || gate.state === 'spectateur') {
+      setOpenGrille(false);
+    }
+    // si 'joueur' ou 'loading' : on ne touche à rien
+  }, [gate.state]);
 
   //Gestion de la view
-useEffect(() => {
-  if (!competitionReady) return;                  // ✅ évite le run en CLASSIC par défaut
-  if (view === 'rankGeneral' && mode !== 'TOURNOI') fetchGeneralLeaderboard();
-  if (view === 'rankGrid')                          fetchLeaderboardByGrid();
-  console.log('[rank] effect run', { view, mode });
-}, [view, competitionId, currentIdx, grids, mode, competitionReady]);
+  useEffect(() => {
+    if (!competitionReady) return;                  // ✅ évite le run en CLASSIC par défaut
+    if (view === 'rankGeneral' && mode !== 'TOURNOI') fetchGeneralLeaderboard();
+    if (view === 'rankGrid')                          fetchLeaderboardByGrid();
+    console.log('[rank] effect run', { view, mode });
+  }, [view, competitionId, currentIdx, grids, mode, competitionReady]);
 
   // ✅ Mise à jour unique des points au premier affichage
   useEffect(() => {
@@ -781,137 +866,132 @@ useEffect(() => {
     updateOnce();
   }, [grid?.id, user?.id]);
 
-// pour savoir si une compétition donne des XP ou pas
-const [xpEnabled, setXpEnabled] = useState(false);
+  // pour savoir si une compétition donne des XP ou pas
+  const [xpEnabled, setXpEnabled] = useState(false);
 
-useEffect(() => {
-  if (!gridId) return;
+  useEffect(() => {
+    if (!gridId) return;
 
-  (async () => {
-    // 1) récupérer competition_id depuis la grille
-    const { data: g, error: gErr } = await supabase
-      .from('grids')
-      .select('competition_id')
-      .eq('id', gridId)
-      .single();
+    (async () => {
+      // 1) récupérer competition_id depuis la grille
+      const { data: g, error: gErr } = await supabase
+        .from('grids')
+        .select('competition_id')
+        .eq('id', gridId)
+        .single();
 
-    if (gErr || !g?.competition_id) {
-      setXpEnabled(false);
-      return;
-    }
+      if (gErr || !g?.competition_id) {
+        setXpEnabled(false);
+        return;
+      }
 
-    // 2) récupérer xp_enabled depuis la compétition
-    const { data: c, error: cErr } = await supabase
-      .from('competitions')
-      .select('xp_enabled')
-      .eq('id', g.competition_id)
-      .single();
+      // 2) récupérer xp_enabled depuis la compétition
+      const { data: c, error: cErr } = await supabase
+        .from('competitions')
+        .select('xp_enabled')
+        .eq('id', g.competition_id)
+        .single();
 
-    if (cErr) {
-      setXpEnabled(false);
-      return;
-    }
+      if (cErr) {
+        setXpEnabled(false);
+        return;
+      }
 
-    setXpEnabled(Boolean(c?.xp_enabled));
-  })();
-}, [gridId, supabase]);
-
-
-
+      setXpEnabled(Boolean(c?.xp_enabled));
+    })();
+  }, [gridId, supabase]);
 
   // 🍀 Initialise la grille avec des matchs à venir (ou la dernière)
-const LIVE_CODES = new Set(['1H', 'HT', '2H']);
+  const LIVE_CODES = new Set(['1H', 'HT', '2H']);
 
-function normStatus(s?: string) {
-  return String(s ?? '').trim().toUpperCase();
-}
-
-useEffect(() => {
-  if (grids.length === 0 || matches.length === 0) return;
-
-  const nowTs = Date.now();
-  const matchById = new Map(matches.map(m => [m.id, m])); // id = uuid
-
-  const hasLiveInGrid = (grid: GridWithItems) =>
-    Array.isArray(grid.grid_items) &&
-    grid.grid_items.some(item => {
-      const m = matchById.get(item.match_id); // match_id = uuid
-      return m && LIVE_CODES.has(normStatus(m.status));
-    });
-
-  const hasNextNSInGrid = (grid: GridWithItems) =>
-    Array.isArray(grid.grid_items) &&
-    grid.grid_items.some(item => {
-      const m = matchById.get(item.match_id);
-      if (!m || normStatus(m.status) !== 'NS') return false;
-      const t = Date.parse(m.date);
-      return Number.isFinite(t) && t > nowTs;
-    });
-
-  // --- DIAGNOSTIC COURT ---
-  // Combien d'items de grilles pointent vers un match effectivement présent dans `matches` ?
-  const allItems = (grids as GridWithItems[]).flatMap(g => g.grid_items ?? []);
-  const covered = allItems.filter(it => matchById.has(it.match_id)).length;
-  if (covered === 0) {
-    console.log('⚠️ Aucun grid_item ne matche un match présent dans `matches` à cet instant.');
-    return; // surtout ne pas forcer idx=0
-  }
-  // -------------------------
-
-  // 1) priorité aux grilles avec un match live
-  const liveIdx = (grids as GridWithItems[]).findIndex(hasLiveInGrid);
-  if (liveIdx >= 0) {
-    setCurrentIdx(liveIdx);
-    return;
+  function normStatus(s?: string) {
+    return String(s ?? '').trim().toUpperCase();
   }
 
-  // 2) sinon première grille avec un match NS à venir
-  const nsIdx = (grids as GridWithItems[]).findIndex(hasNextNSInGrid);
-  if (nsIdx >= 0) {
-    setCurrentIdx(nsIdx);
-    return;
-  }
+  useEffect(() => {
+    if (grids.length === 0 || matches.length === 0) return;
 
-  // 3) rien trouvé → ne change pas l’index courant (évite le retour à 0)
-  console.log('ℹ️ Pas de live ni de NS futur détecté pour les grilles couvertes.');
-}, [grids, matches]);
+    const nowTs = Date.now();
+    const matchById = new Map(matches.map(m => [m.id, m])); // id = uuid
 
+    const hasLiveInGrid = (grid: GridWithItems) =>
+      Array.isArray(grid.grid_items) &&
+      grid.grid_items.some(item => {
+        const m = matchById.get(item.match_id); // match_id = uuid
+        return m && LIVE_CODES.has(normStatus(m.status));
+      });
 
+    const hasNextNSInGrid = (grid: GridWithItems) =>
+      Array.isArray(grid.grid_items) &&
+      grid.grid_items.some(item => {
+        const m = matchById.get(item.match_id);
+        if (!m || normStatus(m.status) !== 'NS') return false;
+        const t = Date.parse(m.date);
+        return Number.isFinite(t) && t > nowTs;
+      });
 
-  // 🔁 Au premier chargement : on récupère l'utilisateur connecté et ses grilles
-useEffect(() => {
-  console.log('[init] guard', { competitionId, hasRun: hasRun.current });
-  if (!competitionId) return;
-  if (hasRun.current) return;
+    // --- DIAGNOSTIC COURT ---
+    // Combien d'items de grilles pointent vers un match effectivement présent dans `matches` ?
+    const allItems = (grids as GridWithItems[]).flatMap(g => g.grid_items ?? []);
+    const covered = allItems.filter(it => matchById.has(it.match_id)).length;
+    if (covered === 0) {
+      console.log('⚠️ Aucun grid_item ne matche un match présent dans `matches` à cet instant.');
+      return; // surtout ne pas forcer idx=0
+    }
+    // -------------------------
 
-  hasRun.current = true;
-
-  (async () => {
-    console.log('[init] start');
-
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    console.log('[AUTH] getUser()', {
-      error,
-      user_id: user?.id,
-      email: user?.email,
-      role: user?.role,
-    });
-    setUser(user ?? null);
-
-    // 🔴 Ne PAS appeler loadUserGrids si on n'a pas encore d'user
-    if (!user) {
-      console.log('[init] no user yet → skip loadUserGrids to avoid user_id=__PUBLIC__');
+    // 1) priorité aux grilles avec un match live
+    const liveIdx = (grids as GridWithItems[]).findIndex(hasLiveInGrid);
+    if (liveIdx >= 0) {
+      setCurrentIdx(liveIdx);
       return;
     }
 
-    console.log('[init] call loadUserGrids');
-    await loadUserGrids(user.id, competitionId);
-  })();
-}, [competitionId]);
+    // 2) sinon première grille avec un match NS à venir
+    const nsIdx = (grids as GridWithItems[]).findIndex(hasNextNSInGrid);
+    if (nsIdx >= 0) {
+      setCurrentIdx(nsIdx);
+      return;
+    }
+
+    // 3) rien trouvé → ne change pas l’index courant (évite le retour à 0)
+    console.log('ℹ️ Pas de live ni de NS futur détecté pour les grilles couvertes.');
+  }, [grids, matches]);
+
+  // 🔁 Au premier chargement : on récupère l'utilisateur connecté et ses grilles
+  useEffect(() => {
+    console.log('[init] guard', { competitionId, hasRun: hasRun.current });
+    if (!competitionId) return;
+    if (hasRun.current) return;
+
+    hasRun.current = true;
+
+    (async () => {
+      console.log('[init] start');
+
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      console.log('[AUTH] getUser()', {
+        error,
+        user_id: user?.id,
+        email: user?.email,
+        role: user?.role,
+      });
+      setUser(user ?? null);
+
+      // 🔴 Ne PAS appeler loadUserGrids si on n'a pas encore d'user
+      if (!user) {
+        console.log('[init] no user yet → skip loadUserGrids to avoid user_id=__PUBLIC__');
+        return;
+      }
+
+      console.log('[init] call loadUserGrids');
+      await loadUserGrids(user.id, competitionId);
+    })();
+  }, [competitionId]);
 
   // 📦 Charge toutes les grilles et matchs d’un joueur, LIMITÉ à la compétition active
-async function loadUserGrids(userId: string, competitionId: string, initialIdx?: number) {
+  async function loadUserGrids(userId: string, competitionId: string, initialIdx?: number) {
   console.log('[lug] start', { userId, competitionId });
   let finalGrids: { grid: GridWithItems; matches: MatchWithState[] }[] = [];
   try {
@@ -1060,8 +1140,7 @@ async function loadUserGrids(userId: string, competitionId: string, initialIdx?:
       console.warn('[loadUserGrids] page selection skipped:', e);
     }
   }
-}
-
+  }
 
   // 🧩 Charge la grille active + les matchs + picks + points + bonus
   useEffect(() => {
@@ -1625,7 +1704,7 @@ return early ? (
                 title="Classement général"
               >
               <Image
-                src="/images/icons/podium.png"   // ton PNG (sans cercle noir)
+                src="/images/icons/podium.png"
                 alt="Podium"
                 width={40}
                 height={40}
@@ -1644,7 +1723,7 @@ return early ? (
                 title="Classement de la grille"
               >
               <Image
-                src="/images/icons/classement.png"   // ton PNG (sans cercle noir)
+                src="/images/icons/classement.png"
                 alt="Classement"
                 width={40}
                 height={40}
@@ -1702,6 +1781,12 @@ return early ? (
           )}
 
           {!lbLoading && lbRows.length > 0 && (
+            <div className="text-center text-sm text-gray-500 mb-4">
+              Clique sur un pseudo pour voir ses grilles 👀
+            </div>
+          )}
+
+          {!lbLoading && lbRows.length > 0 && (
             <div className="max-w-2xl mx-auto">
               <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                 <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
@@ -1722,15 +1807,16 @@ return early ? (
                   const xpClassic = Math.max(0, 11 - Number(row.rank || 0));
 
                   const rowClass = me
-                    ? 'bg-orange-100 font-bold'
+                    ? 'bg-orange-100'
                     : terminator
-                      ? 'bg-gray-200 font-semibold'
+                      ? 'bg-gray-200'
                       : 'hover:bg-gray-50';
 
                   return (
                     <tr
                       key={row.user_id}
-                      className={`border-t transition ${rowClass}`}
+                      onClick={() => openPublicGrid(row.user_id)}
+                      className={`border-t transition cursor-pointer ${rowClass}`}
                     >
                       {/* Position */}
                       <td className="px-4 py-2">{row.rank}</td>
@@ -1794,13 +1880,20 @@ return early ? (
               {' '}sur <strong>{totalPlayers}</strong> joueur{totalPlayers > 1 ? 's' : ''}
             </div>
           )}
+
+          {!lbLoading && lbRows.length > 0 && (
+            <div className="text-center text-sm text-gray-500 mb-4">
+              Clique sur une ligne pour voir ses grilles 👀
+            </div>
+          )}
+
           {/* même tableau que ci-dessus, on réutilise lbRows */}
           {!lbLoading && lbRows.length > 0 && (
             <div className="max-w-2xl mx-auto">
               <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                 <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                   <tr>
-                    <th className="text-left px-4 py-3">Position</th>
+                    <th className="text-left px-4 py-3">#</th>
                     <th className="text-left px-4 py-3">Pseudo</th>
                     <th className="text-left px-4 py-3">Points</th>
                   </tr>
@@ -1809,8 +1902,13 @@ return early ? (
                   {lbRows.map(row => {
                     const me = row.user_id === user?.id;
                     return (
-                      <tr key={row.user_id}
-                          className={`border-t transition ${me ? 'bg-orange-100 font-bold' : 'hover:bg-gray-50'}`}>
+                      <tr
+                        key={row.user_id}
+                        onClick={() => openPublicGrid(row.user_id)}
+                        className={`border-t transition cursor-pointer ${
+                          me ? 'bg-orange-100' : 'hover:bg-gray-50'
+                        }`}
+                      >
                         <td className="px-4 py-2">{row.rank}</td>
                         <td className="px-4 py-2">{row.username}</td>
                         <td className="px-4 py-2">{row.total_points}</td>
@@ -1836,6 +1934,170 @@ return early ? (
             joinCode={competition.join_code}
             isCreator={isCreator}
           />
+        </div>
+      )}
+
+      {/* ── POPUP Grilles des Autres joueurs ── */}
+      {publicGridOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
+
+            <div className="flex items-center justify-between border-b p-3">
+              <button
+                onClick={() => changePublicPlayer('prev')}
+                disabled={selectedPlayerIndex === 0}
+                className="text-lg px-2 disabled:opacity-30"
+              >
+                ◀
+              </button>
+
+              <div className="text-center font-semibold text-base flex-1">
+                {playersList[selectedPlayerIndex]?.username}
+              </div>
+
+              <button
+                onClick={() => changePublicPlayer('next')}
+                disabled={selectedPlayerIndex === playersList.length - 1}
+                className="text-lg px-2 disabled:opacity-30"
+              >
+                ▶
+              </button>
+
+              <button
+                onClick={() => setPublicGridOpen(false)}
+                className="ml-3 text-xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {publicGridLoading ? (
+                <p className="text-center text-gray-500">Chargement...</p>
+              ) : publicPlayerGrids.length === 0 ? (
+                <p className="text-center text-gray-500">Aucune grille</p>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center">
+                    <button
+                      onClick={() => setSelectedPublicGridIndex(i => Math.max(0, i - 1))}
+                      disabled={selectedPublicGridIndex === 0}
+                      className="disabled:opacity-30"
+                    >
+                      ◀
+                    </button>
+
+                    <span className="text-sm font-medium text-center">
+                      {publicPlayerGrids[selectedPublicGridIndex]?.title}
+                    </span>
+
+                    <button
+                      onClick={() =>
+                        setSelectedPublicGridIndex(i =>
+                          Math.min(publicPlayerGrids.length - 1, i + 1)
+                        )
+                      }
+                      disabled={selectedPublicGridIndex === publicPlayerGrids.length - 1}
+                      className="disabled:opacity-30"
+                    >
+                      ▶
+                    </button>
+                  </div>
+
+                  <div className="border rounded overflow-hidden">
+                    {publicPlayerGrids[selectedPublicGridIndex]?.rows.map((row: any) => {
+                      const isUpcoming = row.match_status === 'NS';
+
+                      const bonusSrc =
+                        row.bonus_code && bonusLogos[row.bonus_code]
+                          ? bonusLogos[row.bonus_code]
+                          : null;
+
+                      const Square = ({ label }: { label: '1' | 'N' | '2' }) => {
+                        const active =
+                          label === '1' ? row.pick_1 :
+                          label === 'N' ? row.pick_n :
+                          row.pick_2;
+
+                        return (
+                          <span className="relative inline-flex h-7 w-7 items-center justify-center rounded-md border border-gray-300 bg-white text-xs">
+                            {active ? (
+                              <svg viewBox="0 0 30 30" className="absolute inset-0 block">
+                                <line x1="2" y1="2" x2="28" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+                                <line x1="28" y1="2" x2="2" y2="28" stroke="black" strokeWidth="2" strokeLinecap="round" />
+                              </svg>
+                            ) : (
+                              <span className="text-gray-700">{label}</span>
+                            )}
+                          </span>
+                        );
+                      };
+
+                      return (
+                        <div
+                          key={row.match_id}
+                          className="grid grid-cols-[1fr_auto_1fr_28px_38px] items-center gap-2 border-b px-2 py-2 text-sm"
+                        >
+                          {/* Équipe domicile */}
+                          <div className="truncate text-center min-w-0">
+                            {row.short_name_home ?? row.home_team}
+                          </div>
+
+                          {/* Cases 1N2 */}
+                          <div className="flex items-center justify-center gap-1">
+                            {isUpcoming && row.pick === null ? (
+                              <span className="text-xs text-gray-500">À venir</span>
+                            ) : (
+                              <>
+                                <Square label="1" />
+                                <Square label="N" />
+                                <Square label="2" />
+                              </>
+                            )}
+                          </div>
+
+                          {/* Équipe extérieur */}
+                          <div className="truncate text-center min-w-0">
+                            {row.short_name_away ?? row.away_team}
+                          </div>
+
+                          {/* Bonus */}
+                          <div className="flex justify-center">
+                            {bonusSrc ? (
+                              <Image
+                                src={bonusSrc}
+                                alt="Bonus joué"
+                                width={24}
+                                height={24}
+                                className="rounded-full"
+                              />
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </div>
+
+                          {/* Points */}
+                          <div className="text-right font-medium">
+                            {row.points ?? '-'}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div className="flex justify-between px-3 py-2 font-semibold">
+                      <span>Total grille</span>
+                      <span>
+                        {publicPlayerGrids[selectedPublicGridIndex]?.rows.reduce(
+                          (sum: number, row: any) => sum + Number(row.points ?? 0),
+                          0
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -2215,7 +2477,7 @@ return early ? (
           </div>
         )}
 
-        {/* ── POPUP Pronos des Autres ── */}
+        {/* ── POPUP Pronos des Autres joueurs ── */}
         {showPopup && popupMatch && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">

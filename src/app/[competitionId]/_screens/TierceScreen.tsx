@@ -1570,7 +1570,7 @@ export default function TierceScreen({
 
             {!lbLoading && lbRows.length > 0 && (
               <div className="text-center text-sm text-gray-500 mb-4">
-                Clique sur une ligne pour voir les tickets des autres joueurs.
+                Clique sur un pseudo pour voir ses tickets 👀 
               </div>
             )}
 

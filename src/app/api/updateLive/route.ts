@@ -101,39 +101,38 @@ export async function GET() {
 
   console.log(`✅ Points TIERCE mis à jour pour ${totalUpdatedTierceMatches} matchs.`);
 
-  // 7. Récupère les grid_id liés aux match_ids
-  const { data: gridItems, error: gridItemError } = await supabase
-    .from("grid_items")
-    .select("grid_id")
-    .in("match_id", matchIds);
+  // 7. Met à jour les points GRID pour chaque match concerné
+  let totalUpdatedGridRows = 0;
+  let totalUpdatedGridMatches = 0;
 
-  if (gridItemError || !gridItems) {
-    console.error("❌ Erreur récupération grid_id :", gridItemError);
-    return NextResponse.json({ status: "error", message: "Erreur grid_id" });
-  }
+  for (const matchId of matchIds) {
+    const { data, error: gridRefreshError } = await supabase.rpc(
+      "refresh_grid_match_points_for_match",
+      {
+        p_match_id: matchId,
+      }
+    );
 
-  const uniqueGridIds = [...new Set(gridItems.map((gi) => gi.grid_id))];
-
-  // 8. Met à jour les points des joueurs pour chaque grille
-  let totalUpdatedGrids = 0;
-  for (const gridId of uniqueGridIds) {
-    const { error: rpcError } = await supabase.rpc("update_grid_points", {
-      p_grid_id: gridId,
-    });
-
-    if (rpcError) {
-      console.error(`❌ Erreur update_grid_points pour grille ${gridId} :`, rpcError);
+    if (gridRefreshError) {
+      console.error(
+        `❌ Erreur refresh_grid_match_points_for_match pour match ${matchId} :`,
+        gridRefreshError
+      );
     } else {
-      totalUpdatedGrids++;
+      totalUpdatedGridMatches++;
+      totalUpdatedGridRows += Number(data ?? 0);
     }
   }
 
-  console.log(`✅ Points mis à jour pour ${totalUpdatedGrids} grilles.`);
+  console.log(
+    `✅ Points GRID refresh pour ${totalUpdatedGridMatches} matchs, ${totalUpdatedGridRows} lignes modifiées.`
+  );
 
   return NextResponse.json({
     status: "ok",
     updated_matches: updates.length,
     updated_tierce_matches: totalUpdatedTierceMatches,
-    updated_grids: totalUpdatedGrids,
+    updated_grid_matches: totalUpdatedGridMatches,
+    updated_grid_rows: totalUpdatedGridRows,
   });
 }
