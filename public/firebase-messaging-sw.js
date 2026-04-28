@@ -63,11 +63,15 @@ if (!self.__PEPS_BG_BOUND__) {
 // pas via FCM. On les intercepte ici.
 // ─────────────────────────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  // Si FCM a déjà géré ce message (Android/desktop), il aura défini
-  // self.__PEPS_FCM_HANDLED__ juste avant — on évite le doublon.
-  // Sur iOS, FCM n'existe pas donc ce flag ne sera jamais posé.
-  if (self.__PEPS_FCM_HANDLED__) {
-    self.__PEPS_FCM_HANDLED__ = false;
+  // Sur Android/desktop, FCM intercepte déjà le push via onBackgroundMessage.
+  // Le listener 'push' natif ne doit agir QUE sur iOS (Safari).
+  // On détecte iOS via l'absence de la variable firebase (non chargée sur iOS).
+  // firebase est défini en haut de ce fichier via importScripts — il est donc
+  // présent sur Android. Sur iOS, importScripts échoue silencieusement et
+  // firebase reste undefined.
+  const isIosSW = typeof firebase === 'undefined';
+  if (!isIosSW) {
+    // Android/desktop : FCM gère via onBackgroundMessage, on ne fait rien ici
     return;
   }
 
