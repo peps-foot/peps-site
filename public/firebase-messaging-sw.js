@@ -35,15 +35,8 @@ if (!self.__PEPS_BG_BOUND__) {
         return;
       }
 
-      // Si une fenêtre est visible, on laisse le foreground gérer
-      const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      const hasVisibleClient = clientsList.some((c) =>
-        (c.visibilityState ? c.visibilityState === 'visible' : true) && !!c.url
-      );
-      if (hasVisibleClient) {
-        console.log('[PEPS][SW] skip: client visible → foreground notifiera');
-        return;
-      }
+      // On affiche toujours la notif — même si l'app est ouverte.
+      // Le foreground ne fait plus rien (PushBootstrap ne showNotification plus).
 
       const n = payload.notification || {};
       const d = payload.data || {};
