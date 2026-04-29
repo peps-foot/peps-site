@@ -9,6 +9,7 @@ import { CompetitionMode, Competition } from '../lib/types';
 import { groupCompetitionsForHome } from "../lib/competitionStatus";
 import RandomPromo from '../components/RandomPromo';
 import { splitCompetitions, CompetitionWithFlags } from "../lib/competitionsGrouping";
+import CompetitionHomeCard from "../components/CompetitionHomeCard";
 
 
 export default function Home() {
@@ -100,7 +101,15 @@ export default function Home() {
         mode: (c.mode ?? "CLASSIC") as CompetitionMode,
         game_type: c.game_type ?? "GRID",
         nextPredictionDeadline: c.nextPredictionDeadline ?? null,
-      }));
+        hasAllNS: c.hasAllNS ?? false,
+        hasGridDone: c.hasGridDone ?? false,
+        hasAnyPickOrBonus: c.hasAnyPickOrBonus ?? false,
+        remainingActivePlayersCount: c.remainingActivePlayersCount ?? 0,
+        isMember: c.isMember ?? false,
+        canPlay: c.canPlay ?? null,
+        userRank: c.userRank ?? null,
+        playersCount: c.playersCount ?? 0,
+    }));
 
     // ✅ Tri 100% piloté par la RPC (homeTab)
     const mineRows = rows.filter((r) => r.homeTab === "MINE");
@@ -212,7 +221,25 @@ export default function Home() {
     router.push(`/${comp.id}`);
   }
 
-  // Pour transformer l'affichage de nextPredictionDeadline
+  // Pour afficher le status du joueur
+  function getCompetitionStatusText(comp: Competition) {
+    if (!comp.isMember) return "À VENIR";
+    if (comp.hasAllNS) return "À VENIR";
+
+    if (comp.mode === "TOURNOI") {
+      if (comp.canPlay === false) return "ÉLIMINÉ";
+
+      if (comp.hasGridDone && !comp.hasAnyPickOrBonus) return "SPECTATEUR";
+
+      if (comp.remainingActivePlayersCount === 1) return "VAINQUEUR";
+
+      return "QUALIFIÉ";
+    }
+
+    return "CLASSEMENT";
+  }
+
+  // Pour la DEAD-LINE
   function formatDeadline(deadline?: string | null) {
     if (!deadline) return "À jour";
 
@@ -230,6 +257,31 @@ export default function Home() {
 
     return `Dans ${minutes}min`;
   }
+
+  const sortedMine = [...mine].sort((a, b) => {
+  const aTime = a.nextPredictionDeadline
+    ? new Date(a.nextPredictionDeadline).getTime()
+    : Infinity;
+
+  const bTime = b.nextPredictionDeadline
+    ? new Date(b.nextPredictionDeadline).getTime()
+    : Infinity;
+
+  return aTime - bTime;
+  });
+
+  function getDeadlineColor(deadline?: string | null) {
+    if (!deadline) return "text-gray-700";
+
+    const diffMs = new Date(deadline).getTime() - Date.now();
+
+    if (diffMs <= 0) return "text-red-600";
+    if (diffMs < 60 * 60 * 1000) return "text-red-600";      // < 1h
+    if (diffMs < 24 * 60 * 60 * 1000) return "text-orange-500"; // < 24h
+
+    return "text-gray-700";
+  }
+
 
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
@@ -270,7 +322,7 @@ export default function Home() {
     <details open className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
-          <span className="text-center w-full">🏆 MES COMPÉTITIONS 🏆</span>
+          <span className="text-center w-full">🏆 MES COMPÉTITIONS</span>
 
           {/* flèche */}
           <span className="text-xl transition-transform group-open:rotate-180">
@@ -284,218 +336,151 @@ export default function Home() {
             Aucune pour le moment.
           </p>
         )}
-        {mine.map((comp) => (
-          <div
+        {sortedMine.map((comp) => (
+          <CompetitionHomeCard
             key={comp.id}
+            comp={comp}
             onClick={() => router.push(`/${comp.id}`)}
-            className="bg-white border rounded-lg shadow-sm hover:shadow-md transition cursor-pointer flex overflow-hidden mb-3"
-          >
-            {/* LOGO GAUCHE */}
-            <div className="w-20 flex-shrink-0 flex items-center justify-center bg-gray-50 border-r border-gray-200">
-              <Image
-                src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
-                alt={comp.name}
-                width={64}
-                height={64}
-                className="rounded-full object-cover"
-              />
-            </div>
-
-            {/* CONTENU DROITE */}
-            <div className="flex-1 p-3 flex flex-col justify-between">
-
-              {/* LIGNE 1 : TITRE */}
-              <div className="font-semibold text-base leading-tight">
-                {comp.name}
-              </div>
-
-              {/* LIGNE 2 : TYPE + MODE */}
-              <div className="grid grid-cols-2 text-sm text-gray-600 mt-1">
-                <span>
-                  🎮 {comp.game_type === "TIERCE" ? "Tiercé" : "1N2"}
-                </span>
-                <span>
-                  ⚔️ {comp.mode}
-                </span>
-              </div>
-
-              {/* LIGNE 3 : STATUT + DEADLINE */}
-              <div className="grid grid-cols-2 items-center text-sm mt-2">
-                <span>
-                  🏆 <CompetitionStatusBadge
-                        competitionId={comp.id}
-                        mode={comp.mode}
-                        isMember={true}
-                      />
-                </span>
-
-                <span className="text-gray-700">
-                  ⏱️ {formatDeadline(comp.nextPredictionDeadline)}
-                </span>
-              </div>
-
-            </div>
-          </div>
+            formatDeadline={formatDeadline}
+            getCompetitionStatusText={getCompetitionStatusText}
+            getDeadlineColor={getDeadlineColor}
+          />
         ))}
       </div>
     </details>
 
-    {/* CRÉER UNE COMPÉT */}
-    <button
-      type="button"
-      onClick={() => router.push("/competition/create")}
-      className="w-full rounded-md bg-green-600 px-3 py-3 text-center text-sm font-semibold text-white hover:bg-green-700">
-      CRÉER MA COMPÉTITION
-    </button>
-
-    {/* ✅ REJOINDRE UNE COMPÉT (PUBLIC) — toujours ouvert */}
-    <details open className="group rounded-md border">
+    {/* COMPÉTITIONS PUBLIQUES */}
+    <details open={toJoin.length > 0} className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
-          <span className="text-center w-full">➕ REJOINDRE UNE COMPÉT ➕</span>
+          <span className="text-center w-full">🌍 COMPÉTITIONS PUBLIQUES</span>
           <span className="text-xl transition-transform group-open:rotate-180">▼</span>
         </div>
       </summary>
 
       <div className="p-2">
-
         {toJoin.length === 0 && (
           <p className="px-2 py-1 text-sm text-gray-600">
             Rien à rejoindre pour l’instant.
           </p>
         )}
 
-        {toJoin.map((comp) => (
-          <div
+        {toJoin.slice(0, 3).map((comp) => (
+          <CompetitionHomeCard
             key={comp.id}
-            className="bg-blue-100 rounded-md p-3 shadow flex items-center justify-between mb-2"
-          >
-            <div className="flex items-center space-x-3">
-              <Image
-                src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
-                alt={comp.name}
-                width={48}
-                height={48}
-                className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
-              />
-              <div>
-                <p className="text-green-600 font-bold">{comp.name}</p>
-                <p className="text-sm text-gray-800">{comp.mode}</p>
-              </div>
-            </div>
-
-            <CompetitionStatusBadge
-              competitionId={comp.id}
-              mode={comp.mode}
-              isMember={false}
-              allFT={false}
-              hasNS={true}
-              onClick={() => handleJoinPublicCompetition(comp)}
-            />
-          </div>
-        ))}
-      </div>
-    </details>
-
-    {/* ✅ T'AS UN CODE ?? — fermé par défaut */}
-    <details className="group rounded-md border">
-      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
-        <div className="flex items-center justify-between">
-          <span className="text-center w-full">🔑 T’AS UN CODE ?? 🔑</span>
-          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
-        </div>
-      </summary>
-
-      <div className="p-2">
-        <p className="px-2 py-1 text-sm font-semibold text-gray-700">
-          Rejoindre une compétition privée avec un code
-        </p>
-
-        <div className="flex items-center gap-2 px-2">
-          <input
-            type="text"
-            value={joinCode}
-            onChange={(e) => setJoinCode(e.target.value)}
-            placeholder="Code"
-            className="
-              flex-1
-              min-w-0
-              rounded-md
-              border
-              px-2
-              py-2
-              text-sm
-              uppercase
-              tracking-wider
-              sm:px-3
-            "
+            comp={comp}
+            onClick={() => handleJoinPublicCompetition(comp)}
+            formatDeadline={formatDeadline}
+            getCompetitionStatusText={getCompetitionStatusText}
+            getDeadlineColor={getDeadlineColor}
           />
+        ))}
 
+        {toJoin.length > 3 && (
           <button
             type="button"
-            className="
-              shrink-0
-              rounded-md
-              bg-blue-600
-              px-3
-              py-2
-              text-sm
-              font-semibold
-              text-white
-              hover:bg-blue-700
-              sm:px-4
-            "
-            onClick={handleJoinByCode}
+            onClick={() => router.push("/competitions")}
+            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
-            Rejoindre
+            Voir toutes les compétitions publiques
           </button>
-        </div>
-
-        {joinCodeError && (
-          <p className="px-2 pt-1 text-xs text-red-600">{joinCodeError}</p>
         )}
       </div>
     </details>
 
-    {/* HISTORIQUE */}
-    <details className="rounded-md border">
+    {/* ENTRE AMIS */}
+    <details className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
-          <span className="text-center w-full">🕘 HISTORIQUE 🕘</span>
-          <span className="text-xl">▼</span>
+          <span className="text-center w-full">🔒 ENTRE AMIS</span>
+          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
         </div>
       </summary>
+
+      <div className="p-3 space-y-4">
+
+        {/* CRÉER UNE COMPÉT */}
+        <button
+          type="button"
+          onClick={() => router.push("/competition/create")}
+          className="w-full rounded-md bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-700"
+        >
+          Créer une compétition
+        </button>
+
+        {/* REJOINDRE PAR CODE */}
+        <div>
+          <p className="px-1 pb-1 text-sm font-semibold text-gray-700">
+            Rejoindre avec un code
+          </p>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value)}
+              placeholder="Code"
+              className="flex-1 min-w-0 rounded-md border px-2 py-2 text-sm uppercase tracking-wider"
+            />
+
+            <button
+              type="button"
+              className="shrink-0 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              onClick={handleJoinByCode}
+            >
+              OK
+            </button>
+          </div>
+
+          {joinCodeError && (
+            <p className="pt-1 text-xs text-red-600">{joinCodeError}</p>
+          )}
+        </div>
+
+      </div>
+    </details>
+
+    {/* MODE SUPPORTER */}
+    <details className="group rounded-md border">
+      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
+        <div className="flex items-center justify-between">
+          <span className="text-center w-full">📣 MODE SUPPORTER</span>
+          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
+        </div>
+      </summary>
+
+      <div className="p-3 space-y-3">
+        <p className="text-sm text-gray-700 leading-5">
+          Choisis ton club, pronostique ses matchs et défie les autres supporters. A venir...
+        </p>
+      </div>
+    </details>
+
+    {/* ANCIENNES COMPÉTITIONS */}
+    <details className="group rounded-md border">
+      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
+        <div className="flex items-center justify-between">
+          <span className="text-center w-full">🕘 ANCIENNES COMPÉTITIONS</span>
+          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
+        </div>
+      </summary>
+
       <div className="p-2">
         {history.length === 0 && (
           <p className="px-2 py-1 text-sm text-gray-600">
             Aucune compétition terminée.
           </p>
         )}
+
         {history.map((comp) => (
-          <div
+          <CompetitionHomeCard
             key={comp.id}
+            comp={comp}
             onClick={() => router.push(`/${comp.id}`)}
-            className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
-          >
-            <div className="flex items-center space-x-3">
-              <Image
-                src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
-                alt={comp.name}
-                width={48}
-                height={48}
-                className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
-              />
-              <div>
-                <p className="text-green-600 font-bold">{comp.name}</p>
-                <p className="text-sm text-gray-800">{comp.mode}</p>
-              </div>
-            </div>
-<CompetitionStatusBadge
-  competitionId={comp.id}
-  mode={comp.mode}
-  allFT={true}
-/>
-          </div>
+            formatDeadline={formatDeadline}
+            getCompetitionStatusText={getCompetitionStatusText}
+            getDeadlineColor={getDeadlineColor}
+          />
         ))}
       </div>
     </details>

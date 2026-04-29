@@ -141,6 +141,9 @@ async function loadEliminatedSet(compIds: string[]): Promise<Set<string>> {
 }
 
 // ─── Vérifier si une notif a déjà été envoyée (push_log) ─────────────────────
+// Pour H1/H24 : unicité sur (user_id, kind, match_id) — un joueur peut recevoir
+// plusieurs rappels pour la même grille s'il a plusieurs matchs sans pick.
+// Pour GRID_DONE : unicité sur (user_id, kind, grid_id).
 async function alreadyLogged(uid: string, kind: Kind, matchId: string | null, gridId: string | null): Promise<boolean> {
   let q = supabase
     .from('push_log')
@@ -148,8 +151,11 @@ async function alreadyLogged(uid: string, kind: Kind, matchId: string | null, gr
     .eq('user_id', uid)
     .eq('kind', kind);
 
-  if (matchId) q = q.eq('match_id', matchId);
-  if (gridId)  q = q.eq('grid_id', gridId);
+  if (kind === 'GRID_DONE' && gridId) {
+    q = q.eq('grid_id', gridId);
+  } else if (matchId) {
+    q = q.eq('match_id', matchId);
+  }
 
   const { count } = await q;
   return (count ?? 0) > 0;
@@ -317,40 +323,63 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
 
   log('todos before dedup', todos.length);
 
-  // Dédoublonner : un seul rappel par (uid, matchId) même si plusieurs grilles
-  const seen = new Set<string>();
-  const dedupedTodos = todos.filter(t => {
-    const key = `${t.uid}|${t.matchId}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  // 6) Grouper par (uid, grid_id) → une seule notif par joueur par grille
+  // mais on enregistre une ligne push_log par match pour l'anti-doublon
+  type Group = { uid: string; compId: string; matchIds: string[]; gridId: string };
+  const groupMap = new Map<string, Group>();
 
-  log('todos after dedup', dedupedTodos.length);
+  for (const { uid, matchId, gridId, compId } of todos) {
+    const key = `${uid}|${gridId}`;
+    if (!groupMap.has(key)) {
+      groupMap.set(key, { uid, compId, gridId, matchIds: [] });
+    }
+    // Dédoublonner le match_id (même match dans 2 grilles différentes)
+    const group = groupMap.get(key)!;
+    if (!group.matchIds.includes(matchId)) {
+      group.matchIds.push(matchId);
+    }
+  }
 
-  // 6) Envoi
+  log('groups after dedup', groupMap.size);
+
+  // 7) Envoi — une notif par groupe, X lignes push_log
   let sentCount = 0;
   const toDelete = new Set<string>();
 
-  for (const { uid, matchId, gridId, compId } of dedupedTodos) {
-    // Anti-doublon via push_log (vérification explicite avant insert)
-    const already = await alreadyLogged(uid, kind, matchId, null);
-    if (already) { log('skip already logged', { uid, matchId }); continue; }
+  for (const { uid, compId, gridId, matchIds } of groupMap.values()) {
+    // Vérifier si TOUS les matchs du groupe sont déjà dans push_log
+    // Si au moins un ne l'est pas, on doit envoyer
+    const alreadyAll = await Promise.all(
+      matchIds.map(mid => alreadyLogged(uid, kind, mid, null))
+    );
+    if (alreadyAll.every(a => a)) {
+      log('skip already logged (all matches)', { uid, gridId });
+      continue;
+    }
 
     const token = pickToken(tokensRows as any, uid);
     if (!token) { log('skip no token', { uid }); continue; }
 
-    // Inscrire dans push_log AVANT l'envoi (évite doublons si envoi lent)
-    const logged = await writeLog(uid, kind, matchId, gridId);
-    if (!logged) { log('skip log conflict', { uid, matchId }); continue; }
+    // Inscrire UNE ligne par match dans push_log AVANT l'envoi
+    let anyLogged = false;
+    for (const mid of matchIds) {
+      const logged = await writeLog(uid, kind, mid, null);
+      if (logged) anyLogged = true;
+      else log('match already in log (skipped)', { uid, mid });
+    }
+    if (!anyLogged) { log('skip all log conflicts', { uid, gridId }); continue; }
 
+    // Message adapté au nombre de matchs sans prono
     const title = kind === 'H24' ? '⏰ Rappel J-1' : '⏰ Rappel H-1';
-    const body  = 'Viens faire tes pronos !';
+    const body = matchIds.length === 1
+      ? 'Tu as un match sans prono qui démarre bientôt !'
+      : `Tu as ${matchIds.length} matchs sans prono qui démarrent bientôt !`;
+
     const result = await sendPush(token, title, body, 'https://www.peps-foot.com/', 'peps-reminder');
 
     if (result === 'ok') {
       sentCount++;
-      log('sent', { uid, matchId, compId });
+      log('sent', { uid, matchIds, compId });
     } else if (result === 'invalid') {
       toDelete.add(token);
       log('invalid token', { uid, token: token.slice(0, 30) });
@@ -510,7 +539,7 @@ async function handleGridDone(only: string | null): Promise<number> {
       const result = await sendPush(
         token,
         '🎉 Grille terminée',
-        'Les résultats sont tombés. Viens voir !!',
+        'Les résultats sont là. Viens voir ton score !',
         'https://www.peps-foot.com/',
         'peps-grid-done'
       );

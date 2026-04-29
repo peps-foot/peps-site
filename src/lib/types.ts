@@ -106,4 +106,12 @@ export type Competition = {
   mode: CompetitionMode;
   game_type?: CompetitionGameType | null;
   nextPredictionDeadline?: string | null;
+  hasAllNS?: boolean;
+  hasGridDone?: boolean;
+  hasAnyPickOrBonus?: boolean;
+  remainingActivePlayersCount?: number | null;
+  isMember?: boolean;
+  canPlay?: boolean | null;
+  userRank?: number | null;
+  playersCount?: number | null;
 };

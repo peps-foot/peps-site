@@ -1,3 +1,5 @@
+//Ancien code pour l'affichage des badges de la homepage, ne sert plus.
+
 "use client";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import supabase from "../lib/supabaseBrowser";
