@@ -96,10 +96,14 @@ export type MatchWithState = Match & {
 
 export type CompetitionMode = "CLASSIC" | "TOURNOI";
 
+export type CompetitionGameType = "GRID" | "TIERCE" | "SUPPORTER";
+
 export type Competition = {
   id: string;
   name: string;
   description: string | null;
   icon?: string | null;
   mode: CompetitionMode;
+  game_type?: CompetitionGameType | null;
+  nextPredictionDeadline?: string | null;
 };

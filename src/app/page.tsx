@@ -98,6 +98,8 @@ export default function Home() {
         description: c.description,
         icon: c.icon,
         mode: (c.mode ?? "CLASSIC") as CompetitionMode,
+        game_type: c.game_type ?? "GRID",
+        nextPredictionDeadline: c.nextPredictionDeadline ?? null,
       }));
 
     // ✅ Tri 100% piloté par la RPC (homeTab)
@@ -210,6 +212,25 @@ export default function Home() {
     router.push(`/${comp.id}`);
   }
 
+  // Pour transformer l'affichage de nextPredictionDeadline
+  function formatDeadline(deadline?: string | null) {
+    if (!deadline) return "À jour";
+
+    const diffMs = new Date(deadline).getTime() - Date.now();
+
+    if (diffMs <= 0) return "Maintenant";
+
+    const totalMinutes = Math.floor(diffMs / 60000);
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const minutes = totalMinutes % 60;
+
+    if (days >= 1) return `Dans ${days}j ${hours}h`;
+    if (hours >= 1) return `Dans ${hours}h${minutes.toString().padStart(2, "0")}`;
+
+    return `Dans ${minutes}min`;
+  }
+
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Pub PEPS aléatoire */}
@@ -267,26 +288,53 @@ export default function Home() {
           <div
             key={comp.id}
             onClick={() => router.push(`/${comp.id}`)}
-            className="bg-blue-100 rounded-md p-3 shadow cursor-pointer hover:bg-blue-200 transition flex items-center justify-between mb-2"
+            className="bg-white border rounded-lg shadow-sm hover:shadow-md transition cursor-pointer flex overflow-hidden mb-3"
           >
-            <div className="flex items-center space-x-3">
+            {/* LOGO GAUCHE */}
+            <div className="w-20 flex-shrink-0 flex items-center justify-center bg-gray-50 border-r border-gray-200">
               <Image
                 src={`/${comp.icon ?? "images/compet/placeholder.png"}`}
                 alt={comp.name}
-                width={48}
-                height={48}
-                className="h-12 w-12 rounded-full object-cover ring-1 ring-black/10"
+                width={64}
+                height={64}
+                className="rounded-full object-cover"
               />
-              <div>
-                <p className="text-green-600 font-bold">{comp.name}</p>
-                <p className="text-sm text-gray-800">{comp.mode}</p>
-              </div>
             </div>
-            <CompetitionStatusBadge
-              competitionId={comp.id}
-              mode={comp.mode}
-              isMember={true}          // mine => forcément membre
-            />
+
+            {/* CONTENU DROITE */}
+            <div className="flex-1 p-3 flex flex-col justify-between">
+
+              {/* LIGNE 1 : TITRE */}
+              <div className="font-semibold text-base leading-tight">
+                {comp.name}
+              </div>
+
+              {/* LIGNE 2 : TYPE + MODE */}
+              <div className="grid grid-cols-2 text-sm text-gray-600 mt-1">
+                <span>
+                  🎮 {comp.game_type === "TIERCE" ? "Tiercé" : "1N2"}
+                </span>
+                <span>
+                  ⚔️ {comp.mode}
+                </span>
+              </div>
+
+              {/* LIGNE 3 : STATUT + DEADLINE */}
+              <div className="grid grid-cols-2 items-center text-sm mt-2">
+                <span>
+                  🏆 <CompetitionStatusBadge
+                        competitionId={comp.id}
+                        mode={comp.mode}
+                        isMember={true}
+                      />
+                </span>
+
+                <span className="text-gray-700">
+                  ⏱️ {formatDeadline(comp.nextPredictionDeadline)}
+                </span>
+              </div>
+
+            </div>
           </div>
         ))}
       </div>
