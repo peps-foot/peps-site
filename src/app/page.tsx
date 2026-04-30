@@ -290,7 +290,7 @@ export default function Home() {
 
     <div className="space-y-4">
 
-    {/* ── TUTO FLASH ── */}
+    {/* ── COMMENT JOUER ── */}
     <div className="border rounded-lg ">
       <button
         type="button"
@@ -298,22 +298,38 @@ export default function Home() {
         className="w-full flex items-center justify-between px-4 py-3"
       >
         <span className="font-semibold text-center w-full">
-          ⚡ TUTO FLASH ⚡
+          ⚡ COMMENT JOUER ?
         </span>
         <span className="text-xl">{openTuto ? '▲' : '▼'}</span>
       </button>
 
       {openTuto && (
         <div className="px-4 pb-4">
-          <ol className="list-decimal pl-5 space-y-2 text-sm leading-6">
-            <li>🏆 Choisis ta compet</li>
-            <li>✖️ Mets une croix par match</li>
-            <li>⭐ Joue ton bonus <span className="font-semibold">CROIX</span></li>
-            <li>🎯 Joue ton bonus <span className="font-semibold">SCORE</span></li>
-            <li>🚀 Joue un <span className="font-semibold">BOOST</span> si t’en as</li>
-            <li>⚽ Vibre en suivant la Ligue&nbsp;1</li>
-            <li>↗️ Les règles complètes en haut à droite</li>
-          </ol>
+          <div className="space-y-2 text-sm leading-6">
+
+            <div>
+              <span className="font-semibold">1. 🎮 Choisis ton style de jeu</span>
+            </div>
+
+            <div className="pl-4 space-y-1">
+              <div>✖️ <span className="font-semibold">1N2</span> : pronostique victoire, nul ou défaite</div>
+              <div>🚀 <span className="font-semibold">TIERCÉ</span> : choisis 3 équipes qui vont performer</div>
+              <div>❤️ <span className="font-semibold">SUPPORTER</span> : joue avec ton équipe favorite</div>
+            </div>
+
+            <div>
+              <span className="font-semibold">2. 🏆 Clique sur une compétition pour rejoindre</span>
+            </div>
+
+            <div>
+              <span className="font-semibold">3. 📊 Grimpe au classement et amuse-toi</span>
+            </div>
+
+          </div>
+
+          <p className="mt-3 text-xs text-center text-gray-500">
+            👉 Règles complètes en haut à droite
+          </p>
         </div>
       )}
     </div>
@@ -392,7 +408,7 @@ export default function Home() {
     <details className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
-          <span className="text-center w-full">🔒 ENTRE AMIS</span>
+          <span className="text-center w-full">🔒 ENTRE POTES</span>
           <span className="text-xl transition-transform group-open:rotate-180">▼</span>
         </div>
       </summary>
