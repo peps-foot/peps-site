@@ -1183,7 +1183,7 @@ export default function TierceScreen({
               title="Infos compétition"
             >
               <Image
-                src="/images/icons/règles.png"
+                src="/images/icons/regles.png"
                 alt="Règles"
                 width={40}
                 height={40}

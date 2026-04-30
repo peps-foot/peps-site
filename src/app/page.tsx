@@ -10,6 +10,7 @@ import { groupCompetitionsForHome } from "../lib/competitionStatus";
 import RandomPromo from '../components/RandomPromo';
 import { splitCompetitions, CompetitionWithFlags } from "../lib/competitionsGrouping";
 import CompetitionHomeCard from "../components/CompetitionHomeCard";
+import JoinCompetitionModal from "../components/JoinCompetitionModal";
 
 
 export default function Home() {
@@ -27,6 +28,9 @@ export default function Home() {
   const { mine, toJoin, history } = groups;
   // état local (à mettre avec tes autres useState)
   const [openTuto, setOpenTuto] = useState(false);
+  //pop-up pour rejoindre une compet publique
+  const [selectedComp, setSelectedComp] = useState<Competition | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
   // code pour rejoindre une compet privée
   const [joinCode, setJoinCode] = useState('');
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
@@ -134,35 +138,40 @@ export default function Home() {
 
   if (!sessionChecked) return null;
 
-  async function handleJoinPublicCompetition(comp: { id: string; name: string }) {
-    const ok = window.confirm(`Tu veux rejoindre la compétition "${comp.name}" ?`);
-    if (!ok) return;
+  async function handleJoinPublicCompetition(comp: Competition) {
+    setSelectedComp(comp); // ouvre la modal
+  }
 
-    // Récupérer l'utilisateur connecté
+  async function confirmJoinCompetition() {
+    if (!selectedComp) return;
+
+    setIsJoining(true);
+
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      alert("Impossible de retrouver ton compte. Merci de te reconnecter.");
+      alert("Impossible de retrouver ton compte.");
+      setIsJoining(false);
       return;
     }
 
-    // Appel de la fonction generate_grid_matches_for_user
     const { error: rpcError } = await supabase.rpc("generate_grid_matches_for_user", {
-      p_compet_id: comp.id,
+      p_compet_id: selectedComp.id,
       p_user_id: user.id,
     });
 
     if (rpcError) {
-      console.error(rpcError);
-      alert("Impossible de rejoindre la compétition (erreur côté serveur).");
+      alert("Erreur côté serveur.");
+      setIsJoining(false);
       return;
     }
 
-    // Tout est bon : redirection vers la compét
-    router.push(`/${comp.id}`);
+    router.push(`/${selectedComp.id}`);
+    setIsJoining(false); // optionnel mais propre
+    setSelectedComp(null); // ferme la modal
   }
 
   async function handleJoinByCode() {
@@ -270,6 +279,18 @@ export default function Home() {
   return aTime - bTime;
   });
 
+  const sortedToJoin = [...toJoin].sort((a, b) => {
+    const aTime = a.nextPredictionDeadline
+      ? new Date(a.nextPredictionDeadline).getTime()
+      : Infinity;
+
+    const bTime = b.nextPredictionDeadline
+      ? new Date(b.nextPredictionDeadline).getTime()
+      : Infinity;
+
+    return aTime - bTime;
+  });
+
   function getDeadlineColor(deadline?: string | null) {
     if (!deadline) return "text-gray-700";
 
@@ -318,7 +339,7 @@ export default function Home() {
             </div>
 
             <div>
-              <span className="font-semibold">2. 🏆 Clique sur une compétition pour rejoindre</span>
+              <span className="font-semibold">2. 🏆 Clique sur une compétition pour jouer</span>
             </div>
 
             <div>
@@ -326,6 +347,10 @@ export default function Home() {
             </div>
 
           </div>
+
+          <p className="mt-2 text-xs text-center text-gray-500">
+            🔥 Modes tournoi : Koh Lanta, Terminator… survivras-tu ?
+          </p>
 
           <p className="mt-3 text-xs text-center text-gray-500">
             👉 Règles complètes en haut à droite
@@ -381,7 +406,7 @@ export default function Home() {
           </p>
         )}
 
-        {toJoin.slice(0, 3).map((comp) => (
+        {sortedToJoin.slice(0, 3).map((comp) => (
           <CompetitionHomeCard
             key={comp.id}
             comp={comp}
@@ -404,7 +429,7 @@ export default function Home() {
       </div>
     </details>
 
-    {/* ENTRE AMIS */}
+    {/* ENTRE POTES */}
     <details className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
@@ -500,6 +525,14 @@ export default function Home() {
         ))}
       </div>
     </details>
+
+    {/* POP UP VALIDATION COMPET */}
+    <JoinCompetitionModal
+      comp={selectedComp}
+      onClose={() => setSelectedComp(null)}
+      onConfirm={confirmJoinCompetition}
+      loading={isJoining}
+    />
 
     </div>
     </main>

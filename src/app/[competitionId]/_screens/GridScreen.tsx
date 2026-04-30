@@ -64,6 +64,7 @@ import { computeOverlay } from '../../../features/bonus/computeOverlay';
 import type { OverlayEntry } from '../../../features/bonus/computeOverlay';
 import CompetitionInfoPanel from "../../../components/CompetitionInfoPanel";
 import { isTournamentCompetition, getGateImageSrc } from '../../../lib/gateImages';
+import CompetitionRules from "../../../components/CompetitionRules";
 
 const bonusLogos: Record<string,string> = {
   "KANTE": '/images/kante.png',
@@ -119,7 +120,7 @@ export default function HomePage() {
   const [popupPick, setPopupPick] = useState<'1' | 'N' | '2'>('1');
   // 👉 Gestion de navigation entre les grilles
   const searchParams  = useSearchParams();
-  type View = 'grid' | 'rankGrid' | 'rankGeneral' | 'info';
+  type View = 'grid' | 'rankGrid' | 'rankGeneral' | 'info' | 'rules';
   // accordéon pour la grille
   const [openGrille, setOpenGrille] = useState(true); // ouvert par défaut
   
@@ -156,7 +157,7 @@ export default function HomePage() {
     (async () => {
       const { data, error } = await supabase
         .from('competitions')
-        .select('id, name, mode, kind, join_code, created_by, game_type')
+        .select('id, name, mode, kind, join_code, created_by, game_type, xp_enabled')
         .eq('id', competitionId)
         .maybeSingle();
 
@@ -1750,6 +1751,25 @@ return early ? (
                   />
                 </button>
               )}
+
+              {/* 6) REGLES */}
+              <button
+                onClick={() => setViewAndURL('rules')}
+                aria-pressed={view === 'rules'}
+                className={`w-12 h-12 rounded-full border border-black bg-white p-[3px]
+                            flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none
+                            ${view === 'rules' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
+                title="Règles"
+              >
+                <Image
+                  src="/images/icons/regles.png"
+                  alt="Règles"
+                  width={40}
+                  height={40}
+                  className="rounded-full object-cover"
+                />
+              </button>
+
             </div>
 
             {/* C) DESCRIPTION (texte seul) */}
@@ -1935,6 +1955,15 @@ return early ? (
             isCreator={isCreator}
           />
         </div>
+      )}
+
+      {view === 'rules' && (
+        <CompetitionRules
+          mode={competition?.mode}
+          gameType={competition?.game_type}
+          xpEnabled={competition?.xp_enabled ?? false}
+          allowedBonuses={currentGrid?.allowed_bonuses ?? []}
+        />
       )}
 
       {/* ── POPUP Grilles des Autres joueurs ── */}

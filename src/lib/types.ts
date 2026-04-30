@@ -114,4 +114,5 @@ export type Competition = {
   canPlay?: boolean | null;
   userRank?: number | null;
   playersCount?: number | null;
+  xp_enabled?: boolean | null;
 };

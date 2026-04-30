@@ -7,6 +7,16 @@ const SUPABASE_URL = 'https://rvswrzxdzfdtenxqtbci.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2c3dyenhkemZkdGVueHF0YmNpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTg2ODQyMCwiZXhwIjoyMDYxNDQ0NDIwfQ.p4w76jidgv8b4I-xBhKyM8TLGXM9wnxrmtDLClbKWjQ';
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+/** Détecte la plateforme réelle de l'appareil.
+ * TWA = app lancée depuis le Play Store (document.referrer = android-app://)
+ * web = Chrome/Safari classique
+ */
+function detectPlatform(): 'twa' | 'web' {
+  if (typeof document === 'undefined') return 'web';
+  if (document.referrer?.startsWith('android-app://')) return 'twa';
+  return 'web';
+}
+
 export default function PushBootstrap() {
   // 1) Abonnement + enregistrement token
   useEffect(() => {
@@ -25,13 +35,26 @@ export default function PushBootstrap() {
           if (!token) return;
           const user_id = data.user?.id || null;
 
+          // Détecter TWA vs web à chaque chargement
+          // pour ne pas écraser un token twa par web
+          const platform = detectPlatform();
+          const storedPlatform = localStorage.getItem('peps_push_platform');
+
+          // Si on avait un token twa et qu'on est maintenant en web
+          // (ex: ouverture depuis Chrome), on ne réenregistre pas
+          if (storedPlatform === 'twa' && platform === 'web') {
+            console.log('[PEPS][Bootstrap] skip re-register: twa → web');
+            return;
+          }
+
           await fetch('/api/push/subscribe', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ token, platform: 'web', user_id }),
+            body: JSON.stringify({ token, platform, user_id }),
           });
 
           localStorage.setItem('peps_push_token', token);
+          localStorage.setItem('peps_push_platform', platform);
         } catch {
           // no-op
         }
@@ -41,23 +64,37 @@ export default function PushBootstrap() {
     }
   }, []);
 
-  // 2) Réception foreground
-  // On n'affiche PAS de notification ici : si l'app est ouverte, l'utilisateur
-  // voit déjà l'interface. Le SW (onBackgroundMessage) gère l'affichage quand
-  // l'app est en arrière-plan. Afficher ici créerait un doublon.
+  // 2) Réception foreground (affichage via SW quand c’est possible)
   useEffect(() => {
     let unsub: undefined | (() => void);
     let alive = true;
     try {
       if (typeof window === 'undefined') return;
-      if (!('Notification' in window)) return;
+      if (!('Notification' in window)) return; // ← garde iOS
       if (!('serviceWorker' in navigator)) return;
 
       (async () => {
-        unsub = await onForegroundMessage((p: any) => {
+        unsub = await onForegroundMessage(async (p: any) => {
           if (!alive) return;
-          // Log uniquement pour debug — pas d'affichage de notif en foreground
-          console.log('[PEPS][FCM] message reçu en foreground (pas affiché):', p?.data?.title);
+          try {
+            const n = p?.notification || {};
+            const d = p?.data || {};
+            const title = n.title || d.title || 'PEPS';
+            const body  = n.body  || d.body  || '';
+            const icon  = d.icon || '/icon-512x512.png';
+            const tag   = d.tag  || `peps-reminder-${Date.now()}`;
+            const url   = d.url  || '/';
+
+            const reg = await navigator.serviceWorker.ready;
+            // showNotification peut être absent (iOS en foreground)
+            if (typeof (reg as any).showNotification !== 'function') return;
+
+            (reg as any).showNotification(title, {
+              body, icon, tag, renotify: true, data: { url },
+            } as any);
+          } catch {
+            // no-op
+          }
         });
       })();
     } catch {
