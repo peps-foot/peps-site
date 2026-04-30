@@ -48,11 +48,8 @@ export async function POST(req: Request) {
       await webpush.sendNotification(
         sub,
         JSON.stringify({
-          title,
-          body,
-          url,
-          icon: '/images/notifications/peps-notif-icon-192.png',
-          tag: 'peps-broadcast',
+          notification: { title, body, icon: '/images/notifications/peps-notif-icon-192.png' },
+          data: { url, tag: 'peps-broadcast' },
         }),
         { urgency: 'high', TTL: 10 }
       );

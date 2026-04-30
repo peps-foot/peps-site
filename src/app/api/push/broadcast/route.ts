@@ -121,7 +121,11 @@ export async function POST(req: Request) {
 
   // 3) Envoi — FCM pour android/web/twa, web-push natif pour iOS
   const toDelete = new Set<string>();
-  const notifPayload = JSON.stringify({ title, body, icon: icon || '/images/notifications/peps-notif-icon-192.png', url, tag: 'peps-broadcast' });
+  const notifPayload = JSON.stringify({
+    // Format reconnu par Apple : notification + data séparés
+    notification: { title, body, icon: icon || '/images/notifications/peps-notif-icon-192.png' },
+    data: { url, tag: 'peps-broadcast' },
+  });
 
   const sendOne = async (row: { token: string; platform: Platform }) => {
     const { token: t, platform: plat } = row;

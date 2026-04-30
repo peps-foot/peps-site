@@ -64,11 +64,8 @@ export async function GET(req: Request) {
         await webpush.sendNotification(
           sub,
           JSON.stringify({
-            title: '🔔 TEST DIRECT',
-            body: 'Ceci est un test direct iOS (Web Push)',
-            url: 'https://www.peps-foot.com/',
-            icon: '/images/notifications/peps-notif-icon-192.png',
-            tag: 'peps-test',
+            notification: { title: '🔔 TEST DIRECT', body: 'Ceci est un test direct iOS (Web Push)', icon: '/images/notifications/peps-notif-icon-192.png' },
+            data: { url: 'https://www.peps-foot.com/', tag: 'peps-test' },
           }),
           { urgency: 'high', TTL: 10 }
         );

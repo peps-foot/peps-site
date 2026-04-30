@@ -76,24 +76,30 @@ self.addEventListener('push', (event) => {
     return;
   }
 
-  let data = {};
+  let parsed = {};
   try {
-    data = event.data ? event.data.json() : {};
+    parsed = event.data ? event.data.json() : {};
   } catch {
     try {
       const text = event.data ? event.data.text() : '';
-      data = { title: 'PEPS', body: text };
+      parsed = { notification: { title: 'PEPS', body: text } };
     } catch {
-      data = {};
+      parsed = {};
     }
   }
 
-  const title = data.title || 'PEPS';
-  const body  = data.body  || '';
-  const icon  = toAbs(data.icon || '/images/notifications/peps-notif-icon-192.png');
+  // Support des deux formats :
+  // 1) { notification: { title, body, icon }, data: { url, tag } }  ← nouveau format Apple
+  // 2) { title, body, icon, url, tag }  ← ancien format flat
+  const n = parsed.notification || {};
+  const d = parsed.data || parsed;
+
+  const title = n.title || d.title || 'PEPS';
+  const body  = n.body  || d.body  || '';
+  const icon  = toAbs(n.icon || d.icon || '/images/notifications/peps-notif-icon-192.png');
   const badge = toAbs('/images/notifications/peps-badge-72.png');
-  const url   = data.url ? toAbs(data.url) : self.location.origin + '/';
-  const tag   = data.tag || 'peps-broadcast';
+  const url   = d.url ? toAbs(d.url) : self.location.origin + '/';
+  const tag   = d.tag || 'peps-broadcast';
 
   console.log('[PEPS][SW] push natif reçu (iOS)', { title, body });
 

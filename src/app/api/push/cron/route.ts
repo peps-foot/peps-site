@@ -70,7 +70,13 @@ async function sendPush(token: string, title: string, body: string, url: string,
   if (isIosToken(token)) {
     try {
       const sub = JSON.parse(token) as { endpoint: string; keys: { p256dh: string; auth: string } };
-      await webpush.sendNotification(sub, JSON.stringify({ title, body, url, icon, tag }), { urgency: 'high', TTL: 10 });
+      await webpush.sendNotification(sub, JSON.stringify({
+          // Format reconnu par Apple Push Notification Service
+          // "notification" → affiché nativement par iOS si le SW est lent
+          // "data" → utilisé par le SW pour enrichir (url, tag)
+          notification: { title, body, icon },
+          data: { url, tag },
+        }), { urgency: 'high', TTL: 10 });
       return 'ok';
     } catch (e: any) {
       const s = e?.statusCode;
