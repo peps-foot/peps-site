@@ -3,6 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useSupabase } from '../../components/SupabaseProvider'
 
+type Team = {
+  id: number;
+  name: string;
+  logo: string;
+};
+
 export default function ProfilPage() {
   const supabase = useSupabase()
   const [userEmail, setUserEmail] = useState('')
@@ -14,7 +20,7 @@ export default function ProfilPage() {
 
   // Pour l'avatar
   const [avatar, setAvatar] = useState('')
-  const [teams, setTeams] = useState([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [avatarSearch, setAvatarSearch] = useState('')
   const filteredTeams = teams.filter((team) =>
