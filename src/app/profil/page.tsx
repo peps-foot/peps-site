@@ -10,6 +10,16 @@ export default function ProfilPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('')
+
+  // Pour l'avatar
+  const [avatar, setAvatar] = useState('')
+  const [teams, setTeams] = useState([])
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
+  const [avatarSearch, setAvatarSearch] = useState('')
+  const filteredTeams = teams.filter((team) =>
+    team.name.toLowerCase().includes(avatarSearch.toLowerCase())
+  )
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -19,12 +29,25 @@ export default function ProfilPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('username')
+          .select('username, avatar')
           .eq('user_id', user.id)
           .single()
+        
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('id, name, logo')
+          .order('name')
+
+        if (teamsData) {
+          setTeams(teamsData)
+        }
 
         if (profile?.username) {
           setPseudo(profile.username)
+        }
+
+        if (profile?.avatar) {
+          setAvatar(profile.avatar)
         }
       }
     }
@@ -33,6 +56,7 @@ export default function ProfilPage() {
 
   const handleSave = async () => {
     setIsSaving(true)
+    setSuccessMessage('')
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -86,7 +110,10 @@ export default function ProfilPage() {
     // 📝 Mise à jour du pseudo dans 'profiles'
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ username: pseudo })
+      .update({
+        username: pseudo,
+        avatar: avatar,
+      })
       .eq('user_id', user.id)
 
     if (profileError) {
@@ -95,7 +122,11 @@ export default function ProfilPage() {
       return
     }
 
-    alert('Modifications enregistrées.')
+    setSuccessMessage('Changements validés ✅')
+
+    setTimeout(() => {
+      setSuccessMessage((prev) => (prev ? '' : prev))
+    }, 3000)
     setNewPassword('')
     setConfirmPassword('')
     setIsSaving(false)
@@ -109,8 +140,9 @@ export default function ProfilPage() {
   return (
     <div className="min-h-screen bg-white px-4 py-6">
 
-      <div className="max-w-xl mx-auto space-y-6">
-        <h2 className="text-xl font-bold border-b pb-2">Infos personnelles :</h2>
+      {/* Infos personnelles */}
+      <div className="max-w-xl mx-auto space-y-4">
+        <h2 className="text-lg font-bold border-b pb-1">Infos personnelles :</h2>
 
         <div>
           <label className="block text-sm font-medium mb-1">Mail :</label>
@@ -133,7 +165,8 @@ export default function ProfilPage() {
           />
         </div>
 
-        <h2 className="text-xl font-bold border-b pb-2">Changement de mot de passe :</h2>
+        {/* Changements de MDP */}
+        <h2 className="text-lg font-bold border-b pb-1">Pour changer de mot de passe :</h2>
 
         <div>
           <label className="block text-sm mb-1">Nouveau mot de passe :</label>
@@ -145,7 +178,7 @@ export default function ProfilPage() {
             className="w-full border px-3 py-2 rounded"
           />
         </div>
-
+        
         <div>
           <label className="block text-sm mb-1">Confirmer le mot de passe :</label>
           <input
@@ -157,6 +190,26 @@ export default function ProfilPage() {
           />
         </div>
 
+        {/* Avatar */}
+        <h2 className="text-lg font-bold border-b pb-1">Avatar :</h2>
+
+        <div className="flex items-center justify-between py-3">
+          <button
+            type="button"
+            onClick={() => setShowAvatarModal(true)}
+            className="text-blue-600 underline text-sm"
+          >
+            Changer d’avatar
+          </button>
+
+          <img
+            src={avatar || "/images/default-avatar.png"}
+            alt="avatar"
+            className="w-14 h-14 rounded-full border object-contain bg-white"
+          />
+        </div>
+
+        {/* Valider les changements sur la page */}
         <div className="flex justify-center mt-4">
           <button
             onClick={handleSave}
@@ -167,16 +220,81 @@ export default function ProfilPage() {
           >
             {isSaving ? 'Chargement...' : 'Valider les changements'}
           </button>
+            {successMessage && (
+              <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-4 py-2 rounded-full shadow-lg text-sm font-semibold">
+                {successMessage}
+              </div>
+            )}
         </div>
-          <div className="mt-6 text-center">
-            <button
-              onClick={handleSignOut}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-            >
-              Se déconnecter
-            </button>
+
+        {/* Se déconnecter */}
+        <div className="mt-6 text-center">
+          <button
+            onClick={handleSignOut}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+          >
+            Se déconnecter
+          </button>
+        </div>
+        </div>
+
+        {/* POP UP Avatar */}
+        {showAvatarModal && (
+          <div
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+            onClick={() => setShowAvatarModal(false)}
+          >
+            <div className="bg-white rounded-lg p-4 w-full max-w-md max-h-[80vh] overflow-y-auto relative">
+              
+              {/* Croix fermeture */}
+              <button
+                onClick={() => setShowAvatarModal(false)}
+                className="absolute top-2 right-2 text-gray-500 hover:text-black text-xl"
+              >
+                ✕
+              </button>
+
+              <h2 className="text-lg font-bold mb-3 text-center">
+                Choisis ton équipe
+              </h2>
+
+              <input
+                type="text"
+                value={avatarSearch}
+                onChange={(e) => setAvatarSearch(e.target.value)}
+                placeholder="Rechercher une équipe..."
+                className="w-full border px-3 py-2 rounded mb-4"
+              />
+
+              <div className="grid grid-cols-4 gap-3">
+                {filteredTeams.map((team) => (
+                  <button
+                    key={team.id}
+                    onClick={() => {
+                      setAvatar(team.logo)
+                      setShowAvatarModal(false)
+                    }}
+                    className="border rounded p-2 flex items-center justify-center"
+                  >
+                    <img
+                      src={team.logo}
+                      alt={team.name}
+                      className="w-10 h-10 object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowAvatarModal(false)}
+                className="mt-4 w-full bg-gray-200 py-2 rounded"
+              >
+                Annuler
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
       </div>
   )
 }

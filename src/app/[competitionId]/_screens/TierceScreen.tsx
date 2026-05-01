@@ -69,6 +69,14 @@ type SelectedTeam = {
    pointsTotal: number | null;
  };
 
+type LeaderboardRow = {
+  user_id: string;
+  username: string;
+  avatar: string | null;
+  total_points: number | string;
+  rank: number;
+};
+
 export default function TierceScreen({
   competitionId,
   isPrivate = false,
@@ -181,7 +189,7 @@ export default function TierceScreen({
 
   // Pour les classements
   const [lbLoading, setLbLoading] = useState(false);
-  const [lbRows, setLbRows] = useState<any[]>([]);
+  const [lbRows, setLbRows] = useState<LeaderboardRow[]>([]);
   const [myRank, setMyRank] = useState<number | null>(null);
   const [totalPlayers, setTotalPlayers] = useState(0);
 
@@ -249,6 +257,10 @@ export default function TierceScreen({
 
     setLbLoading(false);
   };
+
+  const TERMINATOR_ID = 'b6d1bd4a-9bc4-44c1-b141-ea3a2c871699';
+  const isTerminator = (row: LeaderboardRow) =>
+    row.user_id === TERMINATOR_ID;
 
   // Pour charger les vues
   useEffect(() => {
@@ -1580,6 +1592,7 @@ export default function TierceScreen({
                   <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                     <tr>
                       <th className="text-left px-4 py-3">#</th>
+                      <th className="text-left px-4 py-3"></th>
                       <th className="text-left px-4 py-3">Pseudo</th>
                       <th className="text-left px-4 py-3">Points</th>
                     </tr>
@@ -1598,9 +1611,25 @@ export default function TierceScreen({
                           }}
                           className={`border-t transition cursor-pointer hover:bg-gray-100 ${me ? 'bg-orange-100 font-bold' : ''}`}
                         >
-                          <td className="px-4 py-2">{row.rank}</td>
-                          <td className="px-4 py-2">{row.username}</td>
-                          <td className="px-4 py-2">{row.total_points}</td>
+                        <td className="px-4 py-2">{row.rank}</td>
+
+                        <td className="px-4 py-2">
+                          {row.avatar ? (
+                            <Image
+                              src={row.avatar}
+                              alt={`Avatar ${row.username}`}
+                              width={28}
+                              height={28}
+                              className="rounded-full object-contain bg-gray-100 border border-black/60 p-[2px]"
+                            />
+                          ) : (
+                            <div className="w-7 h-7" />
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2">{row.username}</td>
+
+                        <td className="px-4 py-2">{row.total_points}</td>
                         </tr>
                       );
                     })}
@@ -1650,13 +1679,21 @@ export default function TierceScreen({
                   <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                     <tr>
                       <th className="text-left px-4 py-3">#</th>
+                      <th className="text-left px-4 py-3"></th>
                       <th className="text-left px-4 py-3">Pseudo</th>
                       <th className="text-left px-4 py-3">Points</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {lbRows.map((row: any) => {
-                      const me = row.user_id === currentUserId;
+                  {lbRows.map(row => {
+                    const me = row.user_id === currentUserId;
+                    const terminator = isTerminator(row);
+
+                    const rowClass = me
+                      ? 'bg-orange-100 font-bold'
+                      : terminator
+                        ? 'bg-gray-200'
+                        : 'hover:bg-gray-100';
                       return (
                         <tr
                           key={row.user_id}
@@ -1666,11 +1703,27 @@ export default function TierceScreen({
                             setSelectedPlayerIndex(index >= 0 ? index : 0);
                             openPublicTickets(row.user_id, row.username);
                           }}
-                          className={`border-t transition cursor-pointer hover:bg-gray-100 ${me ? 'bg-orange-100 font-bold' : ''}`}
+                          className={`border-t transition cursor-pointer ${rowClass}`}
                         >
-                          <td className="px-4 py-2">{row.rank}</td>
-                          <td className="px-4 py-2">{row.username}</td>
-                          <td className="px-4 py-2">{row.total_points}</td>
+                        <td className="px-4 py-2">{row.rank}</td>
+
+                        <td className="px-4 py-2">
+                          {row.avatar ? (
+                            <Image
+                              src={row.avatar}
+                              alt={`Avatar ${row.username}`}
+                              width={28}
+                              height={28}
+                              className="rounded-full object-contain bg-gray-100 border border-black/60 p-[2px]"
+                            />
+                          ) : (
+                            <div className="w-7 h-7" />
+                          )}
+                        </td>
+
+                        <td className="px-4 py-2">{row.username}</td>
+
+                        <td className="px-4 py-2">{row.total_points}</td>
                         </tr>
                       );
                     })}

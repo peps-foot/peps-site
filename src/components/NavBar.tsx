@@ -35,6 +35,7 @@ export function NavBar() {
   const leftMenuRef = useRef<HTMLDivElement>(null);
   const rightMenuRef = useRef<HTMLDivElement>(null);
   const [leftMenuColored, setLeftMenuColored] = useState<ColoredItem[]>([]);
+  const [avatar, setAvatar] = useState('')
 
   useEffect(() => {
     setIsClient(true);
@@ -60,6 +61,26 @@ export function NavBar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // gestion de l'avatar
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('avatar')
+        .eq('user_id', user.id)
+        .single()
+
+      if (data?.avatar) {
+        setAvatar(data.avatar)
+      }
+    }
+
+    fetchAvatar()
+  }, [])
 
   // Remplir le burger menu de gauche (uniquement les compétitions où l'utilisateur est PLAYER/CREATOR)
   useEffect(() => {
@@ -223,9 +244,29 @@ export function NavBar() {
 
       {/* Burger droit */}
       <div className="relative" ref={rightMenuRef}>
-        <button onClick={() => setShowRightMenu(!showRightMenu)} className="text-xl">
-          ☰
-        </button>
+
+        {avatar ? (
+          // 👉 CAS AVATAR
+          <button
+            onClick={() => setShowRightMenu(!showRightMenu)}
+            className="w-10 h-10 rounded-full bg-white border border-black/70 shadow flex items-center justify-center overflow-hidden hover:scale-105 transition"
+          >
+            <img
+              src={avatar}
+              alt="avatar"
+              className="w-8 h-8 object-contain"
+            />
+          </button>
+        ) : (
+          // 👉 CAS PAS D’AVATAR → burger classique
+          <button
+            onClick={() => setShowRightMenu(!showRightMenu)}
+            className="text-xl"
+          >
+            ☰
+          </button>
+        )}
+
         {showRightMenu && (
           <div className="absolute right-0 top-12 bg-white text-black rounded shadow min-w-max z-10">
             {rightMenu.map((item) => (

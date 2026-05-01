@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSupabase } from '../../components/SupabaseProvider'
 import { useRouter } from 'next/navigation';
 
@@ -13,6 +13,36 @@ export default function Inscription() {
   const [username, setUsername] = useState('');
   const [message, setMessage] = useState('');
   const router = useRouter();
+
+  // Pour l'avatar
+  type Team = {
+    id: number
+    name: string
+    logo: string
+  }
+
+  const [avatar, setAvatar] = useState('')
+  const [teams, setTeams] = useState<Team[]>([])
+  const [showAvatarModal, setShowAvatarModal] = useState(false)
+  const [avatarSearch, setAvatarSearch] = useState('')
+
+  useEffect(() => {
+    const fetchTeams = async () => {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('id, name, logo')
+        .order('name', { ascending: true })
+
+      if (error) {
+        console.error('Erreur chargement teams:', error)
+        return
+      }
+
+      setTeams(data || [])
+    }
+
+    fetchTeams()
+  }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,13 +81,17 @@ export default function Inscription() {
     // 3) une fois inscrit, on crée le profil public
     const { error: profileError } = await supabase
       .from('profiles')
-      .insert([{ user_id: signUpData.user!.id, username: username.trim() }]);
+      .insert([{
+        user_id: signUpData.user!.id,
+        username: username.trim(),
+        avatar: avatar || null
+      }]);
 
     if (profileError) {
       console.error(profileError);
       setMessage("Inscrit, mais impossible de sauvegarder le pseudo.");
     } else {
-      setMessage("Compte et pseudo créés avec succès !");
+      setMessage("Compte créé ✅ Pense à activer les notifications dans l’onglet NOTIFS pour recevoir les rappels.");
       // réinitialisation des champs
       setEmail('');
       setConfirmEmail('');
@@ -126,6 +160,26 @@ export default function Inscription() {
           required
         />
 
+        <div className="mb-6">
+          <label className="block text-sm font-medium mb-2">Avatar :</label>
+
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setShowAvatarModal(true)}
+              className="text-blue-600 underline text-sm"
+            >
+              Choisir une équipe (optionnel)
+            </button>
+
+            <img
+              src={avatar || "/images/default-avatar.png"}
+              alt="avatar"
+              className="w-12 h-12 rounded-full border object-contain bg-gray-100"
+            />
+          </div>
+        </div>
+
         <button
           type="submit"
           className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
@@ -142,6 +196,68 @@ export default function Inscription() {
             Retour à la connexion
           </button>
       </form>
+
+      {/* POP-UP pour avatar*/}
+      {showAvatarModal && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
+          onClick={() => setShowAvatarModal(false)}
+        >
+          <div className="bg-white rounded-lg p-4 w-full max-w-md max-h-[80vh] overflow-y-auto relative">
+            
+            {/* Croix fermeture */}
+            <button
+              onClick={() => setShowAvatarModal(false)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-black text-xl"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-lg font-bold mb-3 text-center">
+              Choisis ton équipe
+            </h2>
+
+            <input
+              type="text"
+              value={avatarSearch}
+              onChange={(e) => setAvatarSearch(e.target.value)}
+              placeholder="Rechercher une équipe..."
+              className="w-full border px-3 py-2 rounded mb-4"
+            />
+
+            <div className="grid grid-cols-4 gap-3">
+              {teams
+                .filter((t) =>
+                  t.name.toLowerCase().includes(avatarSearch.toLowerCase())
+                )
+                .map((team) => (
+                  <button
+                    key={team.id}
+                    onClick={() => {
+                      setAvatar(team.logo)
+                      setShowAvatarModal(false)
+                    }}
+                    className="border rounded p-2 flex items-center justify-center"
+                  >
+                    <img
+                      src={team.logo}
+                      alt={team.name}
+                      className="w-10 h-10 object-contain"
+                    />
+                  </button>
+                ))}
+            </div>
+
+            <button
+              onClick={() => setShowAvatarModal(false)}
+              className="mt-4 w-full bg-gray-200 py-2 rounded"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

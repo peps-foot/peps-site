@@ -81,21 +81,99 @@ export default function ReglesConnexion() {
         </ul>
       </RuleSection>
 
-      <RuleSection title="Les modes CLASSIC et TOURNOI" iconSrc="/images/regles/mode.png" type="default" >
-        <p className="mb-4 text-justify">
-          Pour expliquer le mode <strong>CLASSIC</strong>, faisons un peu de maths. On prend les 34 journées de Ligue 1 et on y ajoute deux tours de Coupe de France, cela nous donne 36 grilles.
-          Tout est prêt pour élire les champions des 4 saisons sur des <strong>COMPETS</strong> de 9 grilles.
+      <RuleSection title="Le mode CLASSIC" iconSrc="/images/regles/mode.png" type="default">
+        <p className="mt-2 text-justify">
+          En mode <strong>CLASSIC</strong>, tu joues plusieurs grilles et tu accumules un maximum de points pour grimper dans le classement.
         </p>
 
-        <ul className="list-disc pl-5 mb-4 text-justify">
-          <li>J1 =&gt; J9 : Compet d’Été</li>
-          <li>J10 =&gt; J17 + CDF : Compet d’Automne</li>
-          <li>J18 =&gt; J25 + CDF : Compet d’Hiver</li>
-          <li>J26 =&gt; J34 : Compet de Printemps</li>
+        <p className="mt-4 text-justify">
+          La saison de 34 journées est découpée en plusieurs <strong>COMPETS</strong> de 9 grilles,
+          correspondant aux grandes périodes de l’année.
+        </p>
+
+        <ul className="list-disc pl-5 mt-2 space-y-2 text-justify">
+          <li><strong>J1 → J9 :</strong> Compet d’Été</li>
+          <li><strong>J10 → J17 :</strong> Compet d’Automne</li>
+          <li><strong>J18 → J25 :</strong> Compet d’Hiver</li>
+          <li><strong>J26 → J34 :</strong> Compet de Printemps</li>
         </ul>
 
-        <p className="mb-4 text-justify">
-          Le mode <strong>TOURNOI</strong> permet d'éliminer des joueurs à chaque fin de grille...
+        <p className="mt-4 text-justify">
+          À chaque grille, marque des points grâce à tes pronos et tes bonus pour te rapprocher du sommet.
+        </p>
+
+        <p className="mt-4 font-semibold">
+          🎯 Objectif : finir en tête du classement !
+        </p>
+      </RuleSection>
+
+      <RuleSection title="Le mode TOURNOI" iconSrc="/images/regles/mode.png" type="default">
+        <p className="mt-2 text-justify">
+          En mode <strong>TOURNOI</strong>, l’objectif est simple : survivre le plus longtemps possible.
+          À chaque grille, des joueurs sont éliminés… et il ne restera qu’un seul gagnant !
+        </p>
+
+        <p className="mt-4 font-semibold text-justify">
+          Il existe trois types de tournois :
+        </p>
+
+          <ul className="list-disc pl-5 space-y-3 text-justify mt-2">
+          <li>
+              <strong>KOH LANTA :</strong> à chaque grille, les moins bons sont éliminés.
+          </li>
+          <li>
+              <strong>SHARK GAME :</strong> à chaque grille, la moitié des joueurs est éliminée.
+          </li>
+          <li>
+              <strong>TERMINATOR :</strong> si tu fais moins bien que l’IA, tu es éliminé.
+          </li>
+          </ul>
+
+        <p className="mt-4 text-justify">
+          Plus tu avances dans le tournoi, plus la pression monte… alors assure tes pronos !
+        </p>
+
+        <p className="mt-4 font-semibold">
+          🎯 Objectif : être le dernier survivant !
+        </p>
+      </RuleSection>
+
+      <RuleSection title="Les points d'expérience" iconSrc="/images/regles/xp.png" type="default"
+      >
+        <p className="mt-2 text-justify">
+          Les points d’expérience (XP) te permettent de progresser dans ta carrière sur PEPS.
+          Plus tu performes, plus tu montes de niveau !
+        </p>
+
+        <p className="mt-4 font-semibold">Comment gagner des XP ?</p>
+
+        <ul className="list-disc pl-5 space-y-2 text-justify mt-2">
+          <li>
+            <strong>Sur une grille :</strong> les 10 premiers gagnent entre 1 et 10 XP.
+          </li>
+          <li>
+            <strong>À la fin d’une compétition :</strong> les 20 premiers gagnent entre 1 et 40 XP.
+          </li>
+          <li>
+            <strong>En mode tournoi :</strong> chaque tour passé te rapporte 5 XP.
+          </li>
+        </ul>
+
+        <p className="mt-4 text-justify">
+          Tous tes XP sont cumulés pour définir ton niveau de carrière.
+        </p>
+
+        <p className="mt-4 text-justify">
+          Tu es ensuite classé dans des catégories comme :
+          <strong> Amateur, Espoir, Confirmé, Challenger...</strong>.
+        </p>
+
+        <p className="mt-4 text-justify">
+          Retrouve ton classement dans l’onglet <strong>Carrière</strong> !
+        </p>
+
+        <p className="mt-4 font-semibold">
+          🎯 Objectif : devenir une LÉGENDE de PEPS !
         </p>
       </RuleSection>
 

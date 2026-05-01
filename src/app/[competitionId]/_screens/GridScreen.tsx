@@ -628,9 +628,9 @@ useEffect(() => {
 }, [hasCroix, hasScore, hasSpecial, touched]);
 
 // Pour gérer l'affichage de TERMINATOR, peut aussi être gérer avec le user_id
-const TERMINATOR_USERNAME = 'TERMINATOR';
+const TERMINATOR_ID = 'b6d1bd4a-9bc4-44c1-b141-ea3a2c871699';
 const isTerminator = (row: LeaderboardRow) =>
-  row.username === TERMINATOR_USERNAME;
+  row.user_id === TERMINATOR_ID;
 
   // 1) IDs pour le "gate"
   const userId = user?.id ?? null;
@@ -1811,7 +1811,7 @@ return early ? (
               <table className="w-full bg-white shadow rounded-lg overflow-hidden text-sm">
                 <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                   <tr>
-                    <th className="text-left px-4 py-3"></th>
+                    <th className="text-left px-4 py-3">#</th>
                     <th className="text-left px-4 py-3"></th>
                     <th className="text-left px-4 py-3">Pseudo</th>
                     <th className="text-left px-4 py-3">Points</th>
@@ -1849,7 +1849,11 @@ return early ? (
                             alt={`Avatar ${row.username}`}
                             width={28}
                             height={28}
-                            className="rounded-full object-cover"
+                            className={`rounded-full border ${
+                              terminator
+                                ? 'object-cover bg-transparent'
+                                : 'object-contain bg-gray-100 border-black/60 p-[2px]'
+                            }`}
                           />
                         ) : (
                           <div className="w-7 h-7" />
@@ -1914,6 +1918,7 @@ return early ? (
                 <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
                   <tr>
                     <th className="text-left px-4 py-3">#</th>
+                    <th className="text-left px-4 py-3"></th>
                     <th className="text-left px-4 py-3">Pseudo</th>
                     <th className="text-left px-4 py-3">Points</th>
                   </tr>
@@ -1921,6 +1926,7 @@ return early ? (
                 <tbody>
                   {lbRows.map(row => {
                     const me = row.user_id === user?.id;
+
                     return (
                       <tr
                         key={row.user_id}
@@ -1929,8 +1935,28 @@ return early ? (
                           me ? 'bg-orange-100' : 'hover:bg-gray-50'
                         }`}
                       >
+                        {/* Position */}
                         <td className="px-4 py-2">{row.rank}</td>
+
+                        {/* Avatar */}
+                        <td className="px-4 py-2">
+                          {row.avatar ? (
+                            <Image
+                              src={row.avatar}
+                              alt={`Avatar ${row.username}`}
+                              width={28}
+                              height={28}
+                              className="rounded-full object-contain bg-gray-100 border border-black/60 p-[2px]"
+                            />
+                          ) : (
+                            <div className="w-7 h-7" />
+                          )}
+                        </td>
+
+                        {/* Pseudo */}
                         <td className="px-4 py-2">{row.username}</td>
+
+                        {/* Points */}
                         <td className="px-4 py-2">{row.total_points}</td>
                       </tr>
                     );
