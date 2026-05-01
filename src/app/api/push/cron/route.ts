@@ -70,12 +70,12 @@ async function sendPush(token: string, title: string, body: string, url: string,
   if (isIosToken(token)) {
     try {
       const sub = JSON.parse(token) as { endpoint: string; keys: { p256dh: string; auth: string } };
+      // ⚠️ iOS UNIQUEMENT : ne pas mettre de bloc "notification" dans le payload.
+      // Si un bloc "notification" est présent, Apple affiche la notif nativement
+      // ET le SW en affiche une via le listener "push" → doublon.
+      // On n'envoie que "data" : le SW natif (listener "push") prend tout en charge.
       await webpush.sendNotification(sub, JSON.stringify({
-          // Format reconnu par Apple Push Notification Service
-          // "notification" → affiché nativement par iOS si le SW est lent
-          // "data" → utilisé par le SW pour enrichir (url, tag)
-          notification: { title, body, icon },
-          data: { url, tag },
+          data: { title, body, icon, url, tag },
         }), { urgency: 'high', TTL: 10 });
       return 'ok';
     } catch (e: any) {
@@ -89,8 +89,6 @@ async function sendPush(token: string, title: string, body: string, url: string,
       token,
       webpush: {
         headers: { Urgency: 'high', TTL: '10' },
-        // Le bloc notification dit à FCM quoi afficher directement —
-        // plus fiable que de laisser le SW reconstruire la notif.
         // Pas de bloc notification — le SW affiche via onBackgroundMessage
         data: { title, body, icon, url, tag },
       },
@@ -103,17 +101,21 @@ async function sendPush(token: string, title: string, body: string, url: string,
   }
 }
 
-// ─── Choix du token préféré pour un user ─────────────────────────────────────
-function pickToken(
+// ─── Tous les tokens d'un user (multi-appareil) ──────────────────────────────
+// On envoie à TOUS les tokens de l'utilisateur, triés par priorité de plateforme.
+// Un user avec twa + web recevra la notif sur les deux appareils simultanément.
+function pickTokens(
   tokensRows: { token: string; user_id: string; platform: string }[],
   uid: string
-): string | null {
+): string[] {
   const rows = tokensRows.filter(r => r.user_id === uid);
-  for (const p of PLATFORM_PRIORITY) {
-    const found = rows.find(r => r.platform === p);
-    if (found) return found.token;
-  }
-  return null;
+  // Trier par priorité de plateforme
+  rows.sort((a, b) => {
+    const ai = PLATFORM_PRIORITY.indexOf(a.platform as Platform);
+    const bi = PLATFORM_PRIORITY.indexOf(b.platform as Platform);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+  return rows.map(r => r.token);
 }
 
 // ─── Charger les membres d'une ou plusieurs compétitions ─────────────────────
@@ -363,9 +365,6 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
       continue;
     }
 
-    const token = pickToken(tokensRows as any, uid);
-    if (!token) { log('skip no token', { uid }); continue; }
-
     // Inscrire UNE ligne par match dans push_log AVANT l'envoi
     let anyLogged = false;
     for (const mid of matchIds) {
@@ -375,20 +374,25 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
     }
     if (!anyLogged) { log('skip all log conflicts', { uid, gridId }); continue; }
 
+    const tokens = pickTokens(tokensRows as any, uid);
+    if (!tokens.length) { log('skip no token', { uid }); continue; }
+
     // Message adapté au nombre de matchs sans prono
     const title = kind === 'H24' ? '⏰ Rappel J-1' : '⏰ Rappel H-1';
     const body = matchIds.length === 1
       ? 'Tu as un match sans prono qui démarre bientôt !'
       : `Tu as ${matchIds.length} matchs sans prono qui démarrent bientôt !`;
 
-    const result = await sendPush(token, title, body, 'https://www.peps-foot.com/', 'peps-reminder');
-
-    if (result === 'ok') {
-      sentCount++;
-      log('sent', { uid, matchIds, compId });
-    } else if (result === 'invalid') {
-      toDelete.add(token);
-      log('invalid token', { uid, token: token.slice(0, 30) });
+    // Envoyer à tous les tokens de l'utilisateur (multi-appareil)
+    for (const token of tokens) {
+      const result = await sendPush(token, title, body, 'https://www.peps-foot.com/', 'peps-reminder');
+      if (result === 'ok') {
+        sentCount++;
+        log('sent', { uid, matchIds, compId, token: token.slice(0, 30) });
+      } else if (result === 'invalid') {
+        toDelete.add(token);
+        log('invalid token', { uid, token: token.slice(0, 30) });
+      }
     }
   }
 
@@ -535,27 +539,30 @@ async function handleGridDone(only: string | null): Promise<number> {
       const already = await alreadyLogged(uid, 'GRID_DONE', null, gridId);
       if (already) { log('skip already logged', { uid, gridId }); continue; }
 
-      const token = pickToken(tokensRows as any, uid);
-      if (!token) { log('skip no token', { uid }); continue; }
+      const tokens = pickTokens(tokensRows as any, uid);
+      if (!tokens.length) { log('skip no token', { uid }); continue; }
 
       // Inscrire dans push_log AVANT l'envoi
       const logged = await writeLog(uid, 'GRID_DONE', null, gridId);
       if (!logged) { log('skip log conflict', { uid, gridId }); continue; }
 
-      const result = await sendPush(
-        token,
-        '🎉 Grille terminée',
-        'Les résultats sont là. Viens voir ton score !',
-        'https://www.peps-foot.com/',
-        'peps-grid-done'
-      );
+      // Envoyer à tous les tokens de l'utilisateur (multi-appareil)
+      for (const token of tokens) {
+        const result = await sendPush(
+          token,
+          '🎉 Grille terminée',
+          'Les résultats sont là. Viens voir ton score !',
+          'https://www.peps-foot.com/',
+          'peps-grid-done'
+        );
 
-      if (result === 'ok') {
-        sentCount++;
-        log('sent', { uid, gridId, compId });
-      } else if (result === 'invalid') {
-        toDelete.add(token);
-        log('invalid token', { uid });
+        if (result === 'ok') {
+          sentCount++;
+          log('sent', { uid, gridId, compId, token: token.slice(0, 30) });
+        } else if (result === 'invalid') {
+          toDelete.add(token);
+          log('invalid token', { uid });
+        }
       }
     }
   }

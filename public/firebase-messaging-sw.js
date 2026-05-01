@@ -1,8 +1,18 @@
 // public/firebase-messaging-sw.js
-// v4 — push natif iOS uniquement, FCM gère Android via onBackgroundMessage
+// v5 — Fix double notif iOS + multi-token Android
 /* eslint-disable no-undef */
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Détection iOS AVANT l'import Firebase.
+// On ne peut pas se fier à "typeof firebase === 'undefined'" car importScripts
+// réussit silencieusement sur iOS Safari — firebase est défini dans les deux cas.
+// On utilise l'user-agent du SW, qui contient "iPhone" ou "iPad" sur iOS.
+// ─────────────────────────────────────────────────────────────────────────────
+const isIosSW = /iphone|ipad|ipod/i.test(self.navigator?.userAgent || '');
+
 // Firebase compat (pour Android / desktop via FCM)
+// Sur iOS, ces imports réussissent mais FCM n'est pas fonctionnel —
+// on n'appelle pas onBackgroundMessage sur iOS pour éviter les doublons.
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
 
@@ -14,24 +24,23 @@ firebase.initializeApp({
   appId: '1:272445879894:web:afcd10e91154f27d112df7'
 });
 
-const messaging = firebase.messaging();
-
 // URLs absolues
 const toAbs = (u) => { try { return new URL(u, self.location.origin).href; } catch { return u; } };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PARTIE 1 : FCM (Android / desktop)
-// Inchangé — on ne touche à rien
+// PARTIE 1 : FCM (Android / desktop UNIQUEMENT)
+// On ne bind PAS onBackgroundMessage sur iOS pour éviter les doublons :
+// iOS reçoit ses notifs via le listener "push" natif (Partie 2).
 // ─────────────────────────────────────────────────────────────────────────────
-if (!self.__PEPS_BG_BOUND__) {
+if (!isIosSW && !self.__PEPS_BG_BOUND__) {
   self.__PEPS_BG_BOUND__ = true;
+
+  const messaging = firebase.messaging();
 
   messaging.onBackgroundMessage(async (payload) => {
     try {
       console.log('[PEPS][SW] onBackgroundMessage', payload);
 
-      // FCM fournit maintenant un bloc notification avec le bon titre/body.
-      // On l'utilise directement — data contient url et tag en complément.
       const n = payload.notification || {};
       const d = payload.data || {};
 
@@ -60,21 +69,13 @@ if (!self.__PEPS_BG_BOUND__) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PARTIE 2 : Web Push natif (iOS Safari 16.4+)
-// Les notifications iOS arrivent via l'événement 'push' standard du navigateur,
-// pas via FCM. On les intercepte ici.
+// Le payload envoyé par le serveur NE CONTIENT PAS de bloc "notification"
+// (uniquement "data") pour éviter qu'Apple affiche la notif nativement EN PLUS
+// de celle affichée ici par showNotification → c'est ça qui causait le doublon.
 // ─────────────────────────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  // Sur Android/desktop, FCM intercepte déjà le push via onBackgroundMessage.
-  // Le listener 'push' natif ne doit agir QUE sur iOS (Safari).
-  // On détecte iOS via l'absence de la variable firebase (non chargée sur iOS).
-  // firebase est défini en haut de ce fichier via importScripts — il est donc
-  // présent sur Android. Sur iOS, importScripts échoue silencieusement et
-  // firebase reste undefined.
-  const isIosSW = typeof firebase === 'undefined';
-  if (!isIosSW) {
-    // Android/desktop : FCM gère via onBackgroundMessage, on ne fait rien ici
-    return;
-  }
+  // Sur Android/desktop, FCM gère via onBackgroundMessage → on ne fait rien ici
+  if (!isIosSW) return;
 
   let parsed = {};
   try {
@@ -82,21 +83,19 @@ self.addEventListener('push', (event) => {
   } catch {
     try {
       const text = event.data ? event.data.text() : '';
-      parsed = { notification: { title: 'PEPS', body: text } };
+      parsed = { data: { title: 'PEPS', body: text } };
     } catch {
       parsed = {};
     }
   }
 
-  // Support des deux formats :
-  // 1) { notification: { title, body, icon }, data: { url, tag } }  ← nouveau format Apple
-  // 2) { title, body, icon, url, tag }  ← ancien format flat
-  const n = parsed.notification || {};
+  // Le serveur envoie uniquement { data: { title, body, icon, url, tag } }
+  // (pas de bloc "notification" pour éviter le doublon natif Apple)
   const d = parsed.data || parsed;
 
-  const title = n.title || d.title || 'PEPS';
-  const body  = n.body  || d.body  || '';
-  const icon  = toAbs(n.icon || d.icon || '/images/notifications/peps-notif-icon-192.png');
+  const title = d.title || 'PEPS';
+  const body  = d.body  || '';
+  const icon  = toAbs(d.icon || '/images/notifications/peps-notif-icon-192.png');
   const badge = toAbs('/images/notifications/peps-badge-72.png');
   const url   = d.url ? toAbs(d.url) : self.location.origin + '/';
   const tag   = d.tag || 'peps-broadcast';
@@ -117,7 +116,6 @@ self.addEventListener('push', (event) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PARTIE 3 : Clic sur la notification (commun iOS + Android)
-// Inchangé
 // ─────────────────────────────────────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
