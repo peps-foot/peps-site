@@ -25,6 +25,9 @@ export default function Inscription() {
   const [teams, setTeams] = useState<Team[]>([])
   const [showAvatarModal, setShowAvatarModal] = useState(false)
   const [avatarSearch, setAvatarSearch] = useState('')
+  const filteredTeams = teams.filter((team) =>
+    team.name.toLowerCase().includes(avatarSearch.toLowerCase())
+  )
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -229,11 +232,7 @@ export default function Inscription() {
             />
 
             <div className="grid grid-cols-4 gap-3">
-              {teams
-                .filter((t) =>
-                  t.name.toLowerCase().includes(avatarSearch.toLowerCase())
-                )
-                .map((team) => (
+              {filteredTeams.map((team) => (
                   <button
                     key={team.id}
                     onClick={() => {
