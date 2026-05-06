@@ -231,10 +231,6 @@ export default function Inscription() {
               className="w-full border px-3 py-2 rounded mb-4"
             />
 
-            <p className="text-xs text-gray-500 mb-2">
-  {teams.length} équipes chargées — {filteredTeams.length} affichées
-</p>
-
             <div className="grid grid-cols-4 gap-3">
               {filteredTeams.map((team) => (
                   <button
