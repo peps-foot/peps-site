@@ -203,7 +203,10 @@ export default function Inscription() {
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
           onClick={() => setShowAvatarModal(false)}
         >
-          <div className="bg-white rounded-lg p-4 w-full max-w-md max-h-[80vh] overflow-y-auto relative">
+          <div
+            className="bg-white rounded-lg p-4 w-full max-w-md max-h-[80vh] overflow-y-auto relative"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Croix fermeture */}
             <button
