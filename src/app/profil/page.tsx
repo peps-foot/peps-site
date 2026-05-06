@@ -257,6 +257,7 @@ export default function ProfilPage() {
               
               {/* Croix fermeture */}
               <button
+                type="button"
                 onClick={() => setShowAvatarModal(false)}
                 className="absolute top-2 right-2 text-gray-500 hover:text-black text-xl"
               >
@@ -278,6 +279,7 @@ export default function ProfilPage() {
               <div className="grid grid-cols-4 gap-3">
                 {filteredTeams.map((team) => (
                   <button
+                    type="button"
                     key={team.id}
                     onClick={() => {
                       setAvatar(team.logo)
@@ -295,6 +297,7 @@ export default function ProfilPage() {
               </div>
 
               <button
+                type="button"
                 onClick={() => setShowAvatarModal(false)}
                 className="mt-4 w-full bg-gray-200 py-2 rounded"
               >
