@@ -35,7 +35,6 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState('');
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
 
-
   useEffect(() => {
     const check = async () => {
       const hash = window.location.hash.substring(1);
@@ -279,7 +278,18 @@ export default function Home() {
   return aTime - bTime;
   });
 
-  const sortedToJoin = [...toJoin].sort((a, b) => {
+  // Compétitions publiques classiques : GRID + TIERCE
+  const publicToJoin = toJoin.filter(
+    (comp) => comp.game_type !== 'SUPPORTER'
+  );
+
+  // Compétitions SUPPORTER
+  const supporterToJoin = toJoin.filter(
+    (comp) => comp.game_type === 'SUPPORTER'
+  );
+
+  // Tri des compétitions publiques par deadline
+  const sortedToJoin = [...publicToJoin].sort((a, b) => {
     const aTime = a.nextPredictionDeadline
       ? new Date(a.nextPredictionDeadline).getTime()
       : Infinity;
@@ -391,7 +401,7 @@ export default function Home() {
     </details>
 
     {/* COMPÉTITIONS PUBLIQUES */}
-    <details open={toJoin.length > 0} className="group rounded-md border">
+    <details open={sortedToJoin.length > 0} className="group rounded-md border">
       <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
         <div className="flex items-center justify-between">
           <span className="text-center w-full">🌍 COMPÉTITIONS PUBLIQUES</span>
@@ -400,7 +410,7 @@ export default function Home() {
       </summary>
 
       <div className="p-2">
-        {toJoin.length === 0 && (
+        {sortedToJoin.length === 0 && (
           <p className="px-2 py-1 text-sm text-gray-600">
             Rien à rejoindre pour l’instant.
           </p>
@@ -417,7 +427,7 @@ export default function Home() {
           />
         ))}
 
-        {toJoin.length > 3 && (
+        {sortedToJoin.length > 3 && (
           <button
             type="button"
             onClick={() => router.push("/competitions")}
@@ -490,11 +500,22 @@ export default function Home() {
         </div>
       </summary>
 
-      <div className="p-3 space-y-3">
+      {supporterToJoin.length === 0 ? (
         <p className="text-sm text-gray-700 leading-5">
-          Choisis ton club, pronostique ses matchs et défie les autres supporters. A venir...
+          Aucune compétition SUPPORTER disponible pour l’instant.
         </p>
-      </div>
+      ) : (
+        supporterToJoin.map((comp) => (
+          <CompetitionHomeCard
+            key={comp.id}
+            comp={comp}
+            onClick={() => handleJoinPublicCompetition(comp)}
+            formatDeadline={formatDeadline}
+            getCompetitionStatusText={getCompetitionStatusText}
+            getDeadlineColor={getDeadlineColor}
+          />
+        ))
+      )}
     </details>
 
     {/* ANCIENNES COMPÉTITIONS */}

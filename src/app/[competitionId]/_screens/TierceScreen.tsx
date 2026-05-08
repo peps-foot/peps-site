@@ -1066,6 +1066,7 @@ export default function TierceScreen({
     })();
   }, [competitionId, currentTicket?.id, allTeams]);
 
+  //Début du JSX
   return (
     <div className="w-full mt-4">
       {/* ============================== */}

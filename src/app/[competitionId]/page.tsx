@@ -8,6 +8,7 @@ import supabase from '../../lib/supabaseBrowser';
 import { useSupabase } from '../../components/SupabaseProvider'
 import GridScreen from './_screens/GridScreen';
 import TierceScreen from './_screens/TierceScreen';
+import SupporterScreen from './_screens/SupporterScreen';
 
 type CompetitionLite = {
   id: string;
@@ -55,6 +56,15 @@ export default function CompetitionPage() {
   if (competition.game_type === 'TIERCE') {
     return (
       <TierceScreen
+        competitionId={competitionId}
+        isPrivate={competition.kind === 'private'}
+      />
+    );
+  }
+
+  if (competition.game_type === 'SUPPORTER') {
+    return (
+      <SupporterScreen
         competitionId={competitionId}
         isPrivate={competition.kind === 'private'}
       />
