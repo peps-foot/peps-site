@@ -605,7 +605,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
     }
 
     return (
-        <main className="px-2 py-4 sm:p-4">
+        <main className="w-full px-2 sm:px-4 py-8">
 
             {/* ── Carroussel pour les mois ── */}
             <div className="border border-white/20 rounded-lg p-4 flex items-center justify-center gap-4 mb-4">
@@ -742,10 +742,10 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
             {/* ── Vue PRONOSTICS : zone matchs + zone bonus ── */}
             {view === 'pronostics' && (
-                <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'pronostics' ? 'hidden' : ''}`}>
 
                     {/* ── Colonne gauche : matchs du mois, 2/3 sur grand écran ── */}
-                    <div className="w-full lg:w-2/3 min-w-0">
+                    <div className="w-full lg:w-2/3">
                         <div className="border rounded-lg">
                             <button
                                 type="button"
