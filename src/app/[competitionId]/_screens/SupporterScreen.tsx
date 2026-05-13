@@ -756,7 +756,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                 </span>
                             </button>
 
-                            <div className="px-4 pb-4 space-y-2">
+                            <div className="px-2 sm:px-4 pb-4 space-y-2">
                                 <div className="space-y-3">
                                     {currentMonth?.matches.map((match) => {
                                         const status = String(match.status ?? '').toUpperCase();
@@ -768,7 +768,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                         return (
                                             <div
                                                 key={match.match_id}
-                                                className="border rounded-lg grid grid-cols-[14%_24%_27%_24%_11%] gap-x-2 gap-y-0 items-center p-2"
+                                                className="border rounded-lg grid grid-cols-[16%_25%_22%_25%_12%] gap-x-1 gap-y-0 items-center px-1 py-2 sm:px-2"
                                             >
                                                 {/* ── Ligne 1 / Colonne 1 : date ── */}
                                                 <div className="text-center text-sm">
@@ -784,7 +784,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 2 : équipe domicile ── */}
                                                 {/* ── Équipe domicile : short mobile, nom complet PC ── */}
-                                                <div className="text-center font-medium">
+                                                <div className="text-center font-medium min-w-0 truncate text-sm sm:text-base">
                                                     <span className="sm:hidden">{match.short_name_home ?? match.home_team}</span>
                                                     <span className="hidden sm:inline">{match.home_team}</span>
                                                 </div>
@@ -794,13 +794,13 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                     {isLocked ? (
                                                         savedPrediction ? (
                                                             <div className="flex items-center justify-center gap-2">
-                                                                <div className="w-10 h-8 border rounded text-center font-semibold flex items-center justify-center bg-gray-100">
+                                                                <div className="w-9 h-8 sm:w-10 border rounded text-center font-semibold flex items-center justify-center bg-gray-100">
                                                                     {savedPrediction.home}
                                                                 </div>
 
                                                                 <span className="font-bold">-</span>
 
-                                                                <div className="w-10 h-8 border rounded text-center font-semibold flex items-center justify-center bg-gray-100">
+                                                                <div className="w-9 h-8 sm:w-10 border rounded text-center font-semibold flex items-center justify-center bg-gray-100">
                                                                     {savedPrediction.away}
                                                                 </div>
                                                             </div>
@@ -816,7 +816,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                                 min={0}
                                                                 value={scoreInputs[match.match_id]?.home ?? savedPredictions[match.match_id]?.home ?? ''}
                                                                 onChange={(e) => handleScoreChange(match.match_id, 'home', e.target.value)}
-                                                                className="w-10 h-8 border rounded text-center font-semibold"
+                                                                className="w-9 h-8 sm:w-10 border rounded text-center font-semibold"
                                                                 placeholder="-"
                                                             />
 
@@ -827,7 +827,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                                 min={0}
                                                                 value={scoreInputs[match.match_id]?.away ?? savedPredictions[match.match_id]?.away ?? ''}
                                                                 onChange={(e) => handleScoreChange(match.match_id, 'away', e.target.value)}
-                                                                className="w-10 h-8 border rounded text-center font-semibold"
+                                                                className="w-9 h-8 sm:w-10 border rounded text-center font-semibold"
                                                                 placeholder="-"
                                                             />
                                                         </>
@@ -836,7 +836,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 4 : équipe extérieure ── */}
                                                 {/* ── Équipe extérieure : short mobile, nom complet PC ── */}
-                                                <div className="text-center font-medium">
+                                                <div className="text-center font-medium min-w-0 truncate text-sm sm:text-base">
                                                     <span className="sm:hidden">{match.short_name_away ?? match.away_team}</span>
                                                     <span className="hidden sm:inline">{match.away_team}</span>
                                                 </div>
