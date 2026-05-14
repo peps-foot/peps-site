@@ -757,7 +757,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                             </button>
 
                             <div className="w-full px-1 pb-4 space-y-2">
-                                <div className="space-y-3 w-full">
+                                <div className="space-y-2 w-full">
                                     {currentMonth?.matches.map((match) => {
                                         const status = String(match.status ?? '').toUpperCase();
                                         const matchStarted = new Date(match.match_date).getTime() <= Date.now();
@@ -768,7 +768,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                         return (
                                             <div
                                                 key={match.match_id}
-                                                className="w-full border rounded-lg grid grid-cols-[12%_26%_24%_26%_12%] gap-x-0 gap-y-0 items-center px-0 py-2 sm:px-0"
+                                                className="w-full border rounded-lg grid grid-cols-[12%_26%_24%_26%_12%] gap-x-0 gap-y-0 items-center px-0 py-1 sm:px-0"
                                             >
                                                 {/* ── Ligne 1 / Colonne 1 : date ── */}
                                                 <div className="text-center text-sm border border-red-500">
@@ -794,13 +794,13 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                     {isLocked ? (
                                                         savedPrediction ? (
                                                             <div className="flex items-center justify-center gap-2">
-                                                                <div className="w-9 h-8 sm:w-10 border rounded text-center font-semibold flex items-center justify-center bg-gray-100">
+                                                                <div className="w-10 h-9 border rounded-md text-center font-semibold flex items-center justify-center bg-gray-100">
                                                                     {savedPrediction.home}
                                                                 </div>
 
                                                                 <span className="font-bold">-</span>
 
-                                                                <div className="w-9 h-8 sm:w-10 border rounded text-center font-semibold flex items-center justify-center bg-gray-100">
+                                                                <div className="w-10 h-9 border rounded-md text-center font-semibold flex items-center justify-center bg-gray-100">
                                                                     {savedPrediction.away}
                                                                 </div>
                                                             </div>
@@ -816,7 +816,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                                 min={0}
                                                                 value={scoreInputs[match.match_id]?.home ?? savedPredictions[match.match_id]?.home ?? ''}
                                                                 onChange={(e) => handleScoreChange(match.match_id, 'home', e.target.value)}
-                                                                className="w-9 h-8 sm:w-10 border rounded text-center font-semibold"
+                                                                className="w-10 h-9 border rounded-md text-center font-semibold bg-gray-100"
                                                                 placeholder="-"
                                                             />
 
@@ -827,7 +827,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                                 min={0}
                                                                 value={scoreInputs[match.match_id]?.away ?? savedPredictions[match.match_id]?.away ?? ''}
                                                                 onChange={(e) => handleScoreChange(match.match_id, 'away', e.target.value)}
-                                                                className="w-9 h-8 sm:w-10 border rounded text-center font-semibold"
+                                                                className="w-10 h-9 border rounded-md text-center font-semibold bg-gray-100"
                                                                 placeholder="-"
                                                             />
                                                         </>
@@ -851,7 +851,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                             : '/images/info.png'
                                                         }
                                                         alt={bonusForThisMatch ? bonusForThisMatch.name : 'Infos pronos'}
-                                                        className="w-8 h-8 rounded-full"
+                                                        className="w-10 h-10 rounded-full object-contain"
                                                         />
                                                     </button>
                                                 </div>
