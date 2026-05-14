@@ -746,18 +746,18 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                     {/* ── Colonne gauche : matchs du mois, 2/3 sur grand écran ── */}
                     <div className="w-full lg:w-2/3">
-                        <div className="border rounded-lg">
+                        <div className="border rounded-lg overflow-hidden">
                             <button
                                 type="button"
-                                className="w-full flex items-center px-4 py-3"
+                                className="w-full flex items-center px-0 py-3"
                             >
                                 <span className="font-semibold text-center flex-1">
                                     🎯 Fais tes pronos
                                 </span>
                             </button>
 
-                            <div className="px-2 sm:px-4 pb-4 space-y-2">
-                                <div className="space-y-3">
+                            <div className="w-full px-1 pb-4 space-y-2">
+                                <div className="space-y-3 w-full">
                                     {currentMonth?.matches.map((match) => {
                                         const status = String(match.status ?? '').toUpperCase();
                                         const matchStarted = new Date(match.match_date).getTime() <= Date.now();
@@ -768,10 +768,10 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                         return (
                                             <div
                                                 key={match.match_id}
-                                                className="border rounded-lg grid grid-cols-[16%_25%_22%_25%_12%] gap-x-1 gap-y-0 items-center px-1 py-2 sm:px-2"
+                                                className="w-full border rounded-lg grid grid-cols-[16%_25%_22%_25%_12%] gap-x-0 gap-y-0 items-center px-0 py-2 sm:px-0"
                                             >
                                                 {/* ── Ligne 1 / Colonne 1 : date ── */}
-                                                <div className="text-center text-sm">
+                                                <div className="text-center text-sm border border-red-500">
                                                     {new Date(match.match_date).toLocaleDateString('fr-FR', {
                                                         day: '2-digit',
                                                         month: '2-digit',
@@ -784,13 +784,13 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 2 : équipe domicile ── */}
                                                 {/* ── Équipe domicile : short mobile, nom complet PC ── */}
-                                                <div className="text-center font-medium min-w-0 truncate text-sm sm:text-base">
+                                                <div className="text-center text-sm border border-red-500">
                                                     <span className="sm:hidden">{match.short_name_home ?? match.home_team}</span>
                                                     <span className="hidden sm:inline">{match.home_team}</span>
                                                 </div>
 
                                                 {/* ── Ligne 1 / Colonnes 3-4 : saisie score ou score réel ── */}
-                                                <div className="flex items-center justify-center gap-2">
+                                                <div className="text-center text-sm border border-red-500">
                                                     {isLocked ? (
                                                         savedPrediction ? (
                                                             <div className="flex items-center justify-center gap-2">
@@ -836,23 +836,23 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 4 : équipe extérieure ── */}
                                                 {/* ── Équipe extérieure : short mobile, nom complet PC ── */}
-                                                <div className="text-center font-medium min-w-0 truncate text-sm sm:text-base">
+                                                <div className="text-center text-sm border border-red-500">
                                                     <span className="sm:hidden">{match.short_name_away ?? match.away_team}</span>
                                                     <span className="hidden sm:inline">{match.away_team}</span>
                                                 </div>
 
                                                 {/* ── Ligne 1 / Colonne 5 : VAR / bonus futur ── */}
-                                                <div className="flex justify-center">
+                                                <div className="text-center text-sm border border-red-500">
                                                     <button className="focus:outline-none">
-<img
-  src={
-    bonusForThisMatch
-      ? supporterBonusLogos[bonusForThisMatch.code]
-      : '/images/info.png'
-  }
-  alt={bonusForThisMatch ? bonusForThisMatch.name : 'Infos pronos'}
-  className="w-8 h-8 rounded-full"
-/>
+                                                        <img
+                                                        src={
+                                                            bonusForThisMatch
+                                                            ? supporterBonusLogos[bonusForThisMatch.code]
+                                                            : '/images/info.png'
+                                                        }
+                                                        alt={bonusForThisMatch ? bonusForThisMatch.name : 'Infos pronos'}
+                                                        className="w-8 h-8 rounded-full"
+                                                        />
                                                     </button>
                                                 </div>
 
