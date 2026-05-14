@@ -933,7 +933,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                         <button
                         type="button"
                         onClick={() => setOpenBonus(!openBonus)}
-                        className="w-full flex items-center justify-between px-1 py-3"
+                        className="w-full flex items-center justify-between px-2 py-3"
                         >
                         <span className="font-semibold text-center w-full">
                             🎁 Gère tes bonus
@@ -946,7 +946,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                         {/* ── Contenu ── */}
                         {openBonus && (
-                        <div className="px-2 pb-4 space-y-3">
+                        <div className="px-1 pb-4 space-y-3">
 
                             {supporterBonusDefs.map((bonus) => {
 
