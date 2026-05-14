@@ -790,49 +790,49 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                 </div>
 
                                                 {/* ── Ligne 1 / Colonnes 3-4 : saisie score ou score réel ── */}
-                                                <div className="text-center text-sm border border-red-500">
-                                                    {isLocked ? (
-                                                        savedPrediction ? (
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <div className="w-10 h-9 border rounded-md text-center font-semibold flex items-center justify-center bg-gray-100">
-                                                                    {savedPrediction.home}
-                                                                </div>
+<div className="text-center text-sm border border-red-500">
+  {isLocked ? (
+    savedPrediction ? (
+      <div className="flex items-center justify-center gap-1">
+        <div className="w-9 h-8 border border-black rounded-md text-center font-semibold flex items-center justify-center bg-gray-100">
+          {savedPrediction.home}
+        </div>
 
-                                                                <span className="font-bold">-</span>
+        <span className="font-bold leading-none">-</span>
 
-                                                                <div className="w-10 h-9 border rounded-md text-center font-semibold flex items-center justify-center bg-gray-100">
-                                                                    {savedPrediction.away}
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-sm text-gray-500 italic">
-                                                                Non joué
-                                                            </span>
-                                                        )
-                                                    ) : (
-                                                        <>
-                                                            <input
-                                                                type="number"
-                                                                min={0}
-                                                                value={scoreInputs[match.match_id]?.home ?? savedPredictions[match.match_id]?.home ?? ''}
-                                                                onChange={(e) => handleScoreChange(match.match_id, 'home', e.target.value)}
-                                                                className="w-10 h-9 border rounded-md text-center font-semibold bg-gray-100"
-                                                                placeholder="-"
-                                                            />
+        <div className="w-9 h-8 border border-black rounded-md text-center font-semibold flex items-center justify-center bg-gray-100">
+          {savedPrediction.away}
+        </div>
+      </div>
+    ) : (
+      <span className="text-sm text-gray-500 italic">
+        Non joué
+      </span>
+    )
+  ) : (
+    <div className="flex items-center justify-center gap-1">
+      <input
+        type="number"
+        min={0}
+        value={scoreInputs[match.match_id]?.home ?? savedPredictions[match.match_id]?.home ?? ''}
+        onChange={(e) => handleScoreChange(match.match_id, 'home', e.target.value)}
+        className="w-9 h-8 border border-black rounded-md text-center font-semibold bg-gray-100"
+        placeholder="-"
+      />
 
-                                                            <span className="font-bold">-</span>
+      <span className="font-bold leading-none">-</span>
 
-                                                            <input
-                                                                type="number"
-                                                                min={0}
-                                                                value={scoreInputs[match.match_id]?.away ?? savedPredictions[match.match_id]?.away ?? ''}
-                                                                onChange={(e) => handleScoreChange(match.match_id, 'away', e.target.value)}
-                                                                className="w-10 h-9 border rounded-md text-center font-semibold bg-gray-100"
-                                                                placeholder="-"
-                                                            />
-                                                        </>
-                                                    )}
-                                                </div>
+      <input
+        type="number"
+        min={0}
+        value={scoreInputs[match.match_id]?.away ?? savedPredictions[match.match_id]?.away ?? ''}
+        onChange={(e) => handleScoreChange(match.match_id, 'away', e.target.value)}
+        className="w-9 h-8 border border-black rounded-md text-center font-semibold bg-gray-100"
+        placeholder="-"
+      />
+    </div>
+  )}
+</div>
 
                                                 {/* ── Ligne 1 / Colonne 4 : équipe extérieure ── */}
                                                 {/* ── Équipe extérieure : short mobile, nom complet PC ── */}
