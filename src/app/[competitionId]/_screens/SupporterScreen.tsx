@@ -768,7 +768,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                         return (
                                             <div
                                                 key={match.match_id}
-                                                className="w-full border rounded-lg grid grid-cols-[16%_25%_22%_25%_12%] gap-x-0 gap-y-0 items-center px-0 py-2 sm:px-0"
+                                                className="w-full border rounded-lg grid grid-cols-[12%_26%_24%_26%_12%] gap-x-0 gap-y-0 items-center px-0 py-2 sm:px-0"
                                             >
                                                 {/* ── Ligne 1 / Colonne 1 : date ── */}
                                                 <div className="text-center text-sm border border-red-500">
