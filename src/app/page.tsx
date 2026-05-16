@@ -11,6 +11,7 @@ import RandomPromo from '../components/RandomPromo';
 import { splitCompetitions, CompetitionWithFlags } from "../lib/competitionsGrouping";
 import CompetitionHomeCard from "../components/CompetitionHomeCard";
 import JoinCompetitionModal from "../components/JoinCompetitionModal";
+import PartnerPromo from '../components/PartnerPromo';
 
 
 export default function Home() {
@@ -317,7 +318,10 @@ export default function Home() {
   return (
   <main className="px-4 py-8 max-w-3xl mx-auto">
     {/* Pub PEPS aléatoire */}
-    <RandomPromo />
+    {/*<RandomPromo /> */}
+
+    {/* Pub SportSympathy aléatoire */}
+    <PartnerPromo />  
 
     <div className="space-y-4">
 

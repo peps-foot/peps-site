@@ -25,9 +25,9 @@ export default function CompetitionHomeCard({
       onClick={onClick}
       className={`border rounded-lg shadow-sm hover:shadow-md transition cursor-pointer flex overflow-hidden mb-3 ${
         comp.game_type === "TIERCE"
-          ? "bg-green-50"
-          : comp.game_type === "SUPPORTER"
           ? "bg-orange-50"
+          : comp.game_type === "SUPPORTER"
+          ? "bg-green-50"
           : "bg-blue-50"
       }`}
     >
@@ -35,9 +35,9 @@ export default function CompetitionHomeCard({
       <div
         className={`w-1 flex-shrink-0 ${
           comp.game_type === "TIERCE"
-            ? "bg-green-400"
-            : comp.game_type === "SUPPORTER"
             ? "bg-orange-400"
+            : comp.game_type === "SUPPORTER"
+            ? "bg-green-400"
             : "bg-blue-400"
         }`}
       />
