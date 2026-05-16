@@ -316,7 +316,7 @@ export default function Home() {
 
 
   return (
-  <main className="px-4 py-8 max-w-3xl mx-auto">
+  <main className="px-4 py-4 max-w-3xl mx-auto">
     {/* Pub PEPS aléatoire */}
     {/*<RandomPromo /> */}
 
