@@ -35,6 +35,8 @@ export default function Home() {
   // code pour rejoindre une compet privée
   const [joinCode, setJoinCode] = useState('');
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
+  // Pour l'affichage dans les bannières
+    const [openMine, setOpenMine] = useState(true)
 
   useEffect(() => {
     const check = async () => {
@@ -314,6 +316,15 @@ export default function Home() {
     return "text-gray-700";
   }
 
+  // Pour bannières "mes compétitions"
+  const mineCount = mine.length
+
+  const mineCountText =
+    mineCount === 0
+      ? "Aucune compétition en cours"
+      : mineCount === 1
+      ? "1 compétition en cours"
+      : `${mineCount} compétitions en cours`
 
   return (
   <main className="px-4 py-4 max-w-3xl mx-auto">
@@ -373,36 +384,55 @@ export default function Home() {
       )}
     </div>
 
-    {/* MES COMPÉT' */}
-    <details open className="group rounded-md border">
-      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
-        <div className="flex items-center justify-between">
-          <span className="text-center w-full">🏆 MES COMPÉTITIONS</span>
+    {/* MES COMPÉTITIONS */}
+    <section className="rounded-xl overflow-hidden border shadow-md bg-white">
+      {/* Bannière cliquable */}
+      <button
+        type="button"
+        onClick={() => setOpenMine(!openMine)}
+        className="relative w-full overflow-hidden"
+      >
+        <img
+          src="/images/bannieres/competitions.png"
+          alt="Mes compétitions"
+          className="w-full h-auto block"
+        />
 
-          {/* flèche */}
-          <span className="text-xl transition-transform group-open:rotate-180">
-            ▼
-          </span>
-        </div>
-      </summary>
-      <div className="p-2">
-        {mine.length === 0 && (
-          <p className="px-2 py-1 text-sm text-gray-600">
-            Aucune pour le moment.
+        <div className="absolute inset-0 bg-black/10" />
+
+        <div className="absolute left-4 bottom-4 text-left text-white drop-shadow-md">
+          <p className="text-sm sm:text-base font-bold">
+            {mineCountText}
           </p>
-        )}
-        {sortedMine.map((comp) => (
-          <CompetitionHomeCard
-            key={comp.id}
-            comp={comp}
-            onClick={() => router.push(`/${comp.id}`)}
-            formatDeadline={formatDeadline}
-            getCompetitionStatusText={getCompetitionStatusText}
-            getDeadlineColor={getDeadlineColor}
-          />
-        ))}
-      </div>
-    </details>
+        </div>
+
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-2xl drop-shadow-md">
+          {openMine ? "▲" : "▼"}
+        </div>
+      </button>
+
+      {/* Contenu dans le même rectangle */}
+      {openMine && (
+        <div className="p-2 bg-white">
+          {mine.length === 0 && (
+            <p className="px-2 py-2 text-sm text-gray-600">
+              Aucune pour le moment.
+            </p>
+          )}
+
+          {sortedMine.map((comp) => (
+            <CompetitionHomeCard
+              key={comp.id}
+              comp={comp}
+              onClick={() => router.push(`/${comp.id}`)}
+              formatDeadline={formatDeadline}
+              getCompetitionStatusText={getCompetitionStatusText}
+              getDeadlineColor={getDeadlineColor}
+            />
+          ))}
+        </div>
+      )}
+    </section>
 
     {/* COMPÉTITIONS PUBLIQUES */}
     <details open={sortedToJoin.length > 0} className="group rounded-md border">
