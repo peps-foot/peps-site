@@ -360,7 +360,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/10" />
 
           {dynamicText && (
-            <div className="absolute left-4 bottom-4 text-left text-white drop-shadow-md">
+            <div className="absolute left-4 bottom-2 sm:bottom-3 text-left text-white drop-shadow-md">
               <p className="text-sm sm:text-base font-bold">
                 {dynamicText}
               </p>
@@ -378,7 +378,7 @@ export default function Home() {
   }
 
   return (
-  <main className="px-4 py-4 max-w-3xl mx-auto">
+  <main className="px-4 py-2 max-w-3xl mx-auto">
     {/* Pub PEPS aléatoire */}
     {/*<RandomPromo /> */}
 
