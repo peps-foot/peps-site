@@ -385,7 +385,7 @@ export default function Home() {
     {/* Pub SportSympathy aléatoire */}
     <PartnerPromo />  
 
-    <div className="space-y-4">
+    <div className="space-y-2">
 
     {/* COMMENT JOUER */}
     <BannerAccordion
