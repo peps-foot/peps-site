@@ -472,22 +472,19 @@ export default function Home() {
       </BannerAccordion>
     </section>
 
-    {/* COMPÉTITIONS PUBLIQUES */}
-    <details open={sortedToJoin.length > 0} className="group rounded-md border">
-      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
-        <div className="flex items-center justify-between">
-          <span className="text-center w-full">🌍 COMPÉTITIONS PUBLIQUES</span>
-          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
-        </div>
-      </summary>
-
-      <div className="p-2">
-        {sortedToJoin.length === 0 && (
-          <p className="px-2 py-1 text-sm text-gray-600">
-            Rien à rejoindre pour l’instant.
-          </p>
-        )}
-
+    {/* ── RELÈVE LE DÉFI ── */}
+    {sortedToJoin.length > 0 && (
+      <BannerAccordion
+        image="/images/bannieres/releve_le_defi.png"
+        alt="Relève le défi"
+        open={openPublic}
+        onClick={() => setOpenPublic(!openPublic)}
+        dynamicText={
+          sortedToJoin.length === 1
+            ? "1 compétition disponible"
+            : `${sortedToJoin.length} compétitions disponibles`
+        }
+      >
         {sortedToJoin.slice(0, 3).map((comp) => (
           <CompetitionHomeCard
             key={comp.id}
@@ -508,18 +505,16 @@ export default function Home() {
             Voir toutes les compétitions publiques
           </button>
         )}
-      </div>
-    </details>
+      </BannerAccordion>
+    )}
 
-    {/* ENTRE POTES */}
-    <details className="group rounded-md border">
-      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
-        <div className="flex items-center justify-between">
-          <span className="text-center w-full">🔒 ENTRE POTES</span>
-          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
-        </div>
-      </summary>
-
+    {/* ── ENTRE POTES ── */}
+    <BannerAccordion
+      image="/images/bannieres/entre_potes.png"
+      alt="Entre potes"
+      open={openFriends}
+      onClick={() => setOpenFriends(!openFriends)}
+    >
       <div className="p-3 space-y-4">
 
         {/* CRÉER UNE COMPÉT */}
@@ -556,68 +551,74 @@ export default function Home() {
           </div>
 
           {joinCodeError && (
-            <p className="pt-1 text-xs text-red-600">{joinCodeError}</p>
+            <p className="pt-1 text-xs text-red-600">
+              {joinCodeError}
+            </p>
           )}
         </div>
 
       </div>
-    </details>
+    </BannerAccordion>
 
-    {/* MODE SUPPORTER */}
-    <details className="group rounded-md border">
-      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
-        <div className="flex items-center justify-between">
-          <span className="text-center w-full">📣 MODE SUPPORTER</span>
-          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
+    {/* ── ENTRE SUPPORTERS ── */}
+    {supporterToJoin.length > 0 && (
+      <BannerAccordion
+        image="/images/bannieres/entre_supporters.png"
+        alt="Entre supporters"
+        open={openSupporters}
+        onClick={() => setOpenSupporters(!openSupporters)}
+        dynamicText={
+          supporterToJoin.length === 1
+            ? "1 compétition supporter disponible"
+            : `${supporterToJoin.length} compétitions supporter disponibles`
+        }
+      >
+        <div className="p-2 bg-white">
+          {supporterToJoin.map((comp) => (
+            <CompetitionHomeCard
+              key={comp.id}
+              comp={comp}
+              onClick={() => handleJoinPublicCompetition(comp)}
+              formatDeadline={formatDeadline}
+              getCompetitionStatusText={getCompetitionStatusText}
+              getDeadlineColor={getDeadlineColor}
+            />
+          ))}
         </div>
-      </summary>
+      </BannerAccordion>
+    )}
 
-      {supporterToJoin.length === 0 ? (
-        <p className="text-sm text-gray-700 leading-5">
-          Aucune compétition SUPPORTER disponible pour l’instant.
+    {/* ── ARCHIVES PEPS ── */}
+    <BannerAccordion
+      image="/images/bannieres/archives_peps.png"
+      alt="Archives PEPS"
+      open={openArchives}
+      onClick={() => setOpenArchives(!openArchives)}
+      dynamicText={
+        history.length === 0
+          ? "Aucune compétition terminée"
+          : history.length === 1
+          ? "1 compétition terminée"
+          : `${history.length} compétitions terminées`
+      }
+    >
+      {history.length === 0 && (
+        <p className="px-2 py-2 text-sm text-gray-600">
+          Aucune compétition terminée.
         </p>
-      ) : (
-        supporterToJoin.map((comp) => (
-          <CompetitionHomeCard
-            key={comp.id}
-            comp={comp}
-            onClick={() => handleJoinPublicCompetition(comp)}
-            formatDeadline={formatDeadline}
-            getCompetitionStatusText={getCompetitionStatusText}
-            getDeadlineColor={getDeadlineColor}
-          />
-        ))
       )}
-    </details>
 
-    {/* ANCIENNES COMPÉTITIONS */}
-    <details className="group rounded-md border">
-      <summary className="list-none cursor-pointer px-4 py-3 font-semibold">
-        <div className="flex items-center justify-between">
-          <span className="text-center w-full">🕘 ANCIENNES COMPÉTITIONS</span>
-          <span className="text-xl transition-transform group-open:rotate-180">▼</span>
-        </div>
-      </summary>
-
-      <div className="p-2">
-        {history.length === 0 && (
-          <p className="px-2 py-1 text-sm text-gray-600">
-            Aucune compétition terminée.
-          </p>
-        )}
-
-        {history.map((comp) => (
-          <CompetitionHomeCard
-            key={comp.id}
-            comp={comp}
-            onClick={() => router.push(`/${comp.id}`)}
-            formatDeadline={formatDeadline}
-            getCompetitionStatusText={getCompetitionStatusText}
-            getDeadlineColor={getDeadlineColor}
-          />
-        ))}
-      </div>
-    </details>
+      {history.map((comp) => (
+        <CompetitionHomeCard
+          key={comp.id}
+          comp={comp}
+          onClick={() => router.push(`/${comp.id}`)}
+          formatDeadline={formatDeadline}
+          getCompetitionStatusText={getCompetitionStatusText}
+          getDeadlineColor={getDeadlineColor}
+        />
+      ))}
+    </BannerAccordion>
 
     {/* POP UP VALIDATION COMPET */}
     <JoinCompetitionModal

@@ -39,7 +39,7 @@ return (
       </div>
 
       <div className="text-sm text-gray-600 leading-tight text-justify">
-        Le clavier pour supporters avec + de 5000 stickers sport.
+        Le clavier avec + de 5000 stickers.
       </div>
 
       <div className="grid grid-cols-2 gap-2 pt-1 max-w-xs">
