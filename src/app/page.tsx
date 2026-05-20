@@ -27,8 +27,6 @@ export default function Home() {
   const [statuses, setStatuses] = useState<Map<string, {label: string; color: "blue"|"green"|"gray"; isActiveRank: boolean}>>(new Map());
   const [ready, setReady] = useState(false);
   const { mine, toJoin, history } = groups;
-  // état local (à mettre avec tes autres useState)
-  const [openTuto, setOpenTuto] = useState(false);
   //pop-up pour rejoindre une compet publique
   const [selectedComp, setSelectedComp] = useState<Competition | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -36,7 +34,12 @@ export default function Home() {
   const [joinCode, setJoinCode] = useState('');
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
   // Pour l'affichage dans les bannières
-    const [openMine, setOpenMine] = useState(true)
+  const [openMine, setOpenMine] = useState(false)
+  const [openTuto, setOpenTuto] = useState(false)
+  const [openPublic, setOpenPublic] = useState(false)
+  const [openFriends, setOpenFriends] = useState(false)
+  const [openSupporters, setOpenSupporters] = useState(false)
+  const [openArchives, setOpenArchives] = useState(false)
 
   useEffect(() => {
     const check = async () => {
@@ -325,6 +328,54 @@ export default function Home() {
       : mineCount === 1
       ? "1 compétition en cours"
       : `${mineCount} compétitions en cours`
+  
+  function BannerAccordion({
+    image,
+    alt,
+    open,
+    onClick,
+    dynamicText,
+    children,
+  }: {
+    image: string
+    alt: string
+    open: boolean
+    onClick: () => void
+    dynamicText?: string
+    children: React.ReactNode
+  }) {
+    return (
+      <section className="rounded-xl overflow-hidden border shadow-md bg-white">
+        <button
+          type="button"
+          onClick={onClick}
+          className="relative w-full overflow-hidden block"
+        >
+          <img
+            src={image}
+            alt={alt}
+            className="w-full h-auto block"
+          />
+
+          <div className="absolute inset-0 bg-black/10" />
+
+          {dynamicText && (
+            <div className="absolute left-4 bottom-4 text-left text-white drop-shadow-md">
+              <p className="text-sm sm:text-base font-bold">
+                {dynamicText}
+              </p>
+            </div>
+          )}
+        </button>
+
+        {open && (
+          <div className="p-2 bg-white">
+            {children}
+          </div>
+        )}
+      </section>
+    )
+  }
 
   return (
   <main className="px-4 py-4 max-w-3xl mx-auto">
@@ -336,102 +387,89 @@ export default function Home() {
 
     <div className="space-y-4">
 
-    {/* ── COMMENT JOUER ── */}
-    <div className="border rounded-lg ">
-      <button
-        type="button"
-        onClick={() => setOpenTuto(!openTuto)}
-        className="w-full flex items-center justify-between px-4 py-3"
-      >
-        <span className="font-semibold text-center w-full">
-          ⚡ COMMENT JOUER ?
-        </span>
-        <span className="text-xl">{openTuto ? '▲' : '▼'}</span>
-      </button>
+    {/* COMMENT JOUER */}
+    <BannerAccordion
+      image="/images/bannieres/comment_jouer.png"
+      alt="Comment jouer"
+      open={openTuto}
+      onClick={() => setOpenTuto(!openTuto)}
+    >
+      <div className="px-4 pb-4">
+        <div className="space-y-2 text-sm leading-6">
 
-      {openTuto && (
-        <div className="px-4 pb-4">
-          <div className="space-y-2 text-sm leading-6">
-
-            <div>
-              <span className="font-semibold">1. 🎮 Choisis ton style de jeu</span>
-            </div>
-
-            <div className="pl-4 space-y-1">
-              <div>✖️ <span className="font-semibold">1N2</span> : pronostique victoire, nul ou défaite</div>
-              <div>🚀 <span className="font-semibold">TIERCÉ</span> : choisis 3 équipes qui vont performer</div>
-              <div>❤️ <span className="font-semibold">SUPPORTER</span> : joue avec ton équipe favorite</div>
-            </div>
-
-            <div>
-              <span className="font-semibold">2. 🏆 Clique sur une compétition pour jouer</span>
-            </div>
-
-            <div>
-              <span className="font-semibold">3. 📊 Grimpe au classement et amuse-toi</span>
-            </div>
-
+          <div>
+            <span className="font-semibold">
+              1. 🎮 Choisis ton style de jeu
+            </span>
           </div>
 
-          <p className="mt-2 text-xs text-center text-gray-500">
-            🔥 Modes tournoi : Koh Lanta, Terminator… survivras-tu ?
-          </p>
+          <div className="pl-4 space-y-1">
+            <div>
+              ✖️ <span className="font-semibold">1N2</span> :
+              pronostique victoire, nul ou défaite
+            </div>
 
-          <p className="mt-3 text-xs text-center text-gray-500">
-            👉 Règles complètes en haut à droite
-          </p>
+            <div>
+              🚀 <span className="font-semibold">TIERCÉ</span> :
+              choisis 3 équipes qui vont performer
+            </div>
+
+            <div>
+              ❤️ <span className="font-semibold">SUPPORTER</span> :
+              joue avec ton équipe favorite
+            </div>
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              2. 🏆 Clique sur une compétition pour jouer
+            </span>
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              3. 📊 Grimpe au classement et amuse-toi
+            </span>
+          </div>
+
         </div>
-      )}
-    </div>
+
+        <p className="mt-2 text-xs text-center text-gray-500">
+          🔥 Modes tournoi : Koh Lanta, Terminator… survivras-tu ?
+        </p>
+
+        <p className="mt-3 text-xs text-center text-gray-500">
+          👉 Règles complètes en haut à droite
+        </p>
+      </div>
+    </BannerAccordion>
 
     {/* MES COMPÉTITIONS */}
     <section className="rounded-xl overflow-hidden border shadow-md bg-white">
-      {/* Bannière cliquable */}
-      <button
-        type="button"
+      <BannerAccordion
+        image="/images/bannieres/mes_competitions.png"
+        alt="Mes compétitions"
+        open={openMine}
         onClick={() => setOpenMine(!openMine)}
-        className="relative w-full overflow-hidden"
+        dynamicText={mineCountText}
       >
-        <img
-          src="/images/bannieres/competitions.png"
-          alt="Mes compétitions"
-          className="w-full h-auto block"
-        />
-
-        <div className="absolute inset-0 bg-black/10" />
-
-        <div className="absolute left-4 bottom-4 text-left text-white drop-shadow-md">
-          <p className="text-sm sm:text-base font-bold">
-            {mineCountText}
+        {mine.length === 0 && (
+          <p className="px-2 py-2 text-sm text-gray-600">
+            Aucune pour le moment.
           </p>
-        </div>
+        )}
 
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-2xl drop-shadow-md">
-          {openMine ? "▲" : "▼"}
-        </div>
-      </button>
-
-      {/* Contenu dans le même rectangle */}
-      {openMine && (
-        <div className="p-2 bg-white">
-          {mine.length === 0 && (
-            <p className="px-2 py-2 text-sm text-gray-600">
-              Aucune pour le moment.
-            </p>
-          )}
-
-          {sortedMine.map((comp) => (
-            <CompetitionHomeCard
-              key={comp.id}
-              comp={comp}
-              onClick={() => router.push(`/${comp.id}`)}
-              formatDeadline={formatDeadline}
-              getCompetitionStatusText={getCompetitionStatusText}
-              getDeadlineColor={getDeadlineColor}
-            />
-          ))}
-        </div>
-      )}
+        {sortedMine.map((comp) => (
+          <CompetitionHomeCard
+            key={comp.id}
+            comp={comp}
+            onClick={() => router.push(`/${comp.id}`)}
+            formatDeadline={formatDeadline}
+            getCompetitionStatusText={getCompetitionStatusText}
+            getDeadlineColor={getDeadlineColor}
+          />
+        ))}
+      </BannerAccordion>
     </section>
 
     {/* COMPÉTITIONS PUBLIQUES */}
