@@ -361,7 +361,7 @@ export default function Home() {
 
           {dynamicText && (
             <div className="absolute left-4 bottom-2 sm:bottom-3 text-left text-white drop-shadow-md">
-              <p className="text-sm sm:text-base font-bold">
+              <p className="text-xs sm:text-sm font-bold">
                 {dynamicText}
               </p>
             </div>
@@ -569,8 +569,8 @@ export default function Home() {
         onClick={() => setOpenSupporters(!openSupporters)}
         dynamicText={
           supporterToJoin.length === 1
-            ? "1 compétition supporter disponible"
-            : `${supporterToJoin.length} compétitions supporter disponibles`
+            ? "1 compétition disponible"
+            : `${supporterToJoin.length} compétitions disponibles`
         }
       >
         <div className="p-2 bg-white">
