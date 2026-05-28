@@ -33,33 +33,35 @@ return (
     </div>
 
     {/* CONTENU */}
-    <div className="flex-1 px-3 py-2 flex flex-col gap-1">
-      <div className="font-semibold text-base leading-tight">
+    <div className="flex-1 -ml-4 px-3 py-2 flex flex-col gap-1">
+      <div className="font-semibold text-base leading-tight text-center">
         🎉 Découvre Sportsympathy
       </div>
 
-      <div className="text-sm text-gray-600 leading-tight text-justify">
+      <div className="text-sm text-gray-600 leading-tight text-center">
         Le clavier avec + de 5000 stickers.
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-1 max-w-xs">
-        <a
-          href="https://play.google.com/store/apps/details?id=com.sportsympathy.sportsympathy&hl=fr"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white text-center"
-        >
-          Android
-        </a>
+      <div className="flex justify-center pt-1">
+        <div className="grid grid-cols-2 gap-2 w-full max-w-xs">
+          <a
+            href="https://play.google.com/store/apps/details?id=com.sportsympathy.sportsympathy&hl=fr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white text-center"
+          >
+            Android
+          </a>
 
-        <a
-          href="https://apps.apple.com/fr/app/sportsympathy/id6504397730"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white text-center"
-        >
-          iOS
-        </a>
+          <a
+            href="https://apps.apple.com/fr/app/sportsympathy/id6504397730"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full bg-black px-3 py-1.5 text-xs font-semibold text-white text-center"
+          >
+            iOS
+          </a>
+        </div>
       </div>
     </div>
   </div>

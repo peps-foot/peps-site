@@ -379,13 +379,13 @@ export default function Home() {
 
   return (
   <main className="px-4 py-2 max-w-3xl mx-auto">
+    <div className="space-y-2">
+
     {/* Pub PEPS aléatoire */}
     {/*<RandomPromo /> */}
 
     {/* Pub SportSympathy aléatoire */}
     <PartnerPromo />  
-
-    <div className="space-y-2">
 
     {/* COMMENT JOUER */}
     <BannerAccordion
@@ -594,13 +594,6 @@ export default function Home() {
       alt="Archives PEPS"
       open={openArchives}
       onClick={() => setOpenArchives(!openArchives)}
-      dynamicText={
-        history.length === 0
-          ? "Aucune compétition terminée"
-          : history.length === 1
-          ? "1 compétition terminée"
-          : `${history.length} compétitions terminées`
-      }
     >
       {history.length === 0 && (
         <p className="px-2 py-2 text-sm text-gray-600">

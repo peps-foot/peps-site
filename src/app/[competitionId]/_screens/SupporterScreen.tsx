@@ -605,10 +605,10 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
     }
 
     return (
-        <main className="w-full px-2 sm:px-4 py-8">
+        <main className="w-full px-2 sm:px-4 py-3 sm:py-6">
 
             {/* ── Carroussel pour les mois ── */}
-            <div className="border border-white/20 rounded-lg p-4 flex items-center justify-center gap-4 mb-4">
+            <div className="border rounded-lg py-3 px-4 flex items-center justify-center gap-4 mb-3">
                 <button
                     onClick={prevMonth}
                     disabled={months.length === 0 || currentMonthIdx === 0}
@@ -637,7 +637,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
             </div>
 
             {/* ── Zone info avec les pastilles qui mènent aux vues ── */}
-            <div className="border border-white/20 rounded-lg p-4 flex items-center justify-center gap-4 mb-4">
+            <div className="border rounded-lg py-3 px-2 flex items-center justify-center gap-4 mb-3">
                 {/* 1) Pronostics */}
                 <button
                     onClick={() => setView('pronostics')}
@@ -742,7 +742,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
             {/* ── Vue PRONOSTICS : zone matchs + zone bonus ── */}
             {view === 'pronostics' && (
-                <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'pronostics' ? 'hidden' : ''}`}>
+                <div className={`flex flex-col lg:flex-row gap-2 lg:gap-6 ${view !== 'pronostics' ? 'hidden' : ''}`}>
 
                     {/* ── Colonne gauche : matchs du mois, 2/3 sur grand écran ── */}
                     <div className="w-full lg:w-2/3">
@@ -771,7 +771,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                 className="w-full border rounded-lg grid grid-cols-[12%_26%_24%_26%_12%] gap-x-0 gap-y-0 items-center px-0 py-1 sm:px-0"
                                             >
                                                 {/* ── Ligne 1 / Colonne 1 : date ── */}
-                                                <div className="text-center text-sm border border-red-500">
+                                                <div className="text-center text-sm">
                                                     {new Date(match.match_date).toLocaleDateString('fr-FR', {
                                                         day: '2-digit',
                                                         month: '2-digit',
@@ -784,13 +784,13 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 2 : équipe domicile ── */}
                                                 {/* ── Équipe domicile : short mobile, nom complet PC ── */}
-                                                <div className="text-center text-sm border border-red-500">
+                                                <div className="text-center text-sm">
                                                     <span className="sm:hidden">{match.short_name_home ?? match.home_team}</span>
                                                     <span className="hidden sm:inline">{match.home_team}</span>
                                                 </div>
 
                                                 {/* ── Ligne 1 / Colonnes 3-4 : saisie score ou score réel ── */}
-                                                <div className="text-center text-sm border border-red-500">
+                                                <div className="text-center text-sm">
                                                 {isLocked ? (
                                                     savedPrediction ? (
                                                     <div className="flex items-center justify-center gap-1">
@@ -836,13 +836,13 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 4 : équipe extérieure ── */}
                                                 {/* ── Équipe extérieure : short mobile, nom complet PC ── */}
-                                                <div className="text-center text-sm border border-red-500">
+                                                <div className="text-center text-sm">
                                                     <span className="sm:hidden">{match.short_name_away ?? match.away_team}</span>
                                                     <span className="hidden sm:inline">{match.away_team}</span>
                                                 </div>
 
                                                 {/* ── Ligne 1 / Colonne 5 : VAR / bonus futur ── */}
-                                                <div className="text-center text-sm border border-red-500">
+                                                <div className="text-center text-sm">
                                                     <button className="focus:outline-none">
                                                         <img
                                                         src={
@@ -906,13 +906,21 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 2 / Colonne 5 : coche validée ou points ── */}
                                                 <div className="text-center text-sm">
-                                                    {isLocked ? (
-                                                        `${pointsByMatch[match.match_id] ?? 0} pts`
-                                                    ) : savedPrediction ? (
-                                                        <span className="text-green-600 font-bold text-lg">✓</span>
-                                                    ) : (
-                                                        ''
-                                                    )}
+                                                {isLocked ? (
+                                                    <span
+                                                    className={
+                                                        (pointsByMatch[match.match_id] ?? 0) > 0
+                                                        ? 'text-green-600 font-semibold'
+                                                        : 'text-red-600 font-semibold'
+                                                    }
+                                                    >
+                                                    {pointsByMatch[match.match_id] ?? 0}
+                                                    </span>
+                                                ) : savedPrediction ? (
+                                                    <span className="text-green-600 font-bold text-lg">✓</span>
+                                                ) : (
+                                                    ''
+                                                )}
                                                 </div>
                                             </div>
                                         );
@@ -924,7 +932,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                     {/* ── Colonne droite : bonus, 1/3 sur grand écran et dessous sur mobile ── */}
                     {/* ── ZONE BONUS SUPPORTER ── */}
-                    <div className="w-full lg:w-1/3 space-y-4">
+                    <div className="w-full lg:w-1/3 space-y-2">
 
                     {/* ── Accordéon BONUS ── */}
                     <div className="border rounded-lg overflow-hidden">
@@ -948,7 +956,9 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                         {openBonus && (
                         <div className="px-1 pb-4 space-y-3">
 
-                            {supporterBonusDefs.map((bonus) => {
+                            {supporterBonusDefs
+                            .filter((bonus) => bonus.max_per_user > 0)
+                            .map((bonus) => {
 
                             const usedCount = supporterBonuses.filter(
                                 (b) => b.bonus_definition === bonus.id

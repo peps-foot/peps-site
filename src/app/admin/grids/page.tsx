@@ -45,9 +45,13 @@ type CompetRow = {
   description: string | null;
   mode: 'CLASSIC' | 'TOURNOI' | null;
   kind: 'PUBLIC' | 'PRIVATE' | null;
-  game_type: 'GRID' | 'TIERCE' | null;
+  game_type: 'GRID' | 'TIERCE' | 'SUPPORTER' | null;
   xp_enabled: boolean | null;
   created_at: string;
+  supporter_team_id?: number | null;
+  supporter_date_start?: string | null;
+  supporter_date_end?: string | null;
+  supporter_league_ids?: number[] | null;
 };
 type TierceTicket = {
   id: string;
@@ -56,12 +60,18 @@ type TierceTicket = {
   created_at: string;
   competition_id: string | null;
 };
+type TeamOption = {
+  id: number;
+  name: string;
+  short_name: string | null;
+  logo: string | null;
+};
 
 export default function AdminGridsPage() {
   const supabase = useSupabase()
   // --- Onglets CRUD ---
   const [tab, setTab] = useState<
-    'create' | 'list' | 'compet' | 'competList' | 'push' | 'xp' | 'eliminations' | 'boosts' | 'tierceCreate' | 'tierceList' | 'attendance'
+    'create' | 'list' | 'compet' | 'competList' | 'push' | 'xp' | 'eliminations' | 'boosts' | 'tierceCreate' | 'tierceList' | 'attendance' | 'supporterCreate'
   >('create');
 
   // États pour création/édition compétition
@@ -192,7 +202,20 @@ export default function AdminGridsPage() {
     (async () => {
       const { data, error } = await supabase
         .from('competitions')
-        .select('id,name,description,mode,kind,game_type,xp_enabled,created_at')
+        .select(`
+          id,
+          name,
+          description,
+          mode,
+          kind,
+          game_type,
+          xp_enabled,
+          created_at,
+          supporter_team_id,
+          supporter_date_start,
+          supporter_date_end,
+          supporter_league_ids
+        `)
         .order('created_at', { ascending: false });
 
       if (!error && data) {
@@ -757,23 +780,179 @@ export default function AdminGridsPage() {
     }
   };
 
+  // ── Admin SUPPORTER : création / modification ──
+  const [editingSupporterId, setEditingSupporterId] = useState<string | null>(null);
+
+  const [supporterTeams, setSupporterTeams] = useState<TeamOption[]>([]);
+
+  const [supporterName, setSupporterName] = useState('');
+  const [supporterTeamId, setSupporterTeamId] = useState('');
+  const [supporterDateStart, setSupporterDateStart] = useState('');
+  const [supporterDateEnd, setSupporterDateEnd] = useState('');
+
+  const [supporterLeagueIds, setSupporterLeagueIds] = useState<number[]>([
+    61,
+    66,
+  ]);
+
+  const [supporterHatTrickMax, setSupporterHatTrickMax] = useState(1);
+  const [supporterDoubleContactMax, setSupporterDoubleContactMax] = useState(1);
+  const [supporterPoteauRentrantMax, setSupporterPoteauRentrantMax] = useState(1);
+
+  // ── Charger les équipes pour le formulaire SUPPORTER ──
+  useEffect(() => {
+    async function loadSupporterTeams() {
+      const { data, error } = await supabase
+        .from('teams')
+        .select('id, name, short_name, logo')
+        .order('short_name', { ascending: true });
+
+      if (error) {
+        console.error('Erreur chargement teams:', error);
+        return;
+      }
+
+      setSupporterTeams((data || []) as TeamOption[]);
+    }
+
+    loadSupporterTeams();
+  }, []);
+
+  // ── Créer ou modifier une compétition SUPPORTER ──
+  async function handleSaveSupporterCompetition() {
+    if (!supporterName.trim()) {
+      alert('Nom de compétition obligatoire.');
+      return;
+    }
+
+    if (!supporterTeamId) {
+      alert('Choisis une équipe.');
+      return;
+    }
+
+    if (!supporterDateStart || !supporterDateEnd) {
+      alert('Choisis les deux dates.');
+      return;
+    }
+
+    if (supporterLeagueIds.length === 0) {
+      alert('Choisis au moins une compétition autorisée.');
+      return;
+    }
+
+    const teamId = Number(supporterTeamId);
+
+    const payload = {
+      name: supporterName.trim(),
+      mode: 'CLASSIC',
+      kind: 'PUBLIC',
+      game_type: 'SUPPORTER',
+      xp_enabled: false,
+      supporter_team_id: teamId,
+      supporter_date_start: supporterDateStart,
+      supporter_date_end: supporterDateEnd,
+      supporter_league_ids: supporterLeagueIds,
+      icon: `images/teams/${teamId}.png`,
+    };
+
+    let competitionIdToUse = editingSupporterId;
+
+    if (editingSupporterId) {
+      const { error } = await supabase
+        .from('competitions')
+        .update(payload)
+        .eq('id', editingSupporterId);
+
+      if (error) {
+        alert('Erreur modification compétition.');
+        console.error(error);
+        return;
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('competitions')
+        .insert(payload)
+        .select('id')
+        .single();
+
+      if (error || !data) {
+        alert('Erreur création compétition.');
+        console.error(error);
+        return;
+      }
+
+      competitionIdToUse = data.id;
+    }
+
+    // ── Réinitialiser les caps bonus SUPPORTER ──
+    await supabase
+      .from('competition_bonus_caps')
+      .delete()
+      .eq('competition_id', competitionIdToUse)
+      .in('bonus_definition', [
+        'ff638eab-255e-4ffa-bed5-b58db8768394', // HAT_TRICK
+        '02ad7037-8fd5-4883-9bcf-6df3a90ada1f', // DOUBLE_CONTACT
+        'a0383b44-ff16-473b-be73-6e8d2b6878ef', // POTEAU_RENTRANT
+      ]);
+
+    const bonusCapsToInsert = [
+      {
+        bonus_definition: 'ff638eab-255e-4ffa-bed5-b58db8768394',
+        max_per_user: supporterHatTrickMax,
+      },
+      {
+        bonus_definition: '02ad7037-8fd5-4883-9bcf-6df3a90ada1f',
+        max_per_user: supporterDoubleContactMax,
+      },
+      {
+        bonus_definition: 'a0383b44-ff16-473b-be73-6e8d2b6878ef',
+        max_per_user: supporterPoteauRentrantMax,
+      },
+    ].filter((b) => b.max_per_user > 0);
+
+    if (bonusCapsToInsert.length > 0) {
+      const { error: capsError } = await supabase
+        .from('competition_bonus_caps')
+        .insert(
+          bonusCapsToInsert.map((b) => ({
+            competition_id: competitionIdToUse,
+            bonus_definition: b.bonus_definition,
+            max_per_user: b.max_per_user,
+          }))
+        );
+
+      if (capsError) {
+        alert('Compétition créée/modifiée, mais erreur sur les bonus.');
+        console.error(capsError);
+        return;
+      }
+    }
+
+    alert(
+      editingSupporterId
+        ? 'Compétition SUPPORTER modifiée.'
+        : 'Compétition SUPPORTER créée.'
+    );
+  }
+
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Onglets */}
-      <div className="flex border-b mb-6">
+      <div className="flex flex-wrap justify-center border-b mb-6 gap-x-2">
         <button className={`px-4 py-2 -mb-px ${tab==='create'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('create')}>
           {gridId?'Modifier une grille':'Créer grille'}
         </button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='list'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('list')}>Liste Grilles</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='compet'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('compet')}>Créer compét</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='competList'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('competList')}>Liste compét</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='push' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('push')} >Envoyer Notif</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='xp' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('xp')} >Donner XP</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='eliminations' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('eliminations')}>Créer Éliminé</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='boosts' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('boosts')}>Donner Boosts</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='tierceCreate' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}  onClick={() => setTab('tierceCreate')} >Créer Ticket</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='tierceList' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}  onClick={() => setTab('tierceList')} >Liste Tickets</button>
-        <button className={`px-4 py-2 ml-4 -mb-px ${tab==='attendance' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}  onClick={() => setTab('attendance')} >Affluences</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='list'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('list')}>Liste Grilles</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='compet'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('compet')}>Créer compét</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='competList'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('competList')}>Liste compét</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='push' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('push')} >Envoyer Notif</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='xp' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('xp')} >Donner XP</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='eliminations' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('eliminations')}>Créer Éliminé</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='boosts' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('boosts')}>Donner Boosts</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='tierceCreate' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('tierceCreate')} >Créer Ticket</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='tierceList' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('tierceList')} >Liste Tickets</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab==='attendance' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('attendance')} >Affluences</button>
+        <button className={`px-4 py-2 mb-px text-center ${tab=== 'supporterCreate'? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`} onClick={() => setTab('supporterCreate')}>Créer Supporter</button>
       </div>
 
       {/* Création / Modification Grille */}
@@ -915,19 +1094,19 @@ export default function AdminGridsPage() {
 
           {/* Bonus autorisés */}
           <div>
-<div className="flex items-center justify-between mb-2">
-  <p className="font-medium">Bonus autorisés</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-medium">Bonus autorisés</p>
 
-  <label className="inline-flex items-center text-sm cursor-pointer">
-    <input
-      type="checkbox"
-      checked={allBonusesChecked}
-      onChange={toggleAllBonuses}
-      className="form-checkbox h-4 w-4 text-blue-600"
-    />
-    <span className="ml-2">Tout cocher</span>
-  </label>
-</div>
+              <label className="inline-flex items-center text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allBonusesChecked}
+                  onChange={toggleAllBonuses}
+                  className="form-checkbox h-4 w-4 text-blue-600"
+                />
+                <span className="ml-2">Tout cocher</span>
+              </label>
+            </div>
             <div className="flex flex-wrap gap-4">
               {bonusDefs.map((b) => (
                 <label
@@ -1210,6 +1389,81 @@ export default function AdminGridsPage() {
                       <div className="space-x-2">
                       <button
                         onClick={async () => {
+
+                          // ─────────────────────────────
+                          // CAS SUPPORTER
+                          // ─────────────────────────────
+                          if (c.game_type === 'SUPPORTER') {
+
+                            setTab('supporterCreate');
+
+                            setEditingSupporterId(c.id);
+
+                            setSupporterName(c.name || '');
+
+                            setSupporterTeamId(
+                              String(c.supporter_team_id ?? '')
+                            );
+
+                            setSupporterDateStart(
+                              c.supporter_date_start || ''
+                            );
+
+                            setSupporterDateEnd(
+                              c.supporter_date_end || ''
+                            );
+
+                            setSupporterLeagueIds(
+                              c.supporter_league_ids || []
+                            );
+
+                            const { data: caps, error: capsErr } = await supabase
+                              .from('competition_bonus_caps')
+                              .select('bonus_definition,max_per_user')
+                              .eq('competition_id', c.id);
+
+                            if (capsErr) {
+                              console.error(capsErr);
+                              return;
+                            }
+
+                            setSupporterHatTrickMax(
+                              Number(
+                                caps?.find(
+                                  (x) =>
+                                    x.bonus_definition ===
+                                    'ff638eab-255e-4ffa-bed5-b58db8768394'
+                                )?.max_per_user ?? 0
+                              )
+                            );
+
+                            setSupporterDoubleContactMax(
+                              Number(
+                                caps?.find(
+                                  (x) =>
+                                    x.bonus_definition ===
+                                    '02ad7037-8fd5-4883-9bcf-6df3a90ada1f'
+                                )?.max_per_user ?? 0
+                              )
+                            );
+
+                            setSupporterPoteauRentrantMax(
+                              Number(
+                                caps?.find(
+                                  (x) =>
+                                    x.bonus_definition ===
+                                    'a0383b44-ff16-473b-be73-6e8d2b6878ef'
+                                )?.max_per_user ?? 0
+                              )
+                            );
+
+                            return;
+                          }
+
+                          // ─────────────────────────────
+                          // CAS GRID / TIERCE EXISTANT
+                          // ─────────────────────────────
+
                           setTab('compet');
                           setMessageCompet(null);
 
@@ -1238,12 +1492,15 @@ export default function AdminGridsPage() {
                           }
 
                           const capsMap: Record<string, string> = {};
+
                           (caps || []).forEach((row) => {
                             capsMap[row.bonus_definition] = String(row.max_per_user);
                           });
+
                           setCompetBonusCaps(capsMap);
 
                           if (c.game_type === 'TIERCE') {
+
                             const { data: links, error: linksErr } = await supabase
                               .from('competition_tickets')
                               .select('ticket_id')
@@ -1255,8 +1512,12 @@ export default function AdminGridsPage() {
                               return;
                             }
 
-                            setSelCompetTickets(links?.map(x => x.ticket_id) || []);
+                            setSelCompetTickets(
+                              links?.map(x => x.ticket_id) || []
+                            );
+
                           } else {
+
                             const { data: links, error: linksErr } = await supabase
                               .from('competition_grids')
                               .select('grid_id')
@@ -1268,7 +1529,9 @@ export default function AdminGridsPage() {
                               return;
                             }
 
-                            setSelCompetGrids(links?.map(x => x.grid_id) || []);
+                            setSelCompetGrids(
+                              links?.map(x => x.grid_id) || []
+                            );
                           }
                         }}
                         className="px-3 py-1 border rounded hover:bg-gray-100"
@@ -1561,6 +1824,201 @@ export default function AdminGridsPage() {
       {tab === 'attendance' && (
         <div className="mt-6">
           <AdminAttendancePanel />
+        </div>
+      )}
+
+      {/* ── Création / modification compétition SUPPORTER ── */}
+      {tab === 'supporterCreate' && (
+        <div className="space-y-6">
+
+          {/* ── Titre ── */}
+          <h2 className="text-2xl font-bold">
+            {editingSupporterId
+              ? 'Modifier compétition SUPPORTER'
+              : 'Créer compétition SUPPORTER'}
+          </h2>
+
+          {/* ── Nom compétition ── */}
+          <div>
+            <label className="block mb-1 font-medium">
+              Nom compétition
+            </label>
+
+            <input
+              type="text"
+              value={supporterName}
+              onChange={(e) => setSupporterName(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              placeholder="Ex : PSG - Printemps 2026"
+            />
+          </div>
+
+          {/* ── Équipe supportée ── */}
+          <div>
+            <label className="block mb-1 font-medium">
+              Équipe
+            </label>
+
+            <select
+              value={supporterTeamId}
+              onChange={(e) => setSupporterTeamId(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="">Choisir une équipe</option>
+
+              {supporterTeams.map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.short_name ?? team.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* ── Dates ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div>
+              <label className="block mb-1 font-medium">
+                Date début
+              </label>
+
+              <input
+                type="date"
+                value={supporterDateStart}
+                onChange={(e) => setSupporterDateStart(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-1 font-medium">
+                Date fin
+              </label>
+
+              <input
+                type="date"
+                value={supporterDateEnd}
+                onChange={(e) => setSupporterDateEnd(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+          </div>
+
+          {/* ── Leagues autorisées ── */}
+          <div>
+            <label className="block mb-2 font-medium">
+              Compétitions autorisées
+            </label>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+
+              {[
+                { id: 1, name: 'CDM' },
+                { id: 2, name: 'LDC' },
+                { id: 3, name: 'Europa' },
+                { id: 61, name: 'Ligue 1' },
+                { id: 66, name: 'CDF' },
+                { id: 848, name: 'Conference' },
+                { id: 531, name: 'Supercoupe' },
+                { id: 526, name: 'Coupe' },
+              ].map((league) => (
+                <label
+                  key={league.id}
+                  className="flex items-center gap-2 border rounded px-2 py-2"
+                >
+                  <input
+                    type="checkbox"
+                    checked={supporterLeagueIds.includes(league.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSupporterLeagueIds([
+                          ...supporterLeagueIds,
+                          league.id,
+                        ]);
+                      } else {
+                        setSupporterLeagueIds(
+                          supporterLeagueIds.filter(
+                            (id) => id !== league.id
+                          )
+                        );
+                      }
+                    }}
+                  />
+
+                  <span>{league.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Bonus max ── */}
+          <div>
+            <label className="block mb-2 font-medium">
+              Bonus maximum
+            </label>
+
+            <div className="space-y-3">
+
+              {/* Hat Trick */}
+              <div className="flex items-center justify-between border rounded px-3 py-2">
+                <span>Hat Trick</span>
+
+                <input
+                  type="number"
+                  min={0}
+                  max={9}
+                  value={supporterHatTrickMax}
+                  onChange={(e) =>
+                    setSupporterHatTrickMax(Number(e.target.value))
+                  }
+                  className="w-20 border rounded px-2 py-1 text-center"
+                />
+              </div>
+
+              {/* Double Contact */}
+              <div className="flex items-center justify-between border rounded px-3 py-2">
+                <span>Double Contact</span>
+
+                <input
+                  type="number"
+                  min={0}
+                  max={9}
+                  value={supporterDoubleContactMax}
+                  onChange={(e) =>
+                    setSupporterDoubleContactMax(Number(e.target.value))
+                  }
+                  className="w-20 border rounded px-2 py-1 text-center"
+                />
+              </div>
+
+              {/* Poteau Rentrant */}
+              <div className="flex items-center justify-between border rounded px-3 py-2">
+                <span>Poteau Rentrant</span>
+
+                <input
+                  type="number"
+                  min={0}
+                  max={9}
+                  value={supporterPoteauRentrantMax}
+                  onChange={(e) =>
+                    setSupporterPoteauRentrantMax(Number(e.target.value))
+                  }
+                  className="w-20 border rounded px-2 py-1 text-center"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Bouton créer / modifier ── */}
+          <button
+            type="button"
+            onClick={handleSaveSupporterCompetition}
+            className="w-full rounded bg-green-600 text-white py-3 font-semibold"
+          >
+            {editingSupporterId
+              ? 'Modifier la compétition'
+              : 'Créer la compétition'}
+          </button>
         </div>
       )}
     </div>

@@ -439,7 +439,7 @@ const isMatchSelectable = (m:any) =>
             })
             .map((m) => (
               <option key={m.id} value={String(m.id)}>
-                {m.home_team} vs {m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
+                {m.short_name_home ?? m.home_team} vs {m.short_name_away ?? m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
               </option>
             ))}
         </select>
@@ -1327,8 +1327,18 @@ function renderBonusRow(b: BonusDef) {
     (String(bonusMatch?.status ?? '').toUpperCase() !== 'NS' || !!bonusMatch?.is_locked);
 
   // 6) Rendu
+  const canOpenBonus = canPlayThis || (isPlayed && !bonusLocked);
+
   return (
-    <div key={b.id} className="border rounded-lg p-3 bg-blue-50 flex items-center justify-between">
+    <div
+      key={b.id}
+      onClick={() => {
+        if (canOpenBonus) setOpenedBonus(b);
+      }}
+      className={`border rounded-lg p-3 bg-blue-50 flex items-center justify-between ${
+        canOpenBonus ? 'cursor-pointer hover:bg-blue-100' : ''
+      }`}
+    >
       <div className="flex items-center">
         <Image src={bonusLogos[b.code]} alt={b.code} width={40} height={40} className="rounded-full" />
         <div className="ml-3">
@@ -1340,7 +1350,11 @@ function renderBonusRow(b: BonusDef) {
       <div>
         {canPlayThis && (
           <button
-            onClick={() => setOpenedBonus(b)}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenedBonus(b);
+            }}
             className="px-3 py-1 border rounded hover:bg-gray-100"
           >
             JOUER
@@ -1354,7 +1368,11 @@ function renderBonusRow(b: BonusDef) {
             </div>
           ) : (
             <button
-              onClick={() => setOpenedBonus(b)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenedBonus(b);
+              }}
               className="px-3 py-1 border rounded hover:bg-gray-100"
             >
               MODIFIER
@@ -1365,9 +1383,6 @@ function renderBonusRow(b: BonusDef) {
     </div>
   );
 }
-
-
-
 
   // 1) Scroll/affiche TOUJOURS la grille du match en cours (priorité à la grid_id mémorisée)
   useEffect(() => {
@@ -1627,14 +1642,13 @@ return early ? (
   <div>Chargement… ({early})</div>
 ) : (
       <>
-    <main className="w-full px-2 sm:px-4 py-8">
-      {/* 1) ZONE D’INFORMATION PLEIN LARGEUR */}
-        {/* Bandeau info : desktop = 1 ligne / mobile = 2 lignes */}
-        <section className="w-full mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <main className="w-full px-2 sm:px-4 py-3">
+        {/* 1) ZONE D’INFORMATION PLEIN LARGEUR */}
+        <section className="w-full mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
             {/* A) NAVIGATION GRILLES */}
-            <div className="border rounded-lg p-4 flex items-center justify-center gap-4">
+            <div className="border rounded-lg py-3 px-4 flex items-center justify-center gap-4">
               {/* ← Précédent */}
               <button
                 onClick={prevGrid}
@@ -1666,7 +1680,7 @@ return early ? (
             </div>
 
             {/* B) 1N2 • POINTS • PODIUM • STATS • REGLES */}
-            <div className="border rounded-lg p-4 flex items-center justify-center gap-4">
+            <div className="border rounded-lg py-3 px-2 flex items-center justify-center gap-4">
               {/* 1) Aller à la GRILLE */}
               <button
                 onClick={() => setViewAndURL('grid')}
@@ -2165,7 +2179,7 @@ return early ? (
       )}
 
       {/* 2) CONTENU PRINCIPAL : GRILLE (2/3) & BONUS (1/3) */}
-      <div className={`flex flex-col lg:flex-row gap-6 ${view !== 'grid' ? 'hidden' : ''}`}>
+      <div className={`flex flex-col lg:flex-row gap-2 ${view !== 'grid' ? 'hidden' : ''}`}>
         {/* ── GRILLE ── */}
         <div className="w-full lg:w-2/3">
           <div className="border rounded-lg">
@@ -2187,8 +2201,8 @@ return early ? (
             </button>
             
             {openGrille && (
-              <div className="-mx-4 px-4 pb-4 space-y-2">
-                <div className="space-y-1">
+              <div className="w-full px-1 pb-4 space-y-2">
+                  <div className="space-y-2 w-full">
                   {loadingGrid ? (
                     <div className="p-6 text-center">🔄 Chargement de la grille…</div>
                   ) : (
@@ -2238,19 +2252,19 @@ return early ? (
                       return (
                         <div
                           key={m.id}
-                          className="border rounded-lg grid grid-cols-[14%_24%_19%_24%_11%] gap-x-2 gap-y-0 items-center"
+                          className="border rounded-lg grid grid-cols-[11%_26%_26%_26%_11%] items-center"
                         >
                         {/* LIGNE 1 */}
-                        <div className="text-center text-sm">{fmtDate(m.date)}</div>
+                        <div className="border border-red-500 text-center text-sm">{fmtDate(m.date)}</div>
 
                         {/* Nom équipe domicile : short sur mobile, complet sur PC */}
-                        <div className="text-center font-medium">
+                        <div className="border border-red-500 text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
                           <span className="sm:hidden">{m.short_name_home}</span>
                           <span className="hidden sm:inline">{m.home_team}</span>
                         </div>
 
                         {/* Boutons 1/N/2 */}
-                        <div className="grid grid-cols-3 gap-[16px] justify-items-center">
+                        <div className="border border-red-500 grid grid-cols-3 gap-[1px] justify-items-center">
                           {(['1', 'N', '2'] as const).map((opt) => {
                             const isX = picksForThisMatch.includes(opt);   // croix décidée par l’overlay
                             return (
@@ -2279,13 +2293,13 @@ return early ? (
                         </div>
 
                         {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
-                        <div className="text-center font-medium">
+                        <div className="border border-red-500 text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
                           <span className="sm:hidden">{m.short_name_away}</span>
                           <span className="hidden sm:inline">{m.away_team}</span>
                         </div>
                         
                         {/* BONUS */}
-                          <div className="flex justify-center">
+                          <div className="border border-red-500 flex justify-center">
                             <button
                               onClick={async () => {
                                 setOtherPicks([]);
@@ -2390,12 +2404,14 @@ return early ? (
                             </div>
 
                             <div className="text-center text-sm">
-                              {m.score_home != null ? (
-                                `${m.points || 0} pts`
+                              {m.status !== 'NS' ? (
+                                <span className={m.points ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                                  {m.points || 0}
+                                </span>
                               ) : isMatchValidated ? (
                                 <span className="text-green-600 font-bold text-lg">✓</span>
                               ) : (
-                                '? pts'
+                                ''
                               )}
                             </div>
                           </>
@@ -2416,7 +2432,7 @@ return early ? (
         </div>
 
         {/* ── ZONE BONUS ── */}
-        <div className="w-full lg:w-1/3 space-y-4">
+        <div className="w-full lg:w-1/3 space-y-2">
           {/* Gate sur le BONUS */}
           {isTournamentCompetition(competition) && (gate.state === 'elimine' || gate.state === 'spectateur') ? (
             <img
