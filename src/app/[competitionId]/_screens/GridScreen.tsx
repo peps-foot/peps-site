@@ -2255,16 +2255,16 @@ return early ? (
                           className="border rounded-lg grid grid-cols-[11%_26%_26%_26%_11%] items-center"
                         >
                         {/* LIGNE 1 */}
-                        <div className="border border-red-500 text-center text-sm">{fmtDate(m.date)}</div>
+                        <div className="text-center text-sm">{fmtDate(m.date)}</div>
 
                         {/* Nom équipe domicile : short sur mobile, complet sur PC */}
-                        <div className="border border-red-500 text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
+                        <div className="text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
                           <span className="sm:hidden">{m.short_name_home}</span>
                           <span className="hidden sm:inline">{m.home_team}</span>
                         </div>
 
                         {/* Boutons 1/N/2 */}
-                        <div className="border border-red-500 grid grid-cols-3 gap-[1px] justify-items-center">
+                        <div className="grid grid-cols-3 gap-[1px] justify-items-center">
                           {(['1', 'N', '2'] as const).map((opt) => {
                             const isX = picksForThisMatch.includes(opt);   // croix décidée par l’overlay
                             return (
@@ -2293,13 +2293,13 @@ return early ? (
                         </div>
 
                         {/* Nom équipe extérieure : short sur mobile, complet sur PC */}
-                        <div className="border border-red-500 text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
+                        <div className="text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
                           <span className="sm:hidden">{m.short_name_away}</span>
                           <span className="hidden sm:inline">{m.away_team}</span>
                         </div>
                         
                         {/* BONUS */}
-                          <div className="border border-red-500 flex justify-center">
+                          <div className="flex justify-center">
                             <button
                               onClick={async () => {
                                 setOtherPicks([]);

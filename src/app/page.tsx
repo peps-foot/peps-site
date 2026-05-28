@@ -394,53 +394,12 @@ export default function Home() {
       open={openTuto}
       onClick={() => setOpenTuto(!openTuto)}
     >
-      <div className="px-4 pb-4">
-        <div className="space-y-2 text-sm leading-6">
-
-          <div>
-            <span className="font-semibold">
-              1. 🎮 Choisis ton style de jeu
-            </span>
-          </div>
-
-          <div className="pl-4 space-y-1">
-            <div>
-              ✖️ <span className="font-semibold">1N2</span> :
-              pronostique victoire, nul ou défaite
-            </div>
-
-            <div>
-              🚀 <span className="font-semibold">TIERCÉ</span> :
-              choisis 3 équipes qui vont performer
-            </div>
-
-            <div>
-              ❤️ <span className="font-semibold">SUPPORTER</span> :
-              joue avec ton équipe favorite
-            </div>
-          </div>
-
-          <div>
-            <span className="font-semibold">
-              2. 🏆 Clique sur une compétition pour jouer
-            </span>
-          </div>
-
-          <div>
-            <span className="font-semibold">
-              3. 📊 Grimpe au classement et amuse-toi
-            </span>
-          </div>
-
-        </div>
-
-        <p className="mt-2 text-xs text-center text-gray-500">
-          🔥 Modes tournoi : Koh Lanta, Terminator… survivras-tu ?
-        </p>
-
-        <p className="mt-3 text-xs text-center text-gray-500">
-          👉 Règles complètes en haut à droite
-        </p>
+      <div className="-mx-4 -my-2">
+        <img
+          src="/images/bannieres/cdm.png"
+          alt="Coupe du Monde"
+          className="w-full block"
+        />
       </div>
     </BannerAccordion>
 
