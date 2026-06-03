@@ -13,71 +13,27 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
 
-useEffect(() => {
-  const checkUser = async () => {
-    try {
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get('code')
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser()
 
-      // 1) Si Supabase renvoie ?code=..., on tente de l'échanger contre une session
-      if (code) {
-        const { error: exchangeError } =
-          await supabase.auth.exchangeCodeForSession(code)
+        if (error || !data.user) {
+          setError("Lien invalide ou expiré. Veuillez redemander un email.")
+          return
+        }
 
-          if (exchangeError) {
-            setError(
-              `EXCHANGE ERROR : ${JSON.stringify({
-                message: exchangeError.message,
-                status: exchangeError.status,
-                name: exchangeError.name,
-                code: exchangeError.code,
-              })}`
-            )
-            setLoading(false)
-            return
-          }
-
-        // Pour le test, on NE nettoie PAS l'URL tout de suite
-        // window.history.replaceState({}, document.title, '/reset-password')
-      }
-
-      // 2) On vérifie si une session existe
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession()
-
-      if (sessionError) {
-        setError(`SESSION ERROR : ${sessionError.message}`)
+        setEmail(data.user.email || '')
+        setError('')
+      } catch (err) {
+        setError("Lien invalide ou expiré. Veuillez redemander un email.")
+      } finally {
         setLoading(false)
-        return
       }
-
-      if (!sessionData.session) {
-        setError('SESSION=NULL')
-        setLoading(false)
-        return
-      }
-
-      // 3) On vérifie si Supabase connaît bien l'utilisateur
-      const { data, error } = await supabase.auth.getUser()
-
-      if (error || !data.user) {
-        setError(`USER=NULL : ${error?.message ?? 'pas de message'}`)
-        setLoading(false)
-        return
-      }
-
-      // 4) Tout est bon, on affiche le formulaire
-      setEmail(data.user.email || '')
-      setError('')
-    } catch (err) {
-      setError(`CATCH ERROR : ${String(err)}`)
-    } finally {
-      setLoading(false)
     }
-  }
 
-  checkUser()
-}, [])
+    checkUser()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
