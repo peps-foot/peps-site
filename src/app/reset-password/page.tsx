@@ -24,11 +24,18 @@ useEffect(() => {
         const { error: exchangeError } =
           await supabase.auth.exchangeCodeForSession(code)
 
-        if (exchangeError) {
-          setError(`EXCHANGE ERROR : ${exchangeError.message}`)
-          setLoading(false)
-          return
-        }
+          if (exchangeError) {
+            setError(
+              `EXCHANGE ERROR : ${JSON.stringify({
+                message: exchangeError.message,
+                status: exchangeError.status,
+                name: exchangeError.name,
+                code: exchangeError.code,
+              })}`
+            )
+            setLoading(false)
+            return
+          }
 
         // Pour le test, on NE nettoie PAS l'URL tout de suite
         // window.history.replaceState({}, document.title, '/reset-password')
