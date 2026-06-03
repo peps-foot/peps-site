@@ -15,15 +15,38 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser()
-      if (error || !data.user) {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const code = params.get('code')
+
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
+          if (exchangeError) {
+            setError("Lien invalide ou expiré. Veuillez redemander un email.")
+            setLoading(false)
+            return
+          }
+
+          // Nettoie l'URL pour éviter de garder le code visible
+          window.history.replaceState({}, document.title, '/reset-password')
+        }
+
+        const { data, error } = await supabase.auth.getUser()
+
+        if (error || !data.user) {
+          setError("Lien invalide ou expiré. Veuillez redemander un email.")
+        } else {
+          setEmail(data.user.email || '')
+          setError('')
+        }
+      } catch (err) {
         setError("Lien invalide ou expiré. Veuillez redemander un email.")
-      } else {
-        setEmail(data.user.email || '')
-        setError('')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
+
     checkUser()
   }, [])
 
