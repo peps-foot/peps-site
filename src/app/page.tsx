@@ -493,7 +493,7 @@ export default function Home() {
             : `${sortedToJoin.length} compétitions disponibles`
         }
       >
-        {sortedToJoin.slice(0, 3).map((comp) => (
+        {sortedToJoin.map((comp) => (
           <CompetitionHomeCard
             key={comp.id}
             comp={comp}
@@ -503,16 +503,6 @@ export default function Home() {
             getDeadlineColor={getDeadlineColor}
           />
         ))}
-
-        {sortedToJoin.length > 3 && (
-          <button
-            type="button"
-            onClick={() => router.push("/competitions")}
-            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            Voir toutes les compétitions publiques
-          </button>
-        )}
       </BannerAccordion>
     )}
 
