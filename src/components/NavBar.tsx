@@ -36,6 +36,7 @@ export function NavBar() {
   const rightMenuRef = useRef<HTMLDivElement>(null);
   const [leftMenuColored, setLeftMenuColored] = useState<ColoredItem[]>([]);
   const [avatar, setAvatar] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     setIsClient(true);
@@ -62,11 +63,18 @@ export function NavBar() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // gestion de l'avatar
+  // gestion de l'avatar + état connecté / non connecté
   useEffect(() => {
     const fetchAvatar = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+
+      if (!user) {
+        setIsLoggedIn(false)
+        setAvatar('')
+        return
+      }
+
+      setIsLoggedIn(true)
 
       const { data } = await supabase
         .from('profiles')
@@ -257,14 +265,22 @@ export function NavBar() {
               className="w-8 h-8 object-contain"
             />
           </button>
-        ) : (
-          // 👉 CAS PAS D’AVATAR → burger classique
+        ) : isLoggedIn ? (
+          // 👉 CAS CONNECTÉ MAIS PAS D’AVATAR → burger classique
           <button
             onClick={() => setShowRightMenu(!showRightMenu)}
             className="text-xl"
           >
             ☰
           </button>
+        ) : (
+          // 👉 CAS NON CONNECTÉ → bouton connexion direct
+          <Link
+            href="/connexion"
+            className="text-sm font-semibold bg-white text-orange-600 px-3 py-1.5 rounded-full"
+          >
+            Se connecter
+          </Link>
         )}
 
         {showRightMenu && (
