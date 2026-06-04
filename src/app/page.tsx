@@ -75,6 +75,7 @@ export default function Home() {
           .from("competitions")
           .select("id,name,description,icon,mode,game_type,kind,created_at")
           .eq("kind", "PUBLIC")
+          .eq("is_open", true)
           .order("created_at", { ascending: false });
 
         if (error) {
