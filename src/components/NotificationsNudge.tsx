@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import { isFcmSupported } from '../lib/firebaseClient';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import supabase from '../lib/supabaseBrowser';
 
 const PROMPT_KEY = 'peps_notif_prompt_last';
 const DELAY_MS = 15 * 24 * 60 * 60 * 1000; // 15 jours
@@ -46,18 +47,59 @@ export default function NotificationsNudge() {
   const [checking, setChecking] = useState(true);
   const [platform, setPlatform] = useState<'ios' | 'android' | 'other' | 'none'>('none');
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     (async () => {
       if (typeof window === 'undefined') return;
 
+      // 1) Ne jamais afficher sur ces pages
+      if (
+        pathname === '/connexion' ||
+        pathname === '/inscription' ||
+        pathname === '/reset-password'
+      ) {
+        setChecking(false);
+        return;
+      }
+
+      // 2) Vérifier que l'utilisateur est connecté
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setChecking(false);
+        return;
+      }
+
+      // 3) Vérifier s'il a déjà un token
+      const { data: existingToken } = await supabase
+        .from('push_tokens')
+        .select('id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingToken) {
+        setChecking(false);
+        return;
+      }
+
+      // 4) Vérifier si les notifs sont possibles techniquement
       const { available, platform: plat } = await isPushAvailable();
-      if (!available) { setChecking(false); return; }
+      if (!available) {
+        setChecking(false);
+        return;
+      }
 
-      // Si déjà "granted" ou "denied", on ne demande plus
-      if (Notification.permission !== 'default') { setChecking(false); return; }
+      // 5) Si l'utilisateur a déjà refusé ou accepté au niveau navigateur, inutile
+      if (Notification.permission !== 'default') {
+        setChecking(false);
+        return;
+      }
 
-      // Vérifier la date du dernier rappel
+      // 6) Vérifier le délai de rappel
       const lastStr = localStorage.getItem(PROMPT_KEY);
       if (lastStr) {
         const last = Number(lastStr);
@@ -71,7 +113,7 @@ export default function NotificationsNudge() {
       setOpen(true);
       setChecking(false);
     })();
-  }, []);
+  }, [pathname]);
 
   const closeAndRemember = () => {
     localStorage.setItem(PROMPT_KEY, String(Date.now()));

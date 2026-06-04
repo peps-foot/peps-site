@@ -33,6 +33,9 @@ export default function Home() {
   // code pour rejoindre une compet privée
   const [joinCode, setJoinCode] = useState('');
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
+  //Etre logué pour rejoindre une competition
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   // Pour l'affichage dans les bannières
   const [openMine, setOpenMine] = useState(false)
   const [openTuto, setOpenTuto] = useState(false)
@@ -48,103 +51,144 @@ export default function Home() {
       const type = params.get('type');
 
       if (type === 'recovery') {
-        console.log('🟡 URL de réinitialisation détectée — pas de redirection.');
+        console.log('🟡 URL de réinitialisation détectée.');
+        setSessionChecked(true);
         return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('🔴 Pas de session, redirection vers /connexion');
-        router.replace('/connexion');
-        return;
-      }
 
+      setIsLoggedIn(!!session);
       setSessionChecked(true);
     };
 
     check();
-  }, [router]);
+  }, []);
 
   useEffect(() => {
-  const loadHomeCompetitions = async () => {
-    if (!sessionChecked) return;
+    const loadHomeCompetitions = async () => {
+      if (!sessionChecked) return;
 
-    // 1) Récupérer l'utilisateur
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      // CAS 1 : visiteur non connecté
+      if (!isLoggedIn) {
+        const { data, error } = await supabase
+          .from("competitions")
+          .select("id,name,description,icon,mode,game_type,kind,created_at")
+          .eq("kind", "PUBLIC")
+          .order("created_at", { ascending: false });
 
-    if (userError || !user) {
-      console.error("Erreur user", userError);
-      setGroups({ mine: [], toJoin: [], history: [] });
-      setReady(true);
-      return;
-    }
+        if (error) {
+          console.error("Erreur chargement compétitions publiques", error);
+          setGroups({ mine: [], toJoin: [], history: [] });
+          setReady(true);
+          return;
+        }
 
-    // 2) Appeler la RPC get_home_competitions
-    const { data, error } = await supabase.rpc("get_home_competitions", {
-      p_user_id: user.id,
-    });
+        const publicCompetitions = (data ?? []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          icon: c.icon,
+          mode: (c.mode ?? "CLASSIC") as CompetitionMode,
+          game_type: c.game_type ?? "GRID",
+          nextPredictionDeadline: null,
+          hasAllNS: false,
+          hasGridDone: false,
+          hasAnyPickOrBonus: false,
+          remainingActivePlayersCount: 0,
+          isMember: false,
+          canPlay: null,
+          userRank: null,
+          playersCount: 0,
+        })) as Competition[];
 
-    if (error) {
-      console.error("Erreur RPC get_home_competitions", error);
-      setGroups({ mine: [], toJoin: [], history: [] });
-      setReady(true);
-      return;
-    }
+        setCompetitions(publicCompetitions);
 
-    // 3) On garde les lignes renvoyées par la RPC (avec flags + homeTab)
-    const rows = (data ?? []).map((c: any) => ({
-      ...c,
-      mode: (c.mode ?? "CLASSIC") as CompetitionMode,
-    })) as CompetitionWithFlags<Competition>[];
+        setGroups({
+          mine: [],
+          toJoin: publicCompetitions,
+          history: [],
+        });
 
-    // ✅ petit helper local pour produire un Competition[] propre
-    const toCompetitionArray = (arr: any[]): Competition[] =>
-      arr.map((c) => ({
-        id: c.id,
-        name: c.name,
-        description: c.description,
-        icon: c.icon,
+        setReady(true);
+        return;
+      }
+
+      // CAS 2 : joueur connecté
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("Erreur user", userError);
+        setGroups({ mine: [], toJoin: [], history: [] });
+        setReady(true);
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("get_home_competitions", {
+        p_user_id: user.id,
+      });
+
+      if (error) {
+        console.error("Erreur RPC get_home_competitions", error);
+        setGroups({ mine: [], toJoin: [], history: [] });
+        setReady(true);
+        return;
+      }
+
+      const rows = (data ?? []).map((c: any) => ({
+        ...c,
         mode: (c.mode ?? "CLASSIC") as CompetitionMode,
-        game_type: c.game_type ?? "GRID",
-        nextPredictionDeadline: c.nextPredictionDeadline ?? null,
-        hasAllNS: c.hasAllNS ?? false,
-        hasGridDone: c.hasGridDone ?? false,
-        hasAnyPickOrBonus: c.hasAnyPickOrBonus ?? false,
-        remainingActivePlayersCount: c.remainingActivePlayersCount ?? 0,
-        isMember: c.isMember ?? false,
-        canPlay: c.canPlay ?? null,
-        userRank: c.userRank ?? null,
-        playersCount: c.playersCount ?? 0,
-    }));
+      })) as CompetitionWithFlags<Competition>[];
 
-    // ✅ Tri 100% piloté par la RPC (homeTab)
-    const mineRows = rows.filter((r) => r.homeTab === "MINE");
-    const toJoinRows = rows.filter((r) => r.homeTab === "TO_JOIN");
-    const historyRows = rows.filter((r) => r.homeTab === "HISTORY");
+      const toCompetitionArray = (arr: any[]): Competition[] =>
+        arr.map((c) => ({
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          icon: c.icon,
+          mode: (c.mode ?? "CLASSIC") as CompetitionMode,
+          game_type: c.game_type ?? "GRID",
+          nextPredictionDeadline: c.nextPredictionDeadline ?? null,
+          hasAllNS: c.hasAllNS ?? false,
+          hasGridDone: c.hasGridDone ?? false,
+          hasAnyPickOrBonus: c.hasAnyPickOrBonus ?? false,
+          remainingActivePlayersCount: c.remainingActivePlayersCount ?? 0,
+          isMember: c.isMember ?? false,
+          canPlay: c.canPlay ?? null,
+          userRank: c.userRank ?? null,
+          playersCount: c.playersCount ?? 0,
+        }));
 
-    // (optionnel) si tu utilises competitions ailleurs, tu stockes tout
-    setCompetitions(toCompetitionArray(rows));
+      const mineRows = rows.filter((r) => r.homeTab === "MINE");
+      const toJoinRows = rows.filter((r) => r.homeTab === "TO_JOIN");
+      const historyRows = rows.filter((r) => r.homeTab === "HISTORY");
 
-    // ✅ Plus besoin de splitCompetitions ici
-    setGroups({
-      mine: toCompetitionArray(mineRows),
-      toJoin: toCompetitionArray(toJoinRows),
-      history: toCompetitionArray(historyRows),
-    });
+      setCompetitions(toCompetitionArray(rows));
 
-    setReady(true);
-  };
+      setGroups({
+        mine: toCompetitionArray(mineRows),
+        toJoin: toCompetitionArray(toJoinRows),
+        history: toCompetitionArray(historyRows),
+      });
 
-  loadHomeCompetitions();
-}, [sessionChecked]);
+      setReady(true);
+    };
+
+    loadHomeCompetitions();
+  }, [sessionChecked, isLoggedIn]);
 
   if (!sessionChecked) return null;
 
   async function handleJoinPublicCompetition(comp: Competition) {
-    setSelectedComp(comp); // ouvre la modal
+    if (!isLoggedIn) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    setSelectedComp(comp);
   }
 
   async function confirmJoinCompetition() {
@@ -180,6 +224,11 @@ export default function Home() {
   }
 
   async function handleJoinByCode() {
+    if (!isLoggedIn) {
+      setShowAuthModal(true);
+      return;
+    }
+
     setJoinCodeError(null);
 
     const code = joinCode.trim();
@@ -479,7 +528,14 @@ export default function Home() {
         {/* CRÉER UNE COMPÉT */}
         <button
           type="button"
-          onClick={() => router.push("/competition/create")}
+          onClick={() => {
+            if (!isLoggedIn) {
+              setShowAuthModal(true);
+              return;
+            }
+
+            router.push("/competition/create");
+          }}
           className="w-full rounded-md bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-700"
         >
           Créer une compétition
@@ -571,6 +627,39 @@ export default function Home() {
         />
       ))}
     </BannerAccordion>
+
+    {/* ── POP UP si joueur pas logué ── */}
+    {showAuthModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="w-full max-w-sm rounded-xl bg-white p-4 shadow-lg">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => router.push("/inscription")}
+              className="flex-1 rounded-md bg-green-600 px-3 py-3 text-sm font-semibold text-white hover:bg-green-700"
+            >
+              Créer un compte
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/connexion")}
+              className="flex-1 rounded-md bg-blue-600 px-3 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Se connecter
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAuthModal(false)}
+            className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+        </div>
+      </div>
+    )}
 
     {/* POP UP VALIDATION COMPET */}
     <JoinCompetitionModal
