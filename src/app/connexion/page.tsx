@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSupabase } from '../../components/SupabaseProvider';
+import supabaseReset from '../../lib/supabaseResetClient'
 
 export default function ConnexionPage() {
   const supabase = useSupabase();
@@ -61,9 +62,9 @@ export default function ConnexionPage() {
       return;
     }
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabaseReset.auth.resetPasswordForEmail(email, {
         redirectTo: 'https://www.peps-foot.com/reset-password',
-      });
+      })
     if (error) {
       setErrorMsg(error.message);
     } else {

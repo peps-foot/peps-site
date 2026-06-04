@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import supabase from '../../lib/supabaseBrowser'
+import supabaseReset from '../../lib/supabaseResetClient'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -16,7 +17,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const { data, error } = await supabase.auth.getUser()
+        const { data, error } = await supabaseReset.auth.getUser()
 
         if (error || !data.user) {
           setError("Lien invalide ou expiré. Veuillez redemander un email.")
@@ -48,7 +49,7 @@ export default function ResetPasswordPage() {
       return
     }
 
-    const { error } = await supabase.auth.updateUser({ password })
+    const { error } = await supabaseReset.auth.updateUser({ password })
     if (error) {
       setError("Erreur lors de la mise à jour du mot de passe.")
     } else {
