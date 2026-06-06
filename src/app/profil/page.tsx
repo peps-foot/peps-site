@@ -72,15 +72,11 @@ export default function ProfilPage() {
 
     // 🔁 Changement d'e-mail (sans confirmation)
     if (user.email !== userEmail) {
-      const { error: emailError } = await supabase.auth.updateUser({
+      const { data, error: emailError } = await supabase.auth.updateUser({
         email: userEmail,
       })
 
-      if (emailError) {
-        alert("Erreur lors du changement d'adresse e-mail.")
-        setIsSaving(false)
-        return
-      }
+      console.log("UPDATE EMAIL", { data, emailError })
     }
 
     // 🔎 Vérification du pseudo

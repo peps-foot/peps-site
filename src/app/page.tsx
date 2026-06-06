@@ -13,6 +13,53 @@ import CompetitionHomeCard from "../components/CompetitionHomeCard";
 import JoinCompetitionModal from "../components/JoinCompetitionModal";
 import PartnerPromo from '../components/PartnerPromo';
 
+function BannerAccordion({
+  image,
+  alt,
+  open,
+  onClick,
+  dynamicText,
+  children,
+}: {
+  image: string
+  alt: string
+  open: boolean
+  onClick: () => void
+  dynamicText?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-xl overflow-hidden border shadow-md bg-white">
+      <button
+        type="button"
+        onClick={onClick}
+        className="relative w-full overflow-hidden block"
+      >
+        <img
+          src={image}
+          alt={alt}
+          className="w-full h-auto block"
+        />
+
+        <div className="absolute inset-0 bg-black/10" />
+
+        {dynamicText && (
+          <div className="absolute left-4 bottom-2 sm:bottom-3 text-left text-white drop-shadow-md">
+            <p className="text-xs sm:text-sm font-bold">
+              {dynamicText}
+            </p>
+          </div>
+        )}
+      </button>
+
+      {open && (
+        <div className="p-2 bg-white">
+          {children}
+        </div>
+      )}
+    </section>
+  )
+}
 
 export default function Home() {
   const router = useRouter();
