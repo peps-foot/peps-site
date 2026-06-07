@@ -300,7 +300,7 @@ export default function Home() {
     const { data: comp, error: compError } = await supabase
       .from("competitions")
       .select("id, name, kind")
-      .eq("join_code", code)
+      .eq("join_code", code.trim().toUpperCase())
       .single();
 
     if (compError || !comp) {
@@ -541,7 +541,7 @@ export default function Home() {
             <input
               type="text"
               value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               placeholder="Code"
               className="flex-1 min-w-0 rounded-md border px-2 py-2 text-sm uppercase tracking-wider"
             />
