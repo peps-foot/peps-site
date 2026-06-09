@@ -986,7 +986,16 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                             return (
                                 <div
                                 key={bonus.id}
-                                className="border rounded-lg p-3 flex items-center justify-between gap-3"
+                                onClick={() => {
+                                    if (remaining > 0 || hasEditableBonus) {
+                                    setOpenedBonus(bonus);
+                                    }
+                                }}
+                                className={`border border-green-200 bg-green-50 rounded-lg p-3 flex items-center justify-between gap-3 ${
+                                    remaining > 0 || hasEditableBonus
+                                    ? 'cursor-pointer hover:bg-green-100'
+                                    : ''
+                                }`}
                                 >
 
                                 {/* ── Logo + infos ── */}
@@ -995,7 +1004,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                     <img
                                     src={supporterBonusLogos[bonus.code]}
                                     alt={bonus.name}
-                                    className="w-12 h-12 rounded-full border shrink-0"
+                                    className="w-12 h-12 rounded-full border shrink-0 object-cover"
                                     />
 
                                     <div className="min-w-0">
@@ -1008,8 +1017,8 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                             <span className="text-green-700 font-medium">
                                             (
                                             {bonus.max_per_user >= 999
-                                                ? '∞'
-                                                : `${remaining} restant${remaining > 1 ? 's' : ''}`
+                                            ? 'illimité'
+                                            : `Reste ${remaining}`
                                             }
                                             )
                                             </span>
@@ -1025,12 +1034,16 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                 {/* ── Bouton gérer ── */}
                                 {(remaining > 0 || hasEditableBonus) && (
-                                    <button
-                                    onClick={() => setOpenedBonus(bonus)}
-                                    className="px-3 py-2 bg-white border rounded text-sm shrink-0 hover:bg-gray-50"
-                                    >
-                                    GÉRER
-                                    </button>
+                                <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenedBonus(bonus);
+                                }}
+                                className="px-3 py-2 bg-green-50 border border-black rounded text-sm shrink-0 hover:bg-green-100"
+                                >
+                                GÉRER
+                                </button>
                                 )}
                                 </div>
                             );

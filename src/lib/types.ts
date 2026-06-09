@@ -67,6 +67,7 @@ export type BonusDef = {
   category_id: string;
   parameters?: BonusParameters;
   rule: string | null;
+  max_per_user: number;
 };
 
 export type GridBonus = {

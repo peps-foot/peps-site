@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import supabase from '../lib/supabaseBrowser';
 import Image from "next/image";
-import { groupCompetitionsForHome } from "../lib/competitionStatus"; // le module logique unique
 
 type Competition = {
   id: string;
@@ -22,8 +21,11 @@ type CompetitionFull = {
   name: string;
   icon: string | null;
   mode: "CLASSIC" | "TOURNOI";
+  game_type: "GRID" | "TIERCE" | "SUPPORTER";
+  homeTab: "MINE" | "TO_JOIN" | "HISTORY" | "HIDDEN";
+  created_at: string;
 };
-type ColoredItem = CompetitionFull & { color: "blue" | "green" | "gray" };
+type LeftMenuItem = CompetitionFull;
 
 
 export function NavBar() {
@@ -34,7 +36,7 @@ export function NavBar() {
   const [showRightMenu, setShowRightMenu] = useState(false);
   const leftMenuRef = useRef<HTMLDivElement>(null);
   const rightMenuRef = useRef<HTMLDivElement>(null);
-  const [leftMenuColored, setLeftMenuColored] = useState<ColoredItem[]>([]);
+  const [leftMenuItems, setLeftMenuItems] = useState<LeftMenuItem[]>([]);
   const [avatar, setAvatar] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
 
@@ -95,55 +97,28 @@ export function NavBar() {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Pas connecté => menu vide (ou garde ton fallback si tu préfères)
       if (!user) {
-        setLeftMenuColored([]);
+        setLeftMenuItems([]);
         return;
       }
 
-      // 1) Récupérer les compétitions où il est membre (PLAYER/CREATOR)
-      const { data, error } = await supabase
-        .from("competition_members")
-        .select(`
-          role,
-          competitions:competition_id (
-            id, name, icon, mode
-          )
-        `)
-        .eq("user_id", user.id)
-        .in("role", ["PLAYER", "CREATOR"]);
-
-      if (error) {
-        console.error("Erreur menu competitions :", error);
-        return;
-      }
-
-      // 2) Aplatir
-      const comps = (data ?? [])
-        .map((row: any) => row.competitions)
-        .filter(Boolean) as CompetitionFull[];
-
-      // 3) (Optionnel) couleur / tri comme avant
-      const slim = comps.map(c => ({ id: c.id, mode: c.mode }));
-      const res = await groupCompetitionsForHome(slim, user.id);
-      const colorMap = res.statuses; // Map(id => {label, color})
-
-      const enriched: ColoredItem[] = comps.map(c => ({
-        ...c,
-        color: colorMap.get(c.id)?.color ?? "gray",
-      }));
-
-      const order = { blue: 0, green: 1, gray: 2 } as const;
-      enriched.sort((a, b) => {
-        const oa = order[a.color], ob = order[b.color];
-        if (oa !== ob) return oa - ob;
-        return a.name.localeCompare(b.name);
+      const { data, error } = await supabase.rpc("get_home_competitions", {
+        p_user_id: user.id,
       });
 
-      // ✅ Ne garder que les compétitions "en cours" (bleu/vert)
-      const onlyActive = enriched.filter(c => c.color !== "gray");
+      if (error) {
+        console.error("Erreur Navbar get_home_competitions :", error);
+        setLeftMenuItems([]);
+        return;
+      }
 
-      setLeftMenuColored(onlyActive);
+      const mine = (data ?? [])
+        .filter((c: CompetitionFull) => c.homeTab === "MINE")
+        .sort((a: CompetitionFull, b: CompetitionFull) => {
+          return a.name.localeCompare(b.name);
+        });
+
+      setLeftMenuItems(mine);
     };
 
     run();
@@ -164,7 +139,7 @@ export function NavBar() {
   // Liste “simple” pour le calcul du titre au centre
   const leftMenuSimple = [
     { label: "ACCUEIL", href: "/" },
-    ...leftMenuColored.map(c => ({ label: c.name, href: `/${c.id}` })),
+    ...leftMenuItems.map(c => ({ label: c.name, href: `/${c.id}` })),
   ];
 
   const allItems = [...leftMenuSimple, ...rightMenu];
@@ -206,41 +181,38 @@ export function NavBar() {
 
             <div className="h-px bg-gray-200 my-1" />
 
-            {(["blue","green","gray"] as const).map((col, idx) => {
-              const items = leftMenuColored.filter(c => c.color === col);
-              if (items.length === 0) return null;
-              return (
-                <div key={col}>
-                  {idx !== 0 && <div className="h-px bg-gray-200 my-1" />}
-                  {items.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/${c.id}`}
-                      onClick={() => setShowLeftMenu(false)}
-                      className="block px-4 py-2 hover:bg-gray-100"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Image
-                          src={`/${c.icon ?? "images/compet/placeholder.png"}`}
-                          alt={c.name}
-                          width={24}
-                          height={24}
-                          className="h-6 w-6 rounded-full object-cover ring-1 ring-black/10"
-                        />
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${
-                            col === "blue" ? "bg-blue-600" : col === "green" ? "bg-green-600" : "bg-gray-400"
-                          }`}
-                          aria-hidden
-                        />
-                        <span className="flex-1 truncate">{c.name}</span>
-                        <span className="text-sm text-gray-400">›</span>
-                      </div>
-                    </Link>
-                  ))}
+            {leftMenuItems.map((c) => (
+              <Link
+                key={c.id}
+                href={`/${c.id}`}
+                onClick={() => setShowLeftMenu(false)}
+                className="block px-4 py-2 hover:bg-gray-100"
+              >
+                <div className="flex items-center gap-3">
+                  <Image
+                    src={`/${c.icon ?? "images/compet/placeholder.png"}`}
+                    alt={c.name}
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 rounded-full object-cover ring-1 ring-black/10"
+                  />
+
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      c.game_type === "GRID"
+                        ? "bg-blue-600"
+                        : c.game_type === "TIERCE"
+                        ? "bg-green-600"
+                        : "bg-orange-500"
+                    }`}
+                    aria-hidden
+                  />
+
+                  <span className="flex-1 truncate">{c.name}</span>
+                  <span className="text-sm text-gray-400">›</span>
                 </div>
-              );
-            })}
+              </Link>
+            ))}
           </div>
         )}
       </div>

@@ -1161,6 +1161,7 @@ const isTerminator = (row: LeaderboardRow) =>
             title,
             description,
             allowed_bonuses,
+            competition_id,
             grid_items (
               match_id
             )
@@ -1255,17 +1256,32 @@ const isTerminator = (row: LeaderboardRow) =>
         // 7) Fetch des définitions de bonus
         const { data: bd, error: be } = await supabase
           .from('bonus_definition')
-          .select('id, code, description, category_id,rule');
+          .select('id, code, description, category_id, rule');
+
         if (be) throw be;
-        // si Supabase ne déduit pas le type, on normalise
+
+        const { data: caps, error: ce } = await supabase
+          .from('competition_bonus_caps')
+          .select('bonus_definition, max_per_user')
+          .eq('competition_id', g.competition_id);
+
+        if (ce) throw ce;
+
         setBonusDefs(
-          (bd ?? []).map(d => ({
-            id: d.id,
-            code: d.code as BonusDef['code'],
-            description: d.description,
-            category_id: d.category_id,
-            rule: d.rule,
-          }))
+          (bd ?? []).map(d => {
+            const cap = (caps ?? []).find(
+              c => c.bonus_definition === d.id
+            );
+
+            return {
+              id: d.id,
+              code: d.code as BonusDef['code'],
+              description: d.description,
+              category_id: d.category_id,
+              rule: d.rule,
+              max_per_user: cap?.max_per_user ?? 999,
+            };
+          })
         );
 
       } catch (e: unknown) {
@@ -1329,6 +1345,14 @@ function renderBonusRow(b: BonusDef) {
   // 6) Rendu
   const canOpenBonus = canPlayThis || (isPlayed && !bonusLocked);
 
+  const maxPerUser = Number(b.max_per_user ?? 999);
+
+  const usedCount = gridBonuses.filter(
+    gb => gb.bonus_definition === b.id
+  ).length;
+
+  const remaining = maxPerUser - usedCount;
+
   return (
     <div
       key={b.id}
@@ -1340,9 +1364,25 @@ function renderBonusRow(b: BonusDef) {
       }`}
     >
       <div className="flex items-center">
-        <Image src={bonusLogos[b.code]} alt={b.code} width={40} height={40} className="rounded-full" />
+        <Image
+          src={bonusLogos[b.code]}
+          alt={b.code}
+          width={40}
+          height={40}
+          className="rounded-full border border-black object-cover"
+        />
         <div className="ml-3">
-          <div className="text-lg font-bold text-green-600">{b.code}</div>
+          <div className="text-lg font-bold text-green-600">
+            {b.code}{' '}
+            <span className="text-green-700 font-medium text-sm">
+              (
+              {maxPerUser >= 999
+                ? 'illimité'
+                : `Reste ${remaining}`
+              }
+              )
+            </span>
+          </div>
           <div className="text-sm">{b.description}</div>
         </div>
       </div>
@@ -2432,7 +2472,7 @@ return early ? (
         </div>
 
         {/* ── ZONE BONUS ── */}
-        <div className="w-full lg:w-1/3 space-y-2">
+        <div className="w-full lg:w-1/3 space-y-3">
           {/* Gate sur le BONUS */}
           {isTournamentCompetition(competition) && (gate.state === 'elimine' || gate.state === 'spectateur') ? (
             <img
@@ -2458,7 +2498,7 @@ return early ? (
                   <span className="text-xl">{openCroix ? "▲" : "▼"}</span>
                 </button>
                 {openCroix && (
-                  <div className="px-4 pb-4 space-y-3">
+                  <div className="px-1 pb-4 space-y-3">
                     {defsCroix.length === 0 ? (
                       <div className="text-sm text-gray-500">
                         Pas de bonus croix pour cette grille.
@@ -2486,7 +2526,7 @@ return early ? (
                   <span className="text-xl">{openScore ? "▲" : "▼"}</span>
                 </button>
                 {openScore && (
-                  <div className="px-4 pb-4 space-y-3">
+                  <div className="px-1 pb-4 space-y-3">
                     {defsScore.length === 0 ? (
                       <div className="text-sm text-gray-500">
                         Pas de bonus score pour cette grille.
@@ -2528,7 +2568,7 @@ return early ? (
                     </button>
 
                     {openSpecial && (
-                      <div className="px-4 pb-4 space-y-3">
+                      <div className="px-1 pb-4 space-y-3">
                         {specialsForUser.map(renderBonusRow)}
                       </div>
                     )}
