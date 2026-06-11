@@ -1251,7 +1251,7 @@ console.log('[CHECK match disparu]', {
 
         // 5) Fusionner tout pour construire le tableau final
         const clean: any[] = (raws || []).map((m) => {
-          const gm = rawGridMatches.find((gm) => gm.match_id === m.id);
+          const gm = (rawGridMatches ?? []).find((gm) => gm.match_id === m.id);
 
           return {
             ...m,
