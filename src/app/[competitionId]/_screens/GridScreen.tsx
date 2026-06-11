@@ -1264,12 +1264,6 @@ console.log('[CHECK match disparu]', {
 
         const totalPoints = clean.reduce((acc, m) => acc + (m.points || 0), 0);
 
-console.log('[clean picks]', clean.map(m => ({
-  match_id: m.id,
-  pick: m.pick,
-  points: m.points
-})));
-
         setMatches(clean);
         setTotalPoints(totalPoints);
 
@@ -1571,9 +1565,9 @@ function renderBonusRow(b: BonusDef) {
     console.log('[pick] saved ok', { gridId: grid.id, match_id });
     setMatches(updatedMatches);
     
-const activeGrid = grids.find((g) => g.id === grid.id);
-if (activeGrid && activeGrid.grid_items) {
-  const matchIds = activeGrid.grid_items.map((gi) => gi.match_id);
+    const activeGrid = grids.find((g) => g.id === grid.id);
+    if (activeGrid && activeGrid.grid_items) {
+      const matchIds = activeGrid.grid_items.map((gi) => gi.match_id);
 
   // LOG court
   console.log('[pick] refresh src', { lastLen: lastMatchData.length, ids: matchIds.length });
@@ -2451,7 +2445,7 @@ return early ? (
                               )}
                             </div>
 
-                            <div className="grid grid-cols-3 gap-[16px] text-xs text-center justify-items-center">
+                            <div className="grid grid-cols-3 gap-[1px] text-xs text-center justify-items-center">
                               <div>{m.base_1_points ?? '-'}</div>
                               <div>{m.base_n_points ?? '-'}</div>
                               <div>{m.base_2_points ?? '-'}</div>

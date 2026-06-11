@@ -90,6 +90,9 @@ export default function Home() {
   const [openFriends, setOpenFriends] = useState(false)
   const [openSupporters, setOpenSupporters] = useState(false)
   const [openArchives, setOpenArchives] = useState(false)
+  // Pour le mode SUPPORTER
+  const [supporterSearch, setSupporterSearch] = useState('');
+  const [showAllSupporters, setShowAllSupporters] = useState(false);
 
   useEffect(() => {
     const check = async () => {
@@ -391,6 +394,15 @@ export default function Home() {
     (comp) => comp.game_type === 'SUPPORTER'
   );
 
+  const filteredSupporterToJoin = supporterToJoin.filter((comp) =>
+    comp.name.toLowerCase().includes(supporterSearch.toLowerCase())
+  );
+
+  const visibleSupporterToJoin =
+    showAllSupporters || supporterSearch.trim()
+      ? filteredSupporterToJoin
+      : filteredSupporterToJoin.slice(0, 8);
+
   // Tri des compétitions publiques par deadline
   const sortedToJoin = [...publicToJoin].sort((a, b) => {
     const aTime = a.nextPredictionDeadline
@@ -578,18 +590,36 @@ export default function Home() {
             : `${supporterToJoin.length} compétitions disponibles`
         }
       >
-        <div className="p-2 bg-white">
-          {supporterToJoin.map((comp) => (
-            <CompetitionHomeCard
-              key={comp.id}
-              comp={comp}
-              onClick={() => handleJoinPublicCompetition(comp)}
-              formatDeadline={formatDeadline}
-              getCompetitionStatusText={getCompetitionStatusText}
-              getDeadlineColor={getDeadlineColor}
-            />
-          ))}
-        </div>
+<div className="p-2 bg-white space-y-2">
+  <input
+    type="text"
+    value={supporterSearch}
+    onChange={(e) => setSupporterSearch(e.target.value)}
+    placeholder="Rechercher une compétition..."
+    className="w-full border rounded-lg px-3 py-2 text-sm"
+  />
+
+  {visibleSupporterToJoin.map((comp) => (
+    <CompetitionHomeCard
+      key={comp.id}
+      comp={comp}
+      onClick={() => handleJoinPublicCompetition(comp)}
+      formatDeadline={formatDeadline}
+      getCompetitionStatusText={getCompetitionStatusText}
+      getDeadlineColor={getDeadlineColor}
+    />
+  ))}
+
+  {!showAllSupporters && !supporterSearch.trim() && filteredSupporterToJoin.length > 8 && (
+    <button
+      type="button"
+      onClick={() => setShowAllSupporters(true)}
+      className="w-full text-sm font-semibold text-blue-600 py-2"
+    >
+      Voir toutes les compétitions
+    </button>
+  )}
+</div>
       </BannerAccordion>
     )}
 
