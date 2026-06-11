@@ -1221,12 +1221,28 @@ const isTerminator = (row: LeaderboardRow) =>
         );
 
 
-        // 4) Fetch des picks posés dans grid_matches
-        const { data: rawGridMatches, error: gmError } = await supabase
-          .from('grid_matches')
-          .select('id, match_id, pick, points')
-          .eq('grid_id', gridId);
-        if (gmError) throw gmError;
+// 4) Fetch des picks posés dans grid_matches
+const { data: rawGridMatches, error: gmError } = await supabase
+  .from('grid_matches')
+  .select('id, match_id, pick, points')
+  .eq('grid_id', gridId)
+  .eq('user_id', user.id);
+
+console.log('[grid load] gridId', gridId);
+console.log('[grid load] grid_items ids', ids);
+console.log('[grid load] matches raws', raws?.map(m => m.id));
+console.log('[grid load] grid_matches picks', rawGridMatches?.map(gm => ({
+  match_id: gm.match_id,
+  pick: gm.pick
+})));
+
+console.log('[CHECK match disparu]', {
+  match_id: '8c973477-c6a1-42ec-a4c7-6afb74f0d933',
+  inGridItems: ids.includes('8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
+  inMatches: raws?.some(m => m.id === '8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
+  inGridMatches: rawGridMatches?.some(gm => gm.match_id === '8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
+  pickFound: rawGridMatches?.find(gm => gm.match_id === '8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
+});
 
         // 5) Fusionner tout pour construire le tableau final
         const clean: any[] = (raws || []).map((m) => {
@@ -1242,6 +1258,13 @@ const isTerminator = (row: LeaderboardRow) =>
         });
 
         const totalPoints = clean.reduce((acc, m) => acc + (m.points || 0), 0);
+
+console.log('[clean picks]', clean.map(m => ({
+  match_id: m.id,
+  pick: m.pick,
+  points: m.points
+})));
+
         setMatches(clean);
         setTotalPoints(totalPoints);
 
