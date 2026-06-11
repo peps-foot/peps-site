@@ -1145,9 +1145,14 @@ const isTerminator = (row: LeaderboardRow) =>
 
   // 🧩 Charge la grille active + les matchs + picks + points + bonus
   useEffect(() => {
-    if (grids.length === 0 || !grids[currentIdx]?.id || grid?.id === grids[currentIdx].id) return;
+    if (
+      !user?.id ||
+      grids.length === 0 ||
+      !grids[currentIdx]?.id ||
+      grid?.id === grids[currentIdx].id
+    ) return;
+
     const gridId = grids[currentIdx].id;
-    if (!gridId) return;
 
     (async () => {
       try {
@@ -1272,8 +1277,11 @@ console.log('[clean picks]', clean.map(m => ({
         const { data: gbs, error: gbe } = await supabase
           .from('grid_bonus')
           .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
-          .eq('grid_id', gridId);
+          .eq('grid_id', gridId)
+          .eq('user_id', user.id);
+
         if (gbe) throw gbe;
+
         setGridBonuses(gbs || []);
 
         // 7) Fetch des définitions de bonus
@@ -1313,7 +1321,7 @@ console.log('[clean picks]', clean.map(m => ({
         setLoadingGrid(false);
       }
     })();
-  }, [currentIdx, grids]);
+  }, [currentIdx, grids, user?.id]);
 
   function getStatus(m: any) {
     const raw = m?.status ?? m?.status_short ?? m?.statusShort ?? m?.state ?? '';
