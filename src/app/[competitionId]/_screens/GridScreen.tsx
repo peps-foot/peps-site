@@ -1229,8 +1229,10 @@ const isTerminator = (row: LeaderboardRow) =>
         if (gmError) throw gmError;
 
         // 5) Fusionner tout pour construire le tableau final
-        const clean: any[] = (raws || []).map((m) => {
-          const gm = rawGridMatches.find((gm) => gm.match_id === m.id);
+const clean: any[] = (raws || []).map((m) => {
+  const gm = rawGridMatches?.find(
+    (gm) => String(gm.match_id) === String(m.id)
+  );
 
           return {
             ...m,
