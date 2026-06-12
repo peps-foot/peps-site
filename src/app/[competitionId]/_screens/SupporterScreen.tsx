@@ -604,6 +604,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
         return <div className="p-6 text-white">Chargement des matchs…</div>;
     }
 
+    // Début du JSX
     return (
         <main className="w-full px-2 sm:px-4 py-3 sm:py-6">
 
@@ -784,7 +785,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 2 : équipe domicile ── */}
                                                 {/* ── Équipe domicile : short mobile, nom complet PC ── */}
-                                                <div className="text-center text-sm">
+                                                <div className="text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
                                                     <span className="sm:hidden">{match.short_name_home ?? match.home_team}</span>
                                                     <span className="hidden sm:inline">{match.home_team}</span>
                                                 </div>
@@ -836,7 +837,7 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
 
                                                 {/* ── Ligne 1 / Colonne 4 : équipe extérieure ── */}
                                                 {/* ── Équipe extérieure : short mobile, nom complet PC ── */}
-                                                <div className="text-center text-sm">
+                                                <div className="text-center font-medium text-[14px] sm:text-sm whitespace-nowrap">
                                                     <span className="sm:hidden">{match.short_name_away ?? match.away_team}</span>
                                                     <span className="hidden sm:inline">{match.away_team}</span>
                                                 </div>
@@ -991,9 +992,9 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                     setOpenedBonus(bonus);
                                     }
                                 }}
-                                className={`border border-green-200 bg-green-50 rounded-lg p-3 flex items-center justify-between gap-3 ${
+                                className={`border border-black bg-green-50 rounded-lg p-3 flex items-center justify-between gap-3 ${
                                     remaining > 0 || hasEditableBonus
-                                    ? 'cursor-pointer hover:bg-green-100'
+                                    ? 'cursor-pointer hover:bg-gray-100'
                                     : ''
                                 }`}
                                 >
@@ -1032,18 +1033,21 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                     </div>
                                 </div>
 
-                                {/* ── Bouton gérer ── */}
+                                {/* ── Icône ouvrir popup ── */}
                                 {(remaining > 0 || hasEditableBonus) && (
-                                <button
-                                type="button"
-                                onClick={(e) => {
+                                <div
+                                    onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenedBonus(bonus);
-                                }}
-                                className="px-3 py-2 bg-green-50 border border-black rounded text-sm shrink-0 hover:bg-green-100"
+                                    }}
+                                    className="shrink-0 cursor-pointer"
                                 >
-                                GÉRER
-                                </button>
+                                    <img
+                                    src="/images/icons/open_popup.png"
+                                    alt="Gérer"
+                                    className="w-8 h-8 object-contain"
+                                    />
+                                </div>
                                 )}
                                 </div>
                             );

@@ -112,9 +112,20 @@ export function NavBar() {
         return;
       }
 
+      const typeOrder = {
+        SUPPORTER: 0,
+        GRID: 1,
+        TIERCE: 2,
+      };
+
       const mine = (data ?? [])
         .filter((c: CompetitionFull) => c.homeTab === "MINE")
         .sort((a: CompetitionFull, b: CompetitionFull) => {
+          const ta = typeOrder[a.game_type as keyof typeof typeOrder] ?? 99;
+          const tb = typeOrder[b.game_type as keyof typeof typeOrder] ?? 99;
+
+          if (ta !== tb) return ta - tb;
+
           return a.name.localeCompare(b.name);
         });
 
@@ -152,8 +163,17 @@ export function NavBar() {
     <nav className="relative flex items-center justify-between h-12 w-full bg-orange-500 text-white px-4 z-50">
       {/* Burger gauche */}
       <div className="relative" ref={leftMenuRef}>
-        <button onClick={() => setShowLeftMenu((v) => !v)} className="text-xl">
-          ☰
+        <button
+          onClick={() => setShowLeftMenu((v) => !v)}
+          className="w-10 h-10 rounded-full border border-black/70 shadow flex items-center justify-center overflow-hidden hover:scale-105 transition"
+        >
+          <Image
+            src="/images/default-avatar.png"
+            alt="PEPS"
+            width={36}
+            height={36}
+            className="h-8 w-8 rounded-lg"
+          />
         </button>
         {showLeftMenu && (
           <div className="absolute left-0 top-12 bg-white text-black rounded shadow min-w-max z-10 w-64">
@@ -202,8 +222,8 @@ export function NavBar() {
                       c.game_type === "GRID"
                         ? "bg-blue-600"
                         : c.game_type === "TIERCE"
-                        ? "bg-green-600"
-                        : "bg-orange-500"
+                        ? "bg-orange-600"
+                        : "bg-green-500"
                     }`}
                     aria-hidden
                   />

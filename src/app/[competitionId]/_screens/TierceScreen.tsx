@@ -1068,11 +1068,12 @@ export default function TierceScreen({
 
   //Début du JSX
   return (
-    <div className="w-full mt-4">
+    <main className="w-full px-2 sm:px-4 py-3 sm:py-6">
+      <div className="max-w-5xl mx-auto w-full">
       {/* ============================== */}
       {/* 🔹 LIGNE 1 : NAVIGATION + ICÔNES */}
       {/* ============================== */}
-      <section className="w-full mb-4">
+      <section className="w-full mb-2">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           {/* A) NAVIGATION TICKETS */}
@@ -1430,133 +1431,96 @@ export default function TierceScreen({
             </div>
 
             {/* COLONNE DROITE */}
-              <div className="border rounded-lg p-4 mb-4 md:mb-0">
-                <h2 className="text-center font-semibold text-lg mb-4">
-                  {availableCount === 0
-                    ? '🚫 Plus d’équipe disponible'
-                    : `⚽ ${availableCount} équipes disponibles`}
-                </h2>
+            <div className="border rounded-lg overflow-hidden mb-4 md:mb-0 p-2">
 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">🥇 Équipe 1 → +10%</div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!selectedTeam1 || !isMatchStarted(selectedTeam1.matchId)) {
-                          openPicker(1);
-                        }
-                      }}
-                      disabled={selectedTeam1 ? isMatchStarted(selectedTeam1.matchId) : false}
-                        className={`w-32 px-4 py-2 border rounded flex items-center justify-center gap-1 whitespace-nowrap transition-all ${
-                          selectedTeam1
-                            ? isMatchStarted(selectedTeam1.matchId)
-                              ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                              : 'bg-white text-black border-gray-400 hover:bg-gray-100'
-                            : 'bg-white text-black border-black hover:bg-gray-100'
-                        }`}
-                    >
-                      {selectedTeam1 ? (
-                        isMatchStarted(selectedTeam1.matchId) ? (
-                          <>
-                            <span>🔒</span>
-                            <span>EN JEU</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>✏️</span>
-                            <span>Modifier</span>
-                          </>
-                        )
-                      ) : (
-                        <>
-                          <span>➕</span>
-                          <span>Choisir</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+              <h2 className="text-center font-semibold text-lg px-2 py-3 whitespace-nowrap">
+                {availableCount === 0
+                  ? '🚫 Plus d’équipe disponible'
+                  : `⚽ ${availableCount} équipes disponibles`}
+              </h2>
 
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">🥈 Équipe 2 → +5%</div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!selectedTeam2 || !isMatchStarted(selectedTeam2.matchId)) {
-                          openPicker(2);
-                        }
-                      }}
-                      disabled={selectedTeam2 ? isMatchStarted(selectedTeam2.matchId) : false}
-                        className={`w-32 px-4 py-2 border rounded flex items-center justify-center gap-1 whitespace-nowrap transition-all ${
-                          selectedTeam2
-                            ? isMatchStarted(selectedTeam2.matchId)
-                              ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                              : 'bg-white text-black border-gray-400 hover:bg-gray-100'
-                            : 'bg-white text-black border-black hover:bg-gray-100'
-                        }`}
-                    >
-                      {selectedTeam2 ? (
-                        isMatchStarted(selectedTeam2.matchId) ? (
-                          <>
-                            <span>🔒</span>
-                            <span>EN JEU</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>✏️</span>
-                            <span>Modifier</span>
-                          </>
-                        )
-                      ) : (
-                        <>
-                          <span>➕</span>
-                          <span>Choisir</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+              <div className="space-y-3">
 
-                  <div className="grid grid-cols-[1fr_auto] items-center gap-4">
-                    <div className="font-medium">🥉 Équipe 3</div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!selectedTeam3 || !isMatchStarted(selectedTeam3.matchId)) {
-                          openPicker(3);
-                        }
-                      }}
-                      disabled={selectedTeam3 ? isMatchStarted(selectedTeam3.matchId) : false}
-                        className={`w-32 px-4 py-2 border rounded flex items-center justify-center gap-1 whitespace-nowrap transition-all ${
-                          selectedTeam3
-                            ? isMatchStarted(selectedTeam3.matchId)
-                              ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                              : 'bg-white text-black border-gray-400 hover:bg-gray-100'
-                            : 'bg-white text-black border-black hover:bg-gray-100'
-                        }`}
-                    >
-                      {selectedTeam3 ? (
-                        isMatchStarted(selectedTeam3.matchId) ? (
-                          <>
-                            <span>🔒</span>
-                            <span>EN JEU</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>✏️</span>
-                            <span>Modifier</span>
-                          </>
-                        )
-                      ) : (
-                        <>
-                          <span>➕</span>
-                          <span>Choisir</span>
-                        </>
-                      )}
-                    </button>
+                {/* Équipe 1 */}
+                <div
+                  onClick={() => {
+                    if (!selectedTeam1 || !isMatchStarted(selectedTeam1.matchId)) {
+                      openPicker(1);
+                    }
+                  }}
+                  className={`border rounded-lg bg-orange-100 overflow-hidden min-h-[56px] ${
+                    selectedTeam1 && isMatchStarted(selectedTeam1.matchId)
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'cursor-pointer hover:bg-orange-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between px-3 py-3 h-full">
+                    <div className="font-medium">
+                      🥇 Équipe 1 (+10%)
+                    </div>
+
+                    <img
+                      src="/images/icons/open_popup.png"
+                      alt="Ouvrir"
+                      className="w-8 h-8 object-contain shrink-0"
+                    />
                   </div>
                 </div>
-              </div>
 
+                {/* Équipe 2 */}
+                <div
+                  onClick={() => {
+                    if (!selectedTeam2 || !isMatchStarted(selectedTeam2.matchId)) {
+                      openPicker(2);
+                    }
+                  }}
+                  className={`border rounded-lg bg-orange-100 overflow-hidden min-h-[56px] ${
+                    selectedTeam2 && isMatchStarted(selectedTeam2.matchId)
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'cursor-pointer hover:bg-orange-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between px-3 py-3 h-full">
+                    <div className="font-medium">
+                      🥈 Équipe 2 (+5%)
+                    </div>
+
+                    <img
+                      src="/images/icons/open_popup.png"
+                      alt="Ouvrir"
+                      className="w-8 h-8 object-contain shrink-0"
+                    />
+                  </div>
+                </div>
+
+                {/* Équipe 3 */}
+                <div
+                  onClick={() => {
+                    if (!selectedTeam3 || !isMatchStarted(selectedTeam3.matchId)) {
+                      openPicker(3);
+                    }
+                  }}
+                  className={`border rounded-lg bg-orange-100 overflow-hidden min-h-[56px] ${
+                    selectedTeam3 && isMatchStarted(selectedTeam3.matchId)
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'cursor-pointer hover:bg-orange-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between px-3 py-3 h-full">
+                    <div className="font-medium">
+                      🥉 Équipe 3
+                    </div>
+
+                    <img
+                      src="/images/icons/open_popup.png"
+                      alt="Ouvrir"
+                      className="w-8 h-8 object-contain shrink-0"
+                    />
+                  </div>
+                </div>
+
+              </div>
+            </div>
           </div>
         )}
 
@@ -1670,7 +1634,7 @@ export default function TierceScreen({
 
             {!lbLoading && lbRows.length > 0 && (
               <div className="text-center text-sm text-gray-500 mb-4">
-                Clique sur une ligne pour voir les tickets des autres joueurs.
+                Clique sur un pseudo pour voir ses tickets 👀 
               </div>
             )}
 
@@ -1889,13 +1853,14 @@ export default function TierceScreen({
               <h3 className="text-lg font-semibold text-center">
                 Choisir l&apos;équipe {pickerSlot}
               </h3>
-              <button
-                type="button"
-                onClick={closePicker}
-                className="absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 border rounded hover:bg-gray-50"
-              >
-                Fermer
-              </button>
+                <button
+                  type="button"
+                  onClick={closePicker}
+                  className="absolute top-4 right-4 text-black text-2xl font-bold hover:opacity-70"
+                  aria-label="Fermer"
+                >
+                  ✕
+                </button>
             </div>
 
             <div className="flex justify-center gap-2 mb-3">
@@ -1997,18 +1962,19 @@ export default function TierceScreen({
       {/* ============================== */}
       {varOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
+              <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
                 <div className="flex items-center justify-between border-b p-4">
                   <h3 className="text-lg font-semibold">
                     Détail VAR
                   </h3>
-                  <button
-                    type="button"
-                    onClick={closeVar}
-                    className="px-3 py-1 border rounded hover:bg-gray-50"
-                  >
-                    Fermer
-                  </button>
+                    <button
+                      type="button"
+                      onClick={closeVar}
+                      className="absolute top-3 right-3 text-black text-xl hover:opacity-70"
+                      aria-label="Fermer"
+                    >
+                      ✕
+                    </button>
                 </div>
 
                 {(() => {
@@ -2083,13 +2049,14 @@ export default function TierceScreen({
               <h3 className="text-lg font-semibold text-center">
                 Détail du match
               </h3>
-              <button
-                type="button"
-                onClick={closeMatchVar}
-                className="absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1 border rounded hover:bg-gray-50"
-              >
-                Fermer
-              </button>
+                <button
+                  type="button"
+                  onClick={closeMatchVar}
+                  className="absolute top-3 right-3 text-black text-xl hover:opacity-70"
+                  aria-label="Fermer"
+                >
+                  ✕
+                </button>
             </div>
 
             <div className="px-4 pb-4">
@@ -2302,5 +2269,6 @@ export default function TierceScreen({
         </div>
       )}
     </div>
+  </main>
   );
 }

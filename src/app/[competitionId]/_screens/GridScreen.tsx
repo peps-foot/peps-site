@@ -1413,36 +1413,22 @@ function renderBonusRow(b: BonusDef) {
       </div>
 
       <div>
-        {canPlayThis && (
-          <button
-            type="button"
+        {(canPlayThis || isPlayed) && (
+          <img
+            src="/images/icons/open_popup.png"
+            alt="Ouvrir"
             onClick={(e) => {
               e.stopPropagation();
-              setOpenedBonus(b);
-            }}
-            className="px-3 py-1 border rounded hover:bg-gray-100"
-          >
-            JOUER
-          </button>
-        )}
-
-        {isPlayed && (
-          bonusLocked ? (
-            <div className="px-3 py-1 border rounded text-gray-500 flex items-center gap-2 cursor-not-allowed">
-              <span>🔒</span><span>EN JEU</span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
+              if (!bonusLocked) {
                 setOpenedBonus(b);
-              }}
-              className="px-3 py-1 border rounded hover:bg-gray-100"
-            >
-              MODIFIER
-            </button>
-          )
+              }
+            }}
+            className={`w-8 h-8 ${
+              bonusLocked
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:scale-110 transition"
+            }`}
+          />
         )}
       </div>
     </div>

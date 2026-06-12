@@ -445,9 +445,6 @@ export default function Home() {
     {/* Pub PEPS aléatoire */}
     {/*<RandomPromo /> */}
 
-    {/* Pub SportSympathy aléatoire */}
-    <PartnerPromo />  
-
     {/* COMMENT JOUER */}
     <BannerAccordion
       image="/images/bannieres/comment_jouer.png"
@@ -647,6 +644,9 @@ export default function Home() {
         />
       ))}
     </BannerAccordion>
+
+    {/* Pub SportSympathy aléatoire */}
+    <PartnerPromo />  
 
     {/* ── POP UP si joueur pas logué ── */}
     {showAuthModal && (
