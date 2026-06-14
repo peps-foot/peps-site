@@ -2504,7 +2504,7 @@ return early ? (
                   className="w-full flex items-center justify-between px-4 py-3"
                 >
                   <span className="font-semibold text-center w-full">
-                    {hasBonusCroix ? '✅ Bonus CROIX activé' : '🎯 Choisis un Bonus CROIX'}
+                    {hasBonusCroix ? '✅ Bonus CROIX activé' : '🎯 Joue ton premier BONUS'}
                   </span>
                   <span className="text-xl">{openCroix ? "▲" : "▼"}</span>
                 </button>
@@ -2532,7 +2532,7 @@ return early ? (
                   className="w-full flex items-center justify-between px-4 py-3"
                 >
                   <span className="font-semibold text-center w-full">
-                    {hasBonusScore ? '✅ Bonus SCORE activé' : '🎯 Choisis un Bonus SCORE'}
+                    {hasBonusScore ? '✅ Bonus SCORE activé' : '🎯 Joue ton deuxième BONUS'}
                   </span>
                   <span className="text-xl">{openScore ? "▲" : "▼"}</span>
                 </button>
@@ -2573,7 +2573,7 @@ return early ? (
                       <span className="font-semibold text-center w-full">
                         {hasBonusSpecial
                           ? '✅ Bonus SPÉCIAL activé'
-                          : '🎯 Choisis un bonus SPÉCIAL'}
+                          : '🎯 Joue un bonus SPÉCIAL'}
                       </span>
                       <span className="text-xl">{openSpecial ? "▲" : "▼"}</span>
                     </button>

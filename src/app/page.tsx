@@ -587,36 +587,36 @@ export default function Home() {
             : `${supporterToJoin.length} compétitions disponibles`
         }
       >
-<div className="p-2 bg-white space-y-2">
-  <input
-    type="text"
-    value={supporterSearch}
-    onChange={(e) => setSupporterSearch(e.target.value)}
-    placeholder="Rechercher une compétition..."
-    className="w-full border rounded-lg px-3 py-2 text-sm"
-  />
+      <div className="p-2 bg-white space-y-2">
+        <input
+          type="text"
+          value={supporterSearch}
+          onChange={(e) => setSupporterSearch(e.target.value)}
+          placeholder="Rechercher une compétition..."
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        />
 
-  {visibleSupporterToJoin.map((comp) => (
-    <CompetitionHomeCard
-      key={comp.id}
-      comp={comp}
-      onClick={() => handleJoinPublicCompetition(comp)}
-      formatDeadline={formatDeadline}
-      getCompetitionStatusText={getCompetitionStatusText}
-      getDeadlineColor={getDeadlineColor}
-    />
-  ))}
+        {visibleSupporterToJoin.map((comp) => (
+          <CompetitionHomeCard
+            key={comp.id}
+            comp={comp}
+            onClick={() => handleJoinPublicCompetition(comp)}
+            formatDeadline={formatDeadline}
+            getCompetitionStatusText={getCompetitionStatusText}
+            getDeadlineColor={getDeadlineColor}
+          />
+        ))}
 
-  {!showAllSupporters && !supporterSearch.trim() && filteredSupporterToJoin.length > 8 && (
-    <button
-      type="button"
-      onClick={() => setShowAllSupporters(true)}
-      className="w-full text-sm font-semibold text-blue-600 py-2"
-    >
-      Voir toutes les compétitions
-    </button>
-  )}
-</div>
+        {!showAllSupporters && !supporterSearch.trim() && filteredSupporterToJoin.length > 8 && (
+          <button
+            type="button"
+            onClick={() => setShowAllSupporters(true)}
+            className="w-full text-sm font-semibold text-blue-600 py-2"
+          >
+            Voir toutes les compétitions
+          </button>
+        )}
+      </div>
       </BannerAccordion>
     )}
 
