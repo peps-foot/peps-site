@@ -58,15 +58,22 @@ type SupporterLeaderboardRow = {
     rank: number;
 };
 
-{/* ── Bonus SUPPORTER posé ── */}
+// Pour le pop-up vu des pronos des autres dans les classements
+type PublicSupporterMonth = {
+  key: string;
+  title: string;
+  rows: any[];
+};
+
 type SupporterBonus = {
-    id: string;
-    competition_id: string;
-    user_id: string;
-    match_id: string;
-    bonus_definition: string;
-    code: string;
-    name: string;
+  id: string;
+  competition_id: string;
+  user_id: string;
+  match_id: string;
+  bonus_definition: string;
+  code: string;
+  name: string;
+  image_url: string | null;
 };
 
 {/* ── Bonus SUPPORTER disponible dans la compétition ── */}
@@ -83,6 +90,7 @@ export default function SupporterScreen({
     competitionId,
     isPrivate,
 }: SupporterScreenProps) {
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [matches, setMatches] = useState<SupporterMatch[]>([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState<SupporterView>('pronostics');
@@ -95,6 +103,48 @@ export default function SupporterScreen({
     const [openedBonus, setOpenedBonus] = useState<SupporterBonusDef | null>(null);
     {/* ── Popup bonus SUPPORTER ── */}
     const [selectedBonusMatchId, setSelectedBonusMatchId] = useState<string>('');
+    // pour la pop-up des pronos des autres
+    const [showSupporterPopup, setShowSupporterPopup] = useState(false);
+    const [supporterPopupMatch, setSupporterPopupMatch] = useState<any | null>(null);
+    const [supporterPopupRows, setSupporterPopupRows] = useState<any[]>([]);
+    const [supporterPopupLoading, setSupporterPopupLoading] = useState(false);
+    // pour la pop-up de la vue des autres pronos des autres joueurs dans les classements
+    const [publicSupporterOpen, setPublicSupporterOpen] = useState(false);
+    const [publicSupporterLoading, setPublicSupporterLoading] = useState(false);
+    const [publicSupporterPlayerIndex, setPublicSupporterPlayerIndex] = useState(0);
+    const [publicSupporterMonthIndex, setPublicSupporterMonthIndex] = useState(0);
+    const [publicSupporterMonths, setPublicSupporterMonths] = useState<PublicSupporterMonth[]>([]);
+    // Format FR pour le status des matchs
+    const getMatchLabelAndColor = (status: string) => {
+        const s = status.toUpperCase();
+
+        if (['NS', 'TBD'].includes(s)) return { label: 'À venir', color: 'text-blue-600' };
+
+        if (s === '1H') return { label: '1re MT', color: 'text-orange-500' };
+        if (s === 'HT') return { label: 'Mi-temps', color: 'text-orange-500' };
+        if (s === '2H') return { label: '2e MT', color: 'text-orange-500' };
+        if (s === 'PST') return { label: 'Reporté', color: 'text-red-600' };
+
+        // Tous les statuts post-temps réglementaire = considéré comme terminé
+        // ET=prolongations, BT=pause avant prolongations, AET=terminé après prolongations
+        // P=pénaltis, AET=terminé après pénaltis. FT=full time.
+        if (['ET', 'BT', 'P', 'FT', 'AET', 'PEN'].includes(s)) {
+        return { label: 'Terminé', color: 'text-gray-700' };
+        }
+
+        // Match suspendu qui peut reprendre
+        if (['SUSP', 'INT'].includes(s)) {
+        return { label: 'Suspendu', color: 'text-orange-600' };
+        }
+        // Statuts d'annulation d'un match
+        // CANC=annulé, ABD=abandonné, AWD=tapis vert, WO=forfait
+        if (['CANC', 'ABD', 'AWD', 'WO'].includes(s)) {
+        return { label: 'Annulé', color: 'text-red-600' };
+        }
+
+        // Fallback
+        return { label: s, color: 'text-gray-400' };
+    };
 
     // Pour charger les matchs de la compétition
     useEffect(() => {
@@ -114,6 +164,7 @@ export default function SupporterScreen({
 
             const { data: userData } = await supabase.auth.getUser();
             const userId = userData.user?.id;
+            setCurrentUserId(userId ?? null);
 
             if (userId) {
                 {/* ── Chargement des pronostics déjà validés ── */ }
@@ -174,36 +225,39 @@ export default function SupporterScreen({
                 }
             }
 
-            {/* ── Chargement des bonus SUPPORTER ── */ }
+            {/* ── Chargement des bonus SUPPORTER ── */}
             const { data: bonusData, error: bonusError } = await supabase
-                .from('supporter_bonus')
-                .select(`
+            .from('supporter_bonus')
+            .select(`
                 id,
                 competition_id,
                 user_id,
                 match_id,
                 bonus_definition,
                 bonus_def:bonus_definition (
-                    code,
-                    name
+                code,
+                name,
+                image_url
                 )
-                `)
-                .eq('competition_id', competitionId)
-                .eq('user_id', userId);
+            `)
+            .eq('competition_id', competitionId)
+            .eq('user_id', userId);
 
             if (bonusError) {
-                console.error('Erreur chargement supporter_bonus:', bonusError);
+            console.error('Erreur chargement supporter_bonus:', bonusError);
             } else {
-const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
-  id: b.id,
-  competition_id: b.competition_id,
-  user_id: b.user_id,
-  match_id: b.match_id,
-  bonus_definition: b.bonus_definition,
-  code: b.bonus_def?.code ?? '',
-  name: b.bonus_def?.name ?? '',
-}));
-                setSupporterBonuses(formattedBonuses);
+            const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
+                id: b.id,
+                competition_id: b.competition_id,
+                user_id: b.user_id,
+                match_id: b.match_id,
+                bonus_definition: b.bonus_definition,
+                code: b.bonus_def?.code ?? '',
+                name: b.bonus_def?.name ?? '',
+                image_url: b.bonus_def?.image_url ?? null,
+            }));
+
+            setSupporterBonuses(formattedBonuses);
             }
 
             {/* ── Chargement des bonus autorisés pour cette compétition ── */}
@@ -512,21 +566,23 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
         bonus_definition,
         bonus_def:bonus_definition (
             code,
-            name
+            name,
+            image_url
         )
         `)
         .eq('competition_id', competitionId)
         .eq('user_id', userId);
 
-const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
-  id: b.id,
-  competition_id: b.competition_id,
-  user_id: b.user_id,
-  match_id: b.match_id,
-  bonus_definition: b.bonus_definition,
-  code: b.bonus_def?.code ?? '',
-  name: b.bonus_def?.name ?? '',
-}));
+        const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
+            id: b.id,
+            competition_id: b.competition_id,
+            user_id: b.user_id,
+            match_id: b.match_id,
+            bonus_definition: b.bonus_definition,
+            code: b.bonus_def?.code ?? '',
+            name: b.bonus_def?.name ?? '',
+            image_url: b.bonus_def?.image_url ?? null,
+        }));
 
     setSupporterBonuses(formattedBonuses);
 
@@ -578,27 +634,220 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
         bonus_definition,
         bonus_def:bonus_definition (
             code,
-            name
+            name,
+            image_url
         )
         `)
         .eq('competition_id', competitionId)
         .eq('user_id', userId);
 
-const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
-  id: b.id,
-  competition_id: b.competition_id,
-  user_id: b.user_id,
-  match_id: b.match_id,
-  bonus_definition: b.bonus_definition,
-  code: b.bonus_def?.code ?? '',
-  name: b.bonus_def?.name ?? '',
-}));
+        const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
+            id: b.id,
+            competition_id: b.competition_id,
+            user_id: b.user_id,
+            match_id: b.match_id,
+            bonus_definition: b.bonus_definition,
+            code: b.bonus_def?.code ?? '',
+            name: b.bonus_def?.name ?? '',
+            image_url: b.bonus_def?.image_url ?? null,
+        }));
 
     setSupporterBonuses(formattedBonuses);
 
     setOpenedBonus(null);
     setSelectedBonusMatchId('');
     };
+
+    // Pour la pop-up pronos des autres joueurs
+    async function openSupporterPredictionsPopup(match: any) {
+    console.log("MATCH POPUP SUPPORTER :", match);
+    setSupporterPopupMatch(match);
+    setShowSupporterPopup(true);
+    setSupporterPopupLoading(true);
+    setSupporterPopupRows([]);
+
+    const matchStatus = match.status ?? match.fixture_status ?? "NS";
+
+    // Comme pour GRID : si le match n'a pas commencé, on ne charge pas les pronos
+    if (matchStatus === "NS") {
+        setSupporterPopupLoading(false);
+        return;
+    }
+
+    const { data: predictions, error: predictionsError } = await supabase
+    .from("supporter_predictions")
+    .select(`
+        user_id,
+        predicted_home_score,
+        predicted_away_score
+    `)
+    .eq("competition_id", competitionId)
+    .eq("match_id", match.match_id);
+
+    if (predictionsError) {
+        console.error(
+        "Erreur chargement pronos SUPPORTER :",
+        JSON.stringify(predictionsError, null, 2)
+        );
+        setSupporterPopupRows([]);
+        setSupporterPopupLoading(false);
+        return;
+    }
+
+    const { data: bonuses, error: bonusesError } = await supabase
+        .from("supporter_bonus")
+        .select(`
+        user_id,
+        bonus_definition (
+            id,
+            code,
+            name,
+            image_url
+        )
+        `)
+        .eq("competition_id", competitionId)
+        .eq("match_id", match.match_id);
+
+    if (bonusesError) {
+        console.error("Erreur chargement bonus SUPPORTER :", bonusesError);
+    }
+
+    const bonusesByUserId = new Map(
+        (bonuses ?? []).map((bonus: any) => [bonus.user_id, bonus])
+    );
+
+    const userIds = (predictions ?? []).map((p: any) => p.user_id);
+
+    const { data: profilesData, error: profilesError } = await supabase
+    .from("profiles")
+    .select("user_id, username")
+    .in("user_id", userIds);
+
+    if (profilesError) {
+    console.error("Erreur chargement profils SUPPORTER :", profilesError);
+    }
+
+    const profilesByUserId = new Map(
+    (profilesData ?? []).map((profile: any) => [
+        profile.user_id,
+        profile.username ?? "Joueur",
+    ])
+    );
+
+    const rankByUserId = new Map(
+    leaderboardGeneral.map((player) => [
+        player.user_id,
+        player.rank,
+    ])
+    );
+
+    const rows = (predictions ?? [])
+    .map((prediction: any) => ({
+        ...prediction,
+        username: profilesByUserId.get(prediction.user_id) ?? "Joueur",
+        rank: rankByUserId.get(prediction.user_id) ?? 9999,
+        bonus: bonusesByUserId.get(prediction.user_id) ?? null,
+    }))
+    .sort((a: any, b: any) => a.rank - b.rank);
+
+    setSupporterPopupRows(rows);
+
+    setSupporterPopupRows(rows);
+    setSupporterPopupLoading(false);
+    }
+
+    // Pour la pop-up pronos des autres joueurs dans les classements
+    async function openPublicSupporterPlayer(player: SupporterLeaderboardRow) {
+    const playersList = leaderboardGeneral;
+    const index = playersList.findIndex((p) => p.user_id === player.user_id);
+
+    setPublicSupporterPlayerIndex(index === -1 ? 0 : index);
+    setPublicSupporterMonthIndex(currentMonthIdx);
+    setPublicSupporterOpen(true);
+    setPublicSupporterLoading(true);
+
+    const { data: scoresData, error: scoresError } = await supabase.rpc(
+        "compute_supporter_scores",
+        { p_competition_id: competitionId }
+    );
+
+    if (scoresError) {
+        console.error("Erreur compute_supporter_scores popup :", scoresError);
+        setPublicSupporterMonths([]);
+        setPublicSupporterLoading(false);
+        return;
+    }
+
+    const { data: bonusData, error: bonusError } = await supabase
+        .from("supporter_bonus")
+        .select(`
+        user_id,
+        match_id,
+        bonus_definition (
+            code,
+            name,
+            image_url
+        )
+        `)
+        .eq("competition_id", competitionId);
+
+    if (bonusError) {
+        console.error("Erreur bonus popup SUPPORTER :", bonusError);
+    }
+
+    const bonusByUserAndMatch = new Map(
+        (bonusData ?? []).map((b: any) => [
+        `${b.user_id}_${b.match_id}`,
+        b.bonus_definition,
+        ])
+    );
+
+    const rows = (scoresData ?? [])
+        .filter((s: any) => s.user_id === player.user_id)
+        .map((score: any) => {
+        const match = matches.find((m) => m.match_id === score.match_id);
+
+        return {
+            ...score,
+            match,
+            bonus: bonusByUserAndMatch.get(`${score.user_id}_${score.match_id}`) ?? null,
+        };
+        });
+
+    const monthsForPlayer = months.map((month) => ({
+        key: month.key,
+        title: month.title,
+        rows: month.matches.map((match) => {
+        const row = rows.find((r: any) => r.match_id === match.match_id);
+
+        return {
+        user_id: player.user_id,
+        match,
+        predicted_home_score: row?.predicted_home_score ?? null,
+        predicted_away_score: row?.predicted_away_score ?? null,
+        points: row?.points ?? null,
+        bonus: row?.bonus ?? null,
+        };
+        }),
+    }));
+
+    setPublicSupporterMonths(monthsForPlayer);
+    setPublicSupporterLoading(false);
+    }
+
+    // Pour passer d'un joueur à un autre
+    function changePublicSupporterPlayer(direction: "prev" | "next") {
+    const newIndex =
+        direction === "prev"
+        ? Math.max(0, publicSupporterPlayerIndex - 1)
+        : Math.min(leaderboardGeneral.length - 1, publicSupporterPlayerIndex + 1);
+
+    const newPlayer = leaderboardGeneral[newIndex];
+
+    if (!newPlayer) return;
+
+    openPublicSupporterPlayer(newPlayer);
+    }
 
     if (loading) {
         return <div className="p-6 text-white">Chargement des matchs…</div>;
@@ -842,24 +1091,36 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                                                     <span className="hidden sm:inline">{match.away_team}</span>
                                                 </div>
 
-                                                {/* ── Ligne 1 / Colonne 5 : VAR / bonus futur ── */}
+                                                {/* ── Ligne 1 / Colonne 5 : VAR ── */}
                                                 <div className="text-center text-sm">
-                                                    <button className="focus:outline-none">
-                                                        <img
-                                                        src={
-                                                            bonusForThisMatch
-                                                            ? supporterBonusLogos[bonusForThisMatch.code]
-                                                            : '/images/info.png'
-                                                        }
-                                                        alt={bonusForThisMatch ? bonusForThisMatch.name : 'Infos pronos'}
-                                                        className="w-10 h-10 rounded-full object-contain"
-                                                        />
-                                                    </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openSupporterPredictionsPopup(match)}
+                                                    className="focus:outline-none"
+                                                >
+                                                    <img
+                                                    src={
+                                                        bonusForThisMatch?.image_url
+                                                        ? bonusForThisMatch.image_url
+                                                        : "/images/info.png"
+                                                    }
+                                                    alt={
+                                                        bonusForThisMatch?.name
+                                                        ? bonusForThisMatch.name
+                                                        : "Infos pronos"
+                                                    }
+                                                    className="w-10 h-10 rounded-full object-contain"
+                                                    />
+                                                </button>
                                                 </div>
 
                                                 {/* ── Ligne 2 / Colonne 1 : statut ── */}
-                                                <div className="text-center text-xs text-blue-600">
-                                                    {isLocked ? 'Terminé' : 'À venir'}
+                                                <div
+                                                className={`text-center text-xs ${
+                                                    getMatchLabelAndColor(match.status).color
+                                                }`}
+                                                >
+                                                {getMatchLabelAndColor(match.status).label}
                                                 </div>
 
                                                 {/* ── Ligne 2 / Colonne 2 : logo home ou score home ── */}
@@ -1067,13 +1328,30 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                     <div className="px-4 py-3 border-b font-semibold text-center">
                         🏆 Classement général
                     </div>
+                    <div className="px-4 py-2 text-center text-sm text-gray-600 border-b">
+{leaderboardGeneral.find((p) => p.user_id === currentUserId) ? (
+  <>
+    Tu es {leaderboardGeneral.find((p) => p.user_id === currentUserId)?.rank}e
+    sur {leaderboardGeneral.length} joueurs.
+  </>
+) : (
+  <>
+    Tu n’es pas encore classé.
+    <br />
+    {leaderboardGeneral.length} joueurs sont classés.
+  </>
+)}
+                    <br />
+                    Clique sur un joueur pour voir ses pronos.
+                    </div>
 
                     {/* ── Liste des joueurs ── */}
                     <div className="divide-y">
                         {leaderboardGeneral.map((player) => (
                             <div
-                                key={player.user_id}
-                                className="grid grid-cols-[14%_16%_1fr_20%] items-center px-3 py-2"
+                            key={player.user_id}
+                            onClick={() => openPublicSupporterPlayer(player)}
+                            className="grid grid-cols-[14%_16%_1fr_20%] items-center px-3 py-2 cursor-pointer hover:bg-gray-50"
                             >
                                 {/* ── Rang ── */}
                                 <div className="text-center font-bold">
@@ -1114,13 +1392,30 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
                     <div className="px-4 py-3 border-b font-semibold text-center">
                         📅 Classement du mois
                     </div>
+                    <div className="px-4 py-2 text-center text-sm text-gray-600 border-b">
+{leaderboardMonth.find((p) => p.user_id === currentUserId) ? (
+  <>
+    Tu es {leaderboardMonth.find((p) => p.user_id === currentUserId)?.rank}e
+    sur {leaderboardMonth.length} joueurs ce mois-ci.
+  </>
+) : (
+  <>
+    Tu n’es pas encore classé ce mois-ci.
+    <br />
+    {leaderboardMonth.length} joueurs sont classés.
+  </>
+)}
+                    <br />
+                    Clique sur un joueur pour voir ses pronos.
+                    </div>
 
                     {/* ── Liste des joueurs ── */}
                     <div className="divide-y">
                         {leaderboardMonth.map((player) => (
                             <div
-                                key={player.user_id}
-                                className="grid grid-cols-[14%_16%_1fr_20%] items-center px-3 py-2"
+                            key={player.user_id}
+                            onClick={() => openPublicSupporterPlayer(player)}
+                            className="grid grid-cols-[14%_16%_1fr_20%] items-center px-3 py-2 cursor-pointer hover:bg-gray-50"
                             >
                                 {/* ── Rang ── */}
                                 <div className="text-center font-bold">
@@ -1426,7 +1721,248 @@ const formattedBonuses: SupporterBonus[] = (bonusData || []).map((b: any) => ({
             </div>
             )}
 
+            {/* ── POPUP PRONOS DES AUTRES ── */}
+            {showSupporterPopup && supporterPopupMatch && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                <div className="relative w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">
 
+                <button
+                    onClick={() => setShowSupporterPopup(false)}
+                    aria-label="Fermer"
+                    className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-full
+                    text-3xl leading-none text-gray-500 hover:text-gray-800 hover:bg-gray-100
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                    ×
+                </button>
+
+                <h2 className="text-center text-lg font-semibold">
+                    Les pronos des autres joueurs
+                </h2>
+
+                <div className="mt-2 text-center text-base font-medium">
+                    {supporterPopupMatch.home ?? supporterPopupMatch.home_team ?? supporterPopupMatch.home_name ?? "Équipe 1"}
+                    <span className="mx-2">—</span>
+                    {supporterPopupMatch.away ?? supporterPopupMatch.away_team ?? supporterPopupMatch.away_name ?? "Équipe 2"}
+                </div>
+
+                {(supporterPopupMatch.status ?? supporterPopupMatch.fixture_status ?? "NS") === "NS" ? (
+                    <div className="mt-6 text-center">
+                    <Image
+                        src="/NS.png"
+                        alt="Match pas commencé"
+                        width={260}
+                        height={260}
+                        className="mx-auto"
+                    />
+                    </div>
+                ) : (
+                    <div className="mt-4 max-h-96 overflow-y-auto">
+                    {supporterPopupLoading ? (
+                        <p className="py-8 text-center text-sm text-gray-500">
+                        Chargement des pronos...
+                        </p>
+                    ) : supporterPopupRows.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-gray-500">
+                        <Image src="/images/empty-box.png" alt="" width={56} height={56} />
+                        <p className="mt-3 text-sm">
+                            Aucun prono trouvé pour ce match.
+                        </p>
+                        </div>
+                    ) : (
+                        <div className="mx-auto w-full max-w-[520px]">
+                        <ul className="flex flex-col gap-1">
+                            {supporterPopupRows
+                            .map((p: any) => {
+                                const isMe = p.user_id === currentUserId;
+                                const bonusDefinition = p.bonus?.bonus_definition;
+
+                                return (
+                                <li
+                                    key={p.user_id}
+                                    className={`grid min-h-[38px] grid-cols-7 items-center rounded-xl border px-3 py-1 ${
+                                    isMe
+                                        ? "bg-orange-100 border-orange-300"
+                                        : "bg-white border-gray-300"
+                                    }`}
+                                >
+                                    <div className="col-span-3 min-w-0">
+                                    <span
+                                        className={`truncate block ${
+                                        isMe ? "font-bold" : "font-medium"
+                                        }`}
+                                    >
+                                        {p.username}
+                                    </span>
+                                    </div>
+
+                                    <div className="col-span-3 text-center text-base font-bold">
+                                    {p.predicted_home_score} - {p.predicted_away_score}
+                                    </div>
+
+                                    <div className="col-span-1 flex justify-end">
+                                    {bonusDefinition?.image_url && (
+                                        <Image
+                                        src={bonusDefinition.image_url}
+                                        alt={bonusDefinition.name ?? "Bonus joué"}
+                                        width={30}
+                                        height={30}
+                                        className="rounded-full object-contain"
+                                        />
+                                    )}
+                                    </div>
+                                </li>
+                                );
+                            })}
+                        </ul>
+                        </div>
+                    )}
+                    </div>
+                )}
+                </div>
+            </div>
+            )}
+
+            {/* ── POPUP PRONOS DES AUTRES DANS CLASSEMENTS ── */}
+            {publicSupporterOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white rounded-lg shadow-lg w-full max-w-md overflow-hidden">
+
+                <div className="flex items-center justify-between border-b p-3">
+                    <button
+                    onClick={() => changePublicSupporterPlayer("prev")}
+                    disabled={publicSupporterPlayerIndex === 0}
+                    className="text-lg px-2 disabled:opacity-30"
+                    >
+                    ◀
+                    </button>
+
+                    <div className="text-center font-semibold text-base flex-1">
+                    {leaderboardGeneral[publicSupporterPlayerIndex]?.username ?? "Joueur"}
+                    </div>
+
+                    <button
+                    onClick={() => changePublicSupporterPlayer("next")}
+                    disabled={publicSupporterPlayerIndex === leaderboardGeneral.length - 1}
+                    className="text-lg px-2 disabled:opacity-30"
+                    >
+                    ▶
+                    </button>
+
+                    <button
+                    onClick={() => setPublicSupporterOpen(false)}
+                    className="ml-3 text-xl font-bold"
+                    >
+                    ✕
+                    </button>
+                </div>
+
+                <div className="p-4 space-y-4">
+                    {publicSupporterLoading ? (
+                    <p className="text-center text-gray-500">Chargement...</p>
+                    ) : publicSupporterMonths.length === 0 ? (
+                    <p className="text-center text-gray-500">Aucun prono</p>
+                    ) : (
+                    <>
+                        <div className="flex justify-between items-center">
+                        <button
+                            onClick={() =>
+                            setPublicSupporterMonthIndex((i) => Math.max(0, i - 1))
+                            }
+                            disabled={publicSupporterMonthIndex === 0}
+                            className="disabled:opacity-30"
+                        >
+                            ◀
+                        </button>
+
+                        <span className="text-sm font-medium text-center capitalize">
+                            {publicSupporterMonths[publicSupporterMonthIndex]?.title}
+                        </span>
+
+                        <button
+                            onClick={() =>
+                            setPublicSupporterMonthIndex((i) =>
+                                Math.min(publicSupporterMonths.length - 1, i + 1)
+                            )
+                            }
+                            disabled={publicSupporterMonthIndex === publicSupporterMonths.length - 1}
+                            className="disabled:opacity-30"
+                        >
+                            ▶
+                        </button>
+                        </div>
+
+                        <div className="border rounded overflow-hidden">
+                        {publicSupporterMonths[publicSupporterMonthIndex]?.rows.map((row: any) => {
+                            const match = row.match;
+                            const status = String(match.status ?? "").toUpperCase();
+                            const matchStarted = new Date(match.match_date).getTime() <= Date.now();
+
+                            const canShowPrediction =
+                            status !== "NS" || matchStarted || row.user_id === currentUserId;
+                            const hasPrediction =
+                            row.predicted_home_score !== null &&
+                            row.predicted_away_score !== null;
+
+                            return (
+                            <div
+                                key={match.match_id}
+                                className="grid grid-cols-[1fr_70px_1fr_30px_36px] items-center gap-2 border-b px-2 py-2 text-sm"
+                            >
+                                <div className="truncate text-center min-w-0">
+                                {match.short_name_home ?? match.home_team}
+                                </div>
+
+                                <div className="text-center font-bold">
+                                {canShowPrediction && hasPrediction
+                                ? `${row.predicted_home_score} - ${row.predicted_away_score}`
+                                : "À venir"}
+                                </div>
+
+                                <div className="truncate text-center min-w-0">
+                                {match.short_name_away ?? match.away_team}
+                                </div>
+
+                                <div className="flex items-center justify-center">
+                                {canShowPrediction && row.bonus?.image_url && (
+                                <Image
+                                    src={row.bonus.image_url}
+                                    alt={row.bonus.name ?? "Bonus joué"}
+                                    width={26}
+                                    height={26}
+                                    className="rounded-full object-contain"
+                                />
+                                )}
+                                </div>
+
+                                <div className="text-right font-medium tabular-nums">
+                                {row.points ?? "-"}
+                                </div>
+                            </div>
+                            );
+                        })}
+
+                        <div className="grid grid-cols-3 items-center px-3 py-2 font-semibold">
+                            <div />
+
+                            <div className="text-center">
+                            Total mois
+                            </div>
+
+                            <div className="text-right tabular-nums">
+                            {publicSupporterMonths[publicSupporterMonthIndex]?.rows.reduce(
+                                (sum: number, row: any) => sum + Number(row.points ?? 0),
+                                0
+                            )}
+                            </div>
+                        </div>
+                        </div>
+                    </>
+                    )}
+                </div>
+                </div>
+            </div>
+            )}
 
         </main>
     );
