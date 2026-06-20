@@ -50,6 +50,10 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ ok: false, error: 'missing token' }), { status: 400 });
     }
 
+    if (!user_id) {
+      return new Response(JSON.stringify({ ok: false, error: 'missing user_id' }), { status: 401 });
+    }
+
     // 1) Existe déjà ?
     const { data: existing, error: selErr } = await supabase
       .from('push_tokens')

@@ -103,10 +103,26 @@ async function postJSON(url: string, body: unknown) {
 }
 
 /** Abonne le token côté backend (platform: 'web' | 'twa' | 'android' | 'ios') */
-export async function subscribeToken(platform: 'web' | 'twa' | 'android' | 'ios', user_id?: string | null) {
+export async function subscribeToken(
+  platform: 'web' | 'twa' | 'android' | 'ios',
+  user_id: string
+) {
+  if (!user_id) {
+    return { ok: false, reason: 'missing_user_id' };
+  }
+
   const token = await getFcmToken();
-  if (!token) return { ok: false, reason: 'no_token' };
-  const res = await postJSON('/api/push/subscribe', { token, platform, user_id: user_id || null });
+
+  if (!token) {
+    return { ok: false, reason: 'no_token' };
+  }
+
+  const res = await postJSON('/api/push/subscribe', {
+    token,
+    platform,
+    user_id,
+  });
+
   return res;
 }
 

@@ -214,7 +214,7 @@ export default function NotificationsSettings() {
         disabled={loading}
         className="px-3 py-2 rounded-md bg-blue-600 text-white disabled:opacity-60 mx-auto block"
       >
-        {loading ? 'Enregistrement…' : 'Enregistrer mes préférences'}
+        {loading ? 'Enregistrement…' : 'Activer mes notifications'}
       </button>
 
       {msg && <div className="text-sm text-gray-800">{msg}</div>}
