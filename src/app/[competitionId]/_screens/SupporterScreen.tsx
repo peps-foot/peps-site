@@ -115,8 +115,8 @@ export default function SupporterScreen({
     const [publicSupporterMonthIndex, setPublicSupporterMonthIndex] = useState(0);
     const [publicSupporterMonths, setPublicSupporterMonths] = useState<PublicSupporterMonth[]>([]);
     // Format FR pour le status des matchs
-    const getMatchLabelAndColor = (status: string) => {
-        const s = status.toUpperCase();
+    const getMatchLabelAndColor = (status: string | null) => {
+        const s = (status ?? '').toUpperCase();
 
         if (['NS', 'TBD'].includes(s)) return { label: 'À venir', color: 'text-blue-600' };
 
