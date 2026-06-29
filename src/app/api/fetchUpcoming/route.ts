@@ -12,7 +12,7 @@ export async function GET() {
 
   logs.push('🟠 Lancement de fetchUpcoming');
 
-  const leagueIds = [531,526]; //2,3,61,848
+  const leagueIds = [1]; //2,3,61,848
   // 1=CDM
   // 2=LDC
   // 3=Europa

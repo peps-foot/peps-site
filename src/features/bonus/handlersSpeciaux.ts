@@ -20,6 +20,8 @@ export type HandleBonusValidateSpeciauxCtx = {
   popupPick: "1" | "N" | "2" | "";   // équipe (N autorisé ici)
 
   // setters
+  competitionId: string;
+  setUserInventory: React.Dispatch<React.SetStateAction<any[]>>;
   setShowOffside: (v: boolean) => void;
   setOpenedBonus: (v: null) => void;
   setPopupMatch1: (v: string) => void;
@@ -28,15 +30,15 @@ export type HandleBonusValidateSpeciauxCtx = {
 
 export async function handleBonusValidateSpeciaux(ctx: HandleBonusValidateSpeciauxCtx) {
   const {
-    user, grid, matches, gridBonuses, openedBonus,
+    user, grid, competitionId, matches, gridBonuses, openedBonus,
     popupMatch1, popupPick,
-    setShowOffside, setOpenedBonus, setPopupMatch1, setGridBonuses,
+    setShowOffside, setOpenedBonus, setPopupMatch1,
+    setGridBonuses, setUserInventory,
   } = ctx;
 
   if (!openedBonus || !user) return;
 
   try {
-    // Payload de base
     const payload: {
       user_id: string;
       grid_id: string;
@@ -48,26 +50,28 @@ export async function handleBonusValidateSpeciaux(ctx: HandleBonusValidateSpecia
       grid_id: grid.id,
       bonus_definition: openedBonus.id,
       match_id: popupMatch1,
-      parameters: {}, // sera { pick: '1' | 'N' | '2' }
+      parameters: {},
     };
 
-    // 1) Sélections minimales côté UI
     if (!popupMatch1) {
       alert("Sélectionne un match.");
       return;
     }
+
     if (!popupPick) {
       alert("Sélectionne un pick (1, N ou 2).");
       return;
     }
 
-    // 2) Interdiction de MODIFIER si le match du bonus existant a démarré (marge 60s)
     const existing = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
+
     if (existing) {
       const margin = 60 * 1000;
       const m = matches.find(m => m.id === existing.match_id);
+
       if (m && "date" in m) {
         const matchTime = new Date(m.date).getTime();
+
         if (Date.now() > matchTime - margin) {
           setShowOffside(true);
           return;
@@ -75,10 +79,8 @@ export async function handleBonusValidateSpeciaux(ctx: HandleBonusValidateSpecia
       }
     }
 
-    // 3) Paramètres SPECIAUX (BOOST_X) — même schéma que Zlatan
-    payload.parameters = { pick: popupPick }; // '1' | 'N' | '2'
+    payload.parameters = { pick: popupPick };
 
-    // 4) Dry-run RPC
     const dryRun = await supabase.rpc("play_bonus", {
       p_user_id: payload.user_id,
       p_grid_id: payload.grid_id,
@@ -92,14 +94,15 @@ export async function handleBonusValidateSpeciaux(ctx: HandleBonusValidateSpecia
       alert("Erreur RPC (dry-run) : " + (dryRun.error.message || "inconnue"));
       return;
     }
+
     const dry = dryRun.data?.[0];
     const reasons: string[] = Array.isArray(dry?.reasons) ? dry.reasons : [];
+
     if (!dry?.ok) {
       alert("Bonus refusé: " + (reasons.join(", ") || "inconnu"));
       return;
     }
 
-    // 5) Commit RPC
     const commitRes = await supabase.rpc("play_bonus", {
       p_user_id: payload.user_id,
       p_grid_id: payload.grid_id,
@@ -108,24 +111,50 @@ export async function handleBonusValidateSpeciaux(ctx: HandleBonusValidateSpecia
       p_parameters: payload.parameters,
       p_dry_run: false,
     });
+
     if (commitRes.error) {
       alert("Erreur RPC (commit) : " + (commitRes.error.message || "inconnue"));
       return;
     }
 
-    // 6) Rechargement des bonus de la grille
     const { data: gbs, error: gbe } = await supabase
       .from("grid_bonus")
-      .select("id, grid_id, user_id, bonus_definition, match_id, parameters")
-      .eq("grid_id", grid.id);
+      .select(`
+        id,
+        grid_id,
+        user_id,
+        bonus_definition,
+        match_id,
+        parameters,
+        match:matches!grid_bonus_match_id_fkey (
+          id,
+          status
+        )
+      `)
+      .eq("grid_id", grid.id)
+      .eq("user_id", user.id);
 
     if (gbe) {
       alert("Erreur de rechargement des bonus");
       return;
     }
+
     setGridBonuses(gbs || []);
 
-    // 7) Reset UI
+    const { data: inv, error: invError } = await supabase
+      .from("bonus_inventory")
+      .select("user_id, competition_id, bonus_definition, quantity")
+      .eq("user_id", user.id)
+      .eq("competition_id", competitionId)
+      .gt("quantity", 0);
+
+    if (invError) {
+      alert("Erreur de rechargement de l'inventaire");
+      return;
+    }
+
+    setUserInventory(inv || []);
+
     setOpenedBonus(null);
     setPopupMatch1("");
   } catch (e: any) {

@@ -172,13 +172,26 @@ export async function handleBonusValidateCroix(ctx: HandleBonusValidateCroixCtx)
     // 3) Rechargement des bonus de la grille
     const { data: gbs, error: gbe } = await supabase
       .from("grid_bonus")
-      .select("id, grid_id, user_id, bonus_definition, match_id, parameters")
-      .eq("grid_id", grid.id);
+      .select(`
+        id,
+        grid_id,
+        user_id,
+        bonus_definition,
+        match_id,
+        parameters,
+        match:matches!grid_bonus_match_id_fkey (
+          id,
+          status
+        )
+      `)
+      .eq("grid_id", grid.id)
+      .eq("user_id", user.id);
 
     if (gbe) {
       alert("Erreur de rechargement des bonus");
       return;
     }
+
     setGridBonuses(gbs || []);
 
     // 4) Fermeture UI

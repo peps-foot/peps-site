@@ -146,6 +146,8 @@ export default function HomePage() {
   //const [competition, setCompetition] = useState<{ id: string; name: string; mode: string } | null>(null);
   const [competition, setCompetition] = useState<any | null>(null);
   const [competitionReady, setCompetitionReady] = useState(false);
+  // charger tous les bonus d'une compétition
+  const [competitionBonuses, setCompetitionBonuses] = useState<any[]>([]);
 
   //pour afficher zones GRILLES/BONUS suivant le mode CLASSIC/TOURNOI
   // 1) Charger name + mode depuis la table competitions
@@ -384,15 +386,17 @@ const isMatchSelectable = (m:any) =>
     await handleBonusValidateSpeciaux({
       user,
       grid,
+      competitionId: competition.id,
       matches,
       gridBonuses,
-      openedBonus: openedBonus as any, // 'BOOST_1' | 'BOOST_2' | 'BOOST_3'
+      openedBonus: openedBonus as any,
       popupMatch1,
       popupPick,
       setShowOffside,
       setOpenedBonus,
       setPopupMatch1,
       setGridBonuses,
+      setUserInventory,
     });
   };
 
@@ -593,13 +597,43 @@ const [userInventory, setUserInventory] = useState<InventoryRow[]>([]);
 
 useEffect(() => {
   if (!user?.id || !competition?.id) return;
+
+  // 1) Charge l'inventaire réel du joueur
   supabase
     .from('bonus_inventory')
     .select('user_id, competition_id, bonus_definition, quantity')
     .eq('user_id', user.id)
     .eq('competition_id', competition.id)
     .gt('quantity', 0)
-    .then(({ data, error }) => setUserInventory(error ? [] : (data ?? [])));
+    .then(({ data, error }) => {
+      setUserInventory(error ? [] : (data ?? []));
+    });
+
+  // 2) Charge tous les bonus déjà joués par le joueur dans cette compétition
+  supabase
+    .from('grid_bonus')
+    .select(`
+      id,
+      bonus_definition,
+      grid_id,
+      grid:grids!grid_bonus_grid_id_fkey (
+        id,
+        competition_id
+      )
+    `)
+    .eq('user_id', user.id)
+    .then(({ data, error }) => {
+      if (error) {
+        setCompetitionBonuses([]);
+        return;
+      }
+
+      const filtered = (data ?? []).filter(
+        (gb: any) => gb.grid?.competition_id === competition.id
+      );
+
+      setCompetitionBonuses(filtered);
+    });
 }, [user?.id, competition?.id]);
 
 const isPrivate = competition?.kind === 'PRIVATE';
@@ -609,14 +643,39 @@ const isPrivate = competition?.kind === 'PRIVATE';
 // On raffinera plus tard si tu veux afficher "toi 😉" de façon fiable.
 const isCreator = false;
 
-
-// cas spécial des bonus spéciaux
-const specialsForUser = (defsSpecial ?? []).filter(def => userInventory.some(inv => inv.bonus_definition === def.id));
-
 // auto-ouverture des zones bonus
 const hasCroix   = (defsCroix?.length ?? 0) > 0;
 const hasScore   = (defsScore?.length ?? 0) > 0;
-const hasSpecial = (specialsForUser?.length ?? 0) > 0;
+// cas spécial des bonus spéciaux
+const specialsFromInventory = (defsSpecial ?? []).filter(def =>
+  userInventory.some(inv => inv.bonus_definition === def.id)
+);
+
+const playedEditableSpecials = (gridBonuses ?? [])
+  .filter((gb) => {
+    const isSpecial = (defsSpecial ?? []).some(
+      (def) => def.id === gb.bonus_definition
+    );
+
+    const isMatchNotStarted = gb.match?.status === "NS";
+
+    return isSpecial && isMatchNotStarted;
+  })
+  .map((gb) =>
+    (defsSpecial ?? []).find((def) => def.id === gb.bonus_definition)
+  )
+  .filter(Boolean);
+
+const specialsForUser = [
+  ...specialsFromInventory,
+  ...playedEditableSpecials,
+].filter(
+  (def, index, arr) =>
+    def && arr.findIndex((d) => d?.id === def.id) === index
+);
+
+const hasSpecial = specialsForUser.length > 0;
+
 useEffect(() => {
   if (touched) return; // ne pas écraser un clic utilisateur
 
@@ -1226,28 +1285,12 @@ const isTerminator = (row: LeaderboardRow) =>
         );
 
 
-// 4) Fetch des picks posés dans grid_matches
-const { data: rawGridMatches, error: gmError } = await supabase
-  .from('grid_matches')
-  .select('id, match_id, pick, points')
-  .eq('grid_id', gridId)
-  .eq('user_id', user.id);
-
-console.log('[grid load] gridId', gridId);
-console.log('[grid load] grid_items ids', ids);
-console.log('[grid load] matches raws', raws?.map(m => m.id));
-console.log('[grid load] grid_matches picks', rawGridMatches?.map(gm => ({
-  match_id: gm.match_id,
-  pick: gm.pick
-})));
-
-console.log('[CHECK match disparu]', {
-  match_id: '8c973477-c6a1-42ec-a4c7-6afb74f0d933',
-  inGridItems: ids.includes('8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
-  inMatches: raws?.some(m => m.id === '8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
-  inGridMatches: rawGridMatches?.some(gm => gm.match_id === '8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
-  pickFound: rawGridMatches?.find(gm => gm.match_id === '8c973477-c6a1-42ec-a4c7-6afb74f0d933'),
-});
+        // 4) Fetch des picks posés dans grid_matches
+        const { data: rawGridMatches, error: gmError } = await supabase
+          .from('grid_matches')
+          .select('id, match_id, pick, points')
+          .eq('grid_id', gridId)
+          .eq('user_id', user.id);
 
         // 5) Fusionner tout pour construire le tableau final
         const clean: any[] = (raws || []).map((m) => {
@@ -1270,7 +1313,18 @@ console.log('[CHECK match disparu]', {
         // 6) Fetch des bonus déjà joués pour cette grille
         const { data: gbs, error: gbe } = await supabase
           .from('grid_bonus')
-          .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
+          .select(`
+            id,
+            grid_id,
+            user_id,
+            bonus_definition,
+            match_id,
+            parameters,
+            match:matches!grid_bonus_match_id_fkey (
+              id,
+              status
+            )
+          `)
           .eq('grid_id', gridId)
           .eq('user_id', user.id);
 
@@ -1330,53 +1384,79 @@ console.log('[CHECK match disparu]', {
     return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
   }
 
-const hasBielsaAlready = codesPlayed.includes('BIELSA');
+const hasBielsaAlready = competitionBonuses.some(
+  gb => bonusDefById[gb.bonus_definition]?.code === "BIELSA"
+);
 const hasAnyNotButs    = codesPlayed.some(c => c !== 'BUTS'); // couvre CROIX≠BIELSA, SCORE (ECART/CLEAN SHEET), SPECIAL (BOOST_x), etc.
 
 
 function renderBonusRow(b: BonusDef) {
-  // 1) États de base
-  const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
-
-  // y a-t-il déjà un bonus dans **cette catégorie** ?
-  const hasPlayedInCategory = gridBonuses.some(
-    gb => bonusDefById[gb.bonus_definition]?.category_id === b.category_id
-  );
-
+  const isBoost = b.code.startsWith('BOOST_');
   const isBielsa = b.code === 'BIELSA';
 
-  // 2) Stock pour les BOOST_x (on regarde l'inventaire utilisateur)
-  const hasStock =
-    b.code.startsWith('BOOST_')
-      ? userInventory.some(inv => inv.bonus_definition === b.id && (inv.quantity ?? 0) > 0)
-      : true;
+  const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
 
-  // 3) Règles globales BIELSA (issues de ta logique existante)
-  const canPlayBielsa = !hasBielsaAlready && !hasAnyNotButs;
+  const bonusEntry = gridBonuses.find(gb => gb.bonus_definition === b.id);
+  const bonusMatch = matches.find(m => m.id === bonusEntry?.match_id);
 
-  // 4) Peut-on afficher le bouton JOUER pour **ce** bonus ?
-  const canPlayThis =
-    !isPlayed &&                                  // pas déjà joué
-    (!b.code.startsWith('BOOST_') || hasStock) && // BOOST: nécessite du stock
-    (isBielsa ? canPlayBielsa : !hasPlayedInCategory); // règles BIELSA ou "un par catégorie"
-
-  // 5) État verrouillé (match démarré ou verrouillé) pour l'affichage du bouton
-  const bonusEntry  = gridBonuses.find(gb => gb.bonus_definition === b.id);
-  const bonusMatch  = matches.find(m => m.id === bonusEntry?.match_id);
   const bonusLocked =
     !!bonusEntry &&
     (String(bonusMatch?.status ?? '').toUpperCase() !== 'NS' || !!bonusMatch?.is_locked);
 
-  // 6) Rendu
+  // BIELSA joué sur une autre grille => carte cachée
+  if (isBielsa && hasBielsaAlready && !isPlayed) {
+    return null;
+  }
+
+  // BIELSA joué sur cette grille mais match démarré/terminé => carte cachée
+  if (isBielsa && isPlayed && bonusLocked) {
+    return null;
+  }
+
+  const hasPlayedInCategory = gridBonuses.some(
+    gb => bonusDefById[gb.bonus_definition]?.category_id === b.category_id
+  );
+
+  const inventoryQty =
+    userInventory.find(inv => inv.bonus_definition === b.id)?.quantity ?? 0;
+
+  const hasStock = isBoost ? inventoryQty > 0 : true;
+
+  const canPlayBielsa = !hasBielsaAlready && !hasAnyNotButs;
+
+  const canPlayThis =
+    !isPlayed &&
+    (!isBoost || hasStock) &&
+    (isBielsa ? canPlayBielsa : !hasPlayedInCategory);
+
   const canOpenBonus = canPlayThis || (isPlayed && !bonusLocked);
 
   const maxPerUser = Number(b.max_per_user ?? 999);
 
-  const usedCount = gridBonuses.filter(
+  const usedOnCurrentGrid = gridBonuses.filter(
     gb => gb.bonus_definition === b.id
   ).length;
 
-  const remaining = maxPerUser - usedCount;
+  const displayedRemaining = (() => {
+    if (isBoost) {
+      return inventoryQty;
+    }
+
+    if (isBielsa && hasBielsaAlready) {
+      return 0;
+    }
+
+    if (maxPerUser < 999) {
+      return Math.max(0, maxPerUser - usedOnCurrentGrid);
+    }
+
+    return null;
+  })();
+
+  const displayText =
+    displayedRemaining !== null
+      ? `Reste ${displayedRemaining}`
+      : 'illimité';
 
   return (
     <div
@@ -1400,12 +1480,7 @@ function renderBonusRow(b: BonusDef) {
           <div className="text-lg font-bold text-green-600">
             {b.code}{' '}
             <span className="text-green-700 font-medium text-sm">
-              (
-              {maxPerUser >= 999
-                ? 'illimité'
-                : `Reste ${remaining}`
-              }
-              )
+              ({displayText})
             </span>
           </div>
           <div className="text-sm">{b.description}</div>
@@ -1425,8 +1500,8 @@ function renderBonusRow(b: BonusDef) {
             }}
             className={`w-8 h-8 ${
               bonusLocked
-                ? "opacity-50 cursor-not-allowed"
-                : "cursor-pointer hover:scale-110 transition"
+                ? 'opacity-50 cursor-not-allowed'
+                : 'cursor-pointer hover:scale-110 transition'
             }`}
           />
         )}
@@ -1582,17 +1657,16 @@ function renderBonusRow(b: BonusDef) {
 
 // 🧨 Suppression d’un bonus (base via RPC + reload + reset UI)
 const handleBonusDelete = async () => {
-  if (!openedBonus || !user) return;
+  if (!openedBonus || !user || !grid || !competition?.id) return;
 
-  // 🔍 La ligne grid_bonus à supprimer (celle du bonus ouvert)
-  const placedBonus = gridBonuses.find(b => b.bonus_definition === openedBonus.id);
+  const placedBonus = gridBonuses.find(
+    b => b.bonus_definition === openedBonus.id
+  );
   if (!placedBonus) return;
 
-  // ⏱ Sécurité horaire : on interdit la suppression trop proche du coup d’envoi
-  const margin = 60 * 1000; // 60s
+  const margin = 60 * 1000;
   const p = (placedBonus.parameters ?? {}) as any;
 
-  // RIBERY a potentiellement 2 matchs (win/zero) à contrôler
   const matchIdsToCheck: string[] =
     openedBonus.code === 'RIBERY' && p.match_win && p.match_zero
       ? [p.match_win, p.match_zero]
@@ -1601,6 +1675,7 @@ const handleBonusDelete = async () => {
   for (const matchId of matchIdsToCheck) {
     const m = matches.find(m => String(m.id) === String(matchId));
     if (!m || !('date' in m)) continue;
+
     const matchTime = new Date(m.date as any).getTime();
     if (Date.now() > matchTime - margin) {
       setShowOffside(true);
@@ -1609,23 +1684,69 @@ const handleBonusDelete = async () => {
   }
 
   try {
-    // 1) Suppression atomique côté base (+1 rendu à l’inventaire si SPECIAL)
+    // 1) Suppression atomique côté base
     const res = await supabase.rpc('revoke_bonus', {
       p_user_id: user.id,
       p_grid_bonus_id: placedBonus.id,
     });
+
     if (res.error) throw res.error;
 
-    // 2) Rechargement propre des bonus de la grille
+    // 2) Recharge les bonus de la grille active
     const { data: gbs, error: gbe } = await supabase
       .from('grid_bonus')
-      .select('id, grid_id, user_id, bonus_definition, match_id, parameters')
-      .eq('grid_id', grid.id);
+      .select(`
+        id,
+        grid_id,
+        user_id,
+        bonus_definition,
+        match_id,
+        parameters,
+        match:matches!grid_bonus_match_id_fkey (
+          id,
+          status
+        )
+      `)
+      .eq('grid_id', grid.id)
+      .eq('user_id', user.id);
 
     if (gbe) throw gbe;
     setGridBonuses(gbs || []);
 
-    // 3) Reset pop-up / états
+    // 3) Recharge l’inventaire : indispensable pour les BOOST
+    const { data: inv, error: invError } = await supabase
+      .from('bonus_inventory')
+      .select('user_id, competition_id, bonus_definition, quantity')
+      .eq('user_id', user.id)
+      .eq('competition_id', competition.id)
+      .gt('quantity', 0);
+
+    if (invError) throw invError;
+    setUserInventory(inv || []);
+
+    // 4) Recharge tous les bonus joués dans la compétition : indispensable pour BIELSA
+    const { data: compGbs, error: compGbe } = await supabase
+      .from('grid_bonus')
+      .select(`
+        id,
+        bonus_definition,
+        grid_id,
+        grid:grids!grid_bonus_grid_id_fkey (
+          id,
+          competition_id
+        )
+      `)
+      .eq('user_id', user.id);
+
+    if (compGbe) throw compGbe;
+
+    setCompetitionBonuses(
+      (compGbs ?? []).filter(
+        (gb: any) => gb.grid?.competition_id === competition.id
+      )
+    );
+
+    // 5) Reset pop-up / états
     setOpenedBonus(null);
     setPopupMatch1('');
     setPopupMatch0('');
