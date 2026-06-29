@@ -657,7 +657,7 @@ const playedEditableSpecials = (gridBonuses ?? [])
       (def) => def.id === gb.bonus_definition
     );
 
-    const isMatchNotStarted = gb.match?.status === "NS";
+    const isMatchNotStarted = gb.match?.[0]?.status === "NS";
 
     return isSpecial && isMatchNotStarted;
   })

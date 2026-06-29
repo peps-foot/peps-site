@@ -80,7 +80,7 @@ export type GridBonus = {
   match?: {
     id: string;
     status: string | null;
-  } | null;
+  }[] | null;
 };
 
 // Pick utilisateur
