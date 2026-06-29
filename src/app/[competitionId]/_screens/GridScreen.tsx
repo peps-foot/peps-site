@@ -666,13 +666,14 @@ const playedEditableSpecials = (gridBonuses ?? [])
   )
   .filter(Boolean);
 
-const specialsForUser = [
+const specialsForUser: BonusDef[] = [
   ...specialsFromInventory,
   ...playedEditableSpecials,
-].filter(
-  (def, index, arr) =>
-    def && arr.findIndex((d) => d?.id === def.id) === index
-);
+].filter((def): def is BonusDef => Boolean(def))
+ .filter(
+   (def, index, arr) =>
+     arr.findIndex((d) => d.id === def.id) === index
+ );
 
 const hasSpecial = specialsForUser.length > 0;
 
