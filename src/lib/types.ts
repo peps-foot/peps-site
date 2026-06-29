@@ -77,6 +77,10 @@ export type GridBonus = {
   bonus_definition: string;
   match_id: string;
   parameters: BonusParameters;
+  match?: {
+    id: string;
+    status: string | null;
+  } | null;
 };
 
 // Pick utilisateur
