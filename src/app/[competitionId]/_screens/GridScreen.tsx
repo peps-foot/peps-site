@@ -657,14 +657,18 @@ const playedEditableSpecials = (gridBonuses ?? [])
       (def) => def.id === gb.bonus_definition
     );
 
-    const isMatchNotStarted = gb.match?.[0]?.status === "NS";
+    const matchStatus = Array.isArray(gb.match)
+      ? gb.match[0]?.status
+      : gb.match?.status;
+
+    const isMatchNotStarted = matchStatus === "NS";
 
     return isSpecial && isMatchNotStarted;
   })
   .map((gb) =>
     (defsSpecial ?? []).find((def) => def.id === gb.bonus_definition)
   )
-  .filter(Boolean);
+  .filter((def): def is BonusDef => Boolean(def));
 
 const specialsForUser: BonusDef[] = [
   ...specialsFromInventory,
