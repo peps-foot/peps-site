@@ -438,6 +438,7 @@ export default function Home() {
       ? "1 compétition en cours"
       : `${mineCount} compétitions en cours`
 
+  // Début du JSX
   return (
   <main className="px-4 py-2 max-w-3xl mx-auto">
     <div className="space-y-2">
@@ -490,19 +491,25 @@ export default function Home() {
     </section>
 
     {/* ── RELÈVE LE DÉFI ── */}
-    {sortedToJoin.length > 0 && (
-      <BannerAccordion
-        image="/images/bannieres/releve_le_defi.png"
-        alt="Relève le défi"
-        open={openPublic}
-        onClick={() => setOpenPublic(!openPublic)}
-        dynamicText={
-          sortedToJoin.length === 1
+    <BannerAccordion
+      image="/images/bannieres/releve_le_defi.png"
+      alt="Relève le défi"
+      open={openPublic}
+      onClick={() => setOpenPublic(!openPublic)}
+      dynamicText={
+        sortedToJoin.length === 0
+          ? "Aucune compétition disponible"
+          : sortedToJoin.length === 1
             ? "1 compétition disponible"
             : `${sortedToJoin.length} compétitions disponibles`
-        }
-      >
-        {sortedToJoin.map((comp) => (
+      }
+    >
+      {sortedToJoin.length === 0 ? (
+        <p className="px-2 py-2 text-sm text-gray-600">
+          Aucune compétition publique n'est disponible pour le moment.
+        </p>
+      ) : (
+        sortedToJoin.map((comp) => (
           <CompetitionHomeCard
             key={comp.id}
             comp={comp}
@@ -511,9 +518,9 @@ export default function Home() {
             getCompetitionStatusText={getCompetitionStatusText}
             getDeadlineColor={getDeadlineColor}
           />
-        ))}
-      </BannerAccordion>
-    )}
+        ))
+      )}
+    </BannerAccordion>
 
     {/* ── ENTRE POTES ── */}
     <BannerAccordion
@@ -575,18 +582,19 @@ export default function Home() {
     </BannerAccordion>
 
     {/* ── ENTRE SUPPORTERS ── */}
-    {supporterToJoin.length > 0 && (
-      <BannerAccordion
-        image="/images/bannieres/entre_supporters.png"
-        alt="Entre supporters"
-        open={openSupporters}
-        onClick={() => setOpenSupporters(!openSupporters)}
-        dynamicText={
-          supporterToJoin.length === 1
+    <BannerAccordion
+      image="/images/bannieres/entre_supporters.png"
+      alt="Entre supporters"
+      open={openSupporters}
+      onClick={() => setOpenSupporters(!openSupporters)}
+      dynamicText={
+        supporterToJoin.length === 0
+          ? "Aucune compétition disponible"
+          : supporterToJoin.length === 1
             ? "1 compétition disponible"
             : `${supporterToJoin.length} compétitions disponibles`
-        }
-      >
+      }
+    >
       <div className="p-2 bg-white space-y-2">
         <input
           type="text"
@@ -596,29 +604,38 @@ export default function Home() {
           className="w-full border rounded-lg px-3 py-2 text-sm"
         />
 
-        {visibleSupporterToJoin.map((comp) => (
-          <CompetitionHomeCard
-            key={comp.id}
-            comp={comp}
-            onClick={() => handleJoinPublicCompetition(comp)}
-            formatDeadline={formatDeadline}
-            getCompetitionStatusText={getCompetitionStatusText}
-            getDeadlineColor={getDeadlineColor}
-          />
-        ))}
+        {visibleSupporterToJoin.length === 0 ? (
+          <p className="px-2 py-2 text-sm text-gray-600">
+            Aucune compétition supporters n'est disponible pour le moment.
+          </p>
+        ) : (
+          <>
+            {visibleSupporterToJoin.map((comp) => (
+              <CompetitionHomeCard
+                key={comp.id}
+                comp={comp}
+                onClick={() => handleJoinPublicCompetition(comp)}
+                formatDeadline={formatDeadline}
+                getCompetitionStatusText={getCompetitionStatusText}
+                getDeadlineColor={getDeadlineColor}
+              />
+            ))}
 
-        {!showAllSupporters && !supporterSearch.trim() && filteredSupporterToJoin.length > 8 && (
-          <button
-            type="button"
-            onClick={() => setShowAllSupporters(true)}
-            className="w-full text-sm font-semibold text-blue-600 py-2"
-          >
-            Voir toutes les compétitions
-          </button>
+            {!showAllSupporters &&
+              !supporterSearch.trim() &&
+              filteredSupporterToJoin.length > 8 && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllSupporters(true)}
+                  className="w-full text-sm font-semibold text-blue-600 py-2"
+                >
+                  Voir toutes les compétitions
+                </button>
+              )}
+          </>
         )}
       </div>
-      </BannerAccordion>
-    )}
+    </BannerAccordion>
 
     {/* ── ARCHIVES PEPS ── */}
     <BannerAccordion
