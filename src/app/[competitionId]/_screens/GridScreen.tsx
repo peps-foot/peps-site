@@ -65,6 +65,7 @@ import type { OverlayEntry } from '../../../features/bonus/computeOverlay';
 import CompetitionInfoPanel from "../../../components/CompetitionInfoPanel";
 import { isTournamentCompetition, getGateImageSrc } from '../../../lib/gateImages';
 import CompetitionRules from "../../../components/CompetitionRules";
+import { getBielsaState } from '../../../lib/bielsa';
 
 const bonusLogos: Record<string,string> = {
   "KANTE": '/images/kante.png',
@@ -336,9 +337,10 @@ const isMatchSelectable = (m:any) =>
     await handleBonusValidateCroix({
       user,
       grid,
+      competition,
       matches,
       gridBonuses,
-      openedBonus: { id: openedBonus.id, code: openedBonus.code }, // ← désormais typé CroixCode
+      openedBonus: { id: openedBonus.id, code: openedBonus.code },
       popupMatch1,
       popupMatch0,
       popupPair,
@@ -348,6 +350,7 @@ const isMatchSelectable = (m:any) =>
       setPopupMatch1,
       setPopupMatch0,
       setGridBonuses,
+      setCompetitionBonuses,
     });
   };
 
@@ -1404,19 +1407,21 @@ function renderBonusRow(b: BonusDef) {
   const bonusEntry = gridBonuses.find(gb => gb.bonus_definition === b.id);
   const bonusMatch = matches.find(m => m.id === bonusEntry?.match_id);
 
+  const bielsaState = getBielsaState({
+    matches,
+    gridBonuses,
+    competitionBonuses,
+    bonusDefById,
+    currentGridId: grid.id,
+  });
+
   const bonusLocked =
     !!bonusEntry &&
     (String(bonusMatch?.status ?? '').toUpperCase() !== 'NS' || !!bonusMatch?.is_locked);
 
-  // BIELSA joué sur une autre grille => carte cachée
-  if (isBielsa && hasBielsaAlready && !isPlayed) {
-    return null;
-  }
-
-  // BIELSA joué sur cette grille mais match démarré/terminé => carte cachée
-  if (isBielsa && isPlayed && bonusLocked) {
-    return null;
-  }
+    if (isBielsa && bielsaState.shouldHideCard) {
+      return null;
+    }
 
   const hasPlayedInCategory = gridBonuses.some(
     gb => bonusDefById[gb.bonus_definition]?.category_id === b.category_id
@@ -1427,14 +1432,14 @@ function renderBonusRow(b: BonusDef) {
 
   const hasStock = isBoost ? inventoryQty > 0 : true;
 
-  const canPlayBielsa = !hasBielsaAlready && !hasAnyNotButs;
-
   const canPlayThis =
     !isPlayed &&
     (!isBoost || hasStock) &&
-    (isBielsa ? canPlayBielsa : !hasPlayedInCategory);
+    (isBielsa ? bielsaState.canPlay : !hasPlayedInCategory);
 
-  const canOpenBonus = canPlayThis || (isPlayed && !bonusLocked);
+  const canOpenBonus = isBielsa
+    ? bielsaState.canOpen
+    : canPlayThis || (isPlayed && !bonusLocked);
 
   const maxPerUser = Number(b.max_per_user ?? 999);
 

@@ -6,6 +6,7 @@ export type BonusParameters = Record<string, any>;
 export type HandleBonusValidateCroixCtx = {
   user: { id: string } | null;
   grid: { id: string };
+  competition: { id: string };
   matches: Array<{ id: string; date: string }>;
   gridBonuses: Array<{
     bonus_definition: string;
@@ -22,13 +23,14 @@ export type HandleBonusValidateCroixCtx = {
   setPopupMatch1: (v: string) => void;
   setPopupMatch0: (v: string) => void;
   setGridBonuses: React.Dispatch<React.SetStateAction<any[]>>;
+  setCompetitionBonuses: React.Dispatch<React.SetStateAction<any[]>>;
 };
 
 export async function handleBonusValidateCroix(ctx: HandleBonusValidateCroixCtx) {
   const {
-    user, grid, matches, gridBonuses, openedBonus,
+    user, grid, competition, matches, gridBonuses, openedBonus,
     popupMatch1, popupMatch0, popupPair, popupPick,
-    setShowOffside, setOpenedBonus, setPopupMatch1, setPopupMatch0, setGridBonuses,
+    setShowOffside, setOpenedBonus, setPopupMatch1, setPopupMatch0, setGridBonuses, setCompetitionBonuses,
   } = ctx;
 
   if (!openedBonus || !user) return;
@@ -193,6 +195,30 @@ export async function handleBonusValidateCroix(ctx: HandleBonusValidateCroixCtx)
     }
 
     setGridBonuses(gbs || []);
+
+    const { data: compGbs, error: compGbe } = await supabase
+      .from("grid_bonus")
+      .select(`
+        id,
+        bonus_definition,
+        grid_id,
+        grid:grids!grid_bonus_grid_id_fkey (
+          id,
+          competition_id
+        )
+      `)
+      .eq("user_id", user.id);
+
+    if (compGbe) {
+      alert("Erreur de rechargement des bonus de compétition");
+      return;
+    }
+
+    setCompetitionBonuses(
+      (compGbs ?? []).filter(
+        (gb: any) => gb.grid?.competition_id === competition.id
+      )
+    );
 
     // 4) Fermeture UI
     setOpenedBonus(null);
