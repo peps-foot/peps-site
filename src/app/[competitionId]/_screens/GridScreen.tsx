@@ -273,14 +273,6 @@ export default function HomePage() {
       return m;
     }, [bonusDefs]);
 
-    // liste des codes joués sur la grille
-    const codesPlayed: string[] = React.useMemo(
-      () =>
-        gridBonuses
-          .map(gb => bonusDefById[gb.bonus_definition]?.code)
-          .filter(Boolean) as string[],
-      [gridBonuses, bonusDefById]
-    );
   // ids des matches déjà pris (toutes catégories confondues)
   type RiberyParams = { match_win?: string; match_zero?: string };
 
@@ -1392,12 +1384,6 @@ const isTerminator = (row: LeaderboardRow) =>
     return Number.isNaN(t) ? Number.POSITIVE_INFINITY : t;
   }
 
-const hasBielsaAlready = competitionBonuses.some(
-  gb => bonusDefById[gb.bonus_definition]?.code === "BIELSA"
-);
-const hasAnyNotButs    = codesPlayed.some(c => c !== 'BUTS'); // couvre CROIX≠BIELSA, SCORE (ECART/CLEAN SHEET), SPECIAL (BOOST_x), etc.
-
-
 function renderBonusRow(b: BonusDef) {
   const isBoost = b.code.startsWith('BOOST_');
   const isBielsa = b.code === 'BIELSA';
@@ -1450,10 +1436,6 @@ function renderBonusRow(b: BonusDef) {
   const displayedRemaining = (() => {
     if (isBoost) {
       return inventoryQty;
-    }
-
-    if (isBielsa && hasBielsaAlready) {
-      return 0;
     }
 
     if (maxPerUser < 999) {
@@ -1768,16 +1750,6 @@ const handleBonusDelete = async () => {
   // // 🧠 Aide bonus : savoir si un bonus a été joué, et lequel
   const isPlayed = gridBonuses.length>0;
   const playedBonusCode = bonusDefs.find(b=>b.id===gridBonuses[0]?.bonus_definition)?.code;
-
-// BIELSA déjà posé ?
-const bielsaMatchId =
-  gridBonuses.find(gb => bonusDefs.find(d => d.id === gb.bonus_definition)?.code === 'BIELSA')
-    ?.match_id ?? null;
-
-// Y a-t-il au moins 1 match non-NS qui a déjà une croix ?
-const hasStartedPickedMatch = matches.some(m =>
-  !!m.pick && (m.status?.toUpperCase?.() !== 'NS')
-);
 
 // Pour gérer l'affichage des titres des zones GRILLE et BONUS
 const validatedMatchesCount = matches.filter((m) => {
@@ -2392,21 +2364,6 @@ return early ? (
                       const upperStatus = m.status?.toUpperCase?.() ?? '';
 
                       // 1) Bonus actif
-                      const bonusEntry = gridBonuses[0];
-                      const bonusDef = bonusDefs.find(d => d.id === bonusEntry?.bonus_definition);
-                      const bonusCode = bonusDef?.code || '';
-                      const params = bonusEntry?.parameters || {};
-                      //const matchWin = (params as Partial<{ match_win: string }>).match_win ?? '';
-                      //const matchZero = (params as Partial<{ match_zero: string }>).match_zero ?? '';
-
-                      // 1bis) Pour le bonus BIELSA
-                      //const paramsPick = (params as { pick?: '1' | 'N' | '2' }).pick;
-                      //const isBielsaActive = bonusCode === 'BIELSA' && !!bielsaMatchId;
-                      //const isMutedByBielsa = isBielsaActive && m.id !== bielsaMatchId;
-                      //const isBielsaThis   = isBielsaActive && m.id === bielsaMatchId;
-                      //const isBielsaOther  = isBielsaActive && m.id !== bielsaMatchId;
-
-                      const overlay: OverlayEntry = byMatch[String(m.id)] ?? { disabled: false, picks: undefined, codes: [] };
                       const entry = byMatch[String(m.id)];
                       const disabledByOverlay = globalDisabled || Boolean(entry?.disabled);
                       const picksFromOverlay = entry?.picks as ('1'|'N'|'2')[] | undefined;
