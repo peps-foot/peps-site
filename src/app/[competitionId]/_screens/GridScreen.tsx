@@ -1398,7 +1398,7 @@ function renderBonusRow(b: BonusDef) {
     gridBonuses,
     competitionBonuses,
     bonusDefById,
-    currentGridId: grid.id,
+    currentGridId: grid?.id ?? "",
   });
 
   const bonusLocked =
