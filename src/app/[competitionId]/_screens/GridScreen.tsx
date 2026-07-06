@@ -118,7 +118,7 @@ export default function HomePage() {
   const [popupMatch1, setPopupMatch1] = useState<string>('');
   const [popupMatch0, setPopupMatch0] = useState<string>('');
   const [popupPair, setPopupPair] = useState<'1-N' | 'N-2' | '1-2'>('1-N');
-  const [popupPick, setPopupPick] = useState<'1' | 'N' | '2'>('1');
+  const [popupPick, setPopupPick] = useState<'' | '1' | 'N' | '2'>('');
   // 👉 Gestion de navigation entre les grilles
   const searchParams  = useSearchParams();
   type View = 'grid' | 'rankGrid' | 'rankGeneral' | 'info' | 'rules';
@@ -149,6 +149,16 @@ export default function HomePage() {
   const [competitionReady, setCompetitionReady] = useState(false);
   // charger tous les bonus d'une compétition
   const [competitionBonuses, setCompetitionBonuses] = useState<any[]>([]);
+
+  // pour gérer l'affichage du pop-up bonus
+  useEffect(() => {
+    if (!openedBonus) return;
+
+    setPopupMatch1('');
+    setPopupMatch0('');
+    setPopupPick('');
+    setPopupPair('1-N');
+  }, [openedBonus?.id]);
 
   //pour afficher zones GRILLES/BONUS suivant le mode CLASSIC/TOURNOI
   // 1) Charger name + mode depuis la table competitions
@@ -397,48 +407,100 @@ const isMatchSelectable = (m:any) =>
 
   // 5) Utilisation des handlers dans la pop-up
   const onValidateBonus = React.useCallback(async () => {
-    if (!popupKind) return;
-    if (popupKind === 'CROIX')   return handleBonusValidateCroixLocal();
-    if (popupKind === 'SCORE')   return handleBonusValidateScoreLocal();
+    if (!popupKind || !openedBonus) return;
+
+    if (openedBonus.code === 'RIBERY') {
+      if (!popupMatch1 || !popupMatch0) {
+        alert("Choisis les deux matchs.");
+        return;
+      }
+    } else if (openedBonus.code === 'KANTE') {
+      if (!popupMatch1) {
+        alert("Choisis un match.");
+        return;
+      }
+    } else {
+      if (!popupMatch1 || !popupPick) {
+        alert("Choisis un match et un pronostic.");
+        return;
+      }
+    }
+
+    if (popupKind === 'CROIX') return handleBonusValidateCroixLocal();
+    if (popupKind === 'SCORE') return handleBonusValidateScoreLocal();
     if (popupKind === 'SPECIAL') return handleBonusValidateSpeciauxLocal();
-  }, [popupKind, handleBonusValidateCroixLocal, handleBonusValidateScoreLocal, handleBonusValidateSpeciauxLocal]);
+  }, [
+    popupKind,
+    openedBonus,
+    popupMatch1,
+    popupMatch0,
+    popupPick,
+    handleBonusValidateCroixLocal,
+    handleBonusValidateScoreLocal,
+    handleBonusValidateSpeciauxLocal,
+  ]);
+
+  // 5 bis) Pour chercher le pick déjà placé dans la grille
+  function getPickForMatch(matchId: string): '1' | 'N' | '2' | null {
+    const match = matches.find((m) => String(m.id) === String(matchId));
+    const pick = match?.pick;
+
+    if (pick === '1' || pick === 'N' || pick === '2') return pick;
+    return null;
+  }
 
   // 6) Choix d'un match dans une pop-up Bonus
   function MatchDropdown({
     value,
     onChange,
     label = "Match",
-    // si on MODIFIE un bonus, on autorise le match déjà utilisé
     allowCurrentId,
-    // optionnel : exclure un match précis (RIBÉRY: exclure match_win dans le select match_zero)
     excludeId,
+    syncPick = true,
   }: {
     value: string;
     onChange: (v: string) => void;
     label?: string;
     allowCurrentId?: string | null;
     excludeId?: string | null;
+    syncPick?: boolean;
   }) {
     return (
       <label className="block mb-3">
         {label}
         <select
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            const matchId = e.target.value;
+            onChange(matchId);
+
+            if (syncPick) {
+              const pickInGrid = getPickForMatch(matchId);
+              setPopupPick(pickInGrid ?? '');
+            }
+          }}
           className="mt-1 block w-full border rounded p-2"
         >
           <option value="">— Choisir match —</option>
+
           {matches
             .filter((m) => {
               const mid = String(m.id);
-              const nsFree = isMatchSelectable(m); // NS, pas locké, pas déjà pris
-              const isCurrent = allowCurrentId ? mid === String(allowCurrentId) : false;
-              const notExcluded = excludeId ? mid !== String(excludeId) : true;
+              const nsFree = isMatchSelectable(m);
+              const isCurrent = allowCurrentId
+                ? mid === String(allowCurrentId)
+                : false;
+              const notExcluded = excludeId
+                ? mid !== String(excludeId)
+                : true;
+
               return (nsFree || isCurrent) && notExcluded;
             })
             .map((m) => (
               <option key={m.id} value={String(m.id)}>
-                {m.short_name_home ?? m.home_team} vs {m.short_name_away ?? m.away_team} – {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
+                {m.short_name_home ?? m.home_team} vs{" "}
+                {m.short_name_away ?? m.away_team} –{" "}
+                {m.base_1_points}/{m.base_n_points}/{m.base_2_points}
               </option>
             ))}
         </select>
@@ -448,24 +510,44 @@ const isMatchSelectable = (m:any) =>
 
   // 7) Choix des picks dans une pop-up Bonus
   function PickDropdown({
-    value, onChange, options,
+    value,
+    onChange,
+    options,
+    matchId,
     label = "Pronostic",
   }: {
-    value: '1' | 'N' | '2';
-    onChange: (v: '1' | 'N' | '2') => void;
+    value: '' | '1' | 'N' | '2';
+    onChange: (v: '' | '1' | 'N' | '2') => void;
     options: Array<'1' | 'N' | '2'>;
+    matchId: string;
     label?: string;
   }) {
+    const selectedMatch = matches.find((m) => String(m.id) === String(matchId));
+
+    const getLabel = (o: '1' | 'N' | '2') => {
+      if (!selectedMatch) return o;
+      if (o === '1') return selectedMatch.short_name_home ?? selectedMatch.home_team;
+      if (o === 'N') return 'Match nul';
+      return selectedMatch.short_name_away ?? selectedMatch.away_team;
+    };
+
     return (
       <label className="block mb-6">
         {label}
         <select
           value={value}
-          onChange={(e) => onChange(e.target.value as '1' | 'N' | '2')}
+          disabled={!matchId}
+          onChange={(e) => onChange(e.target.value as '' | '1' | 'N' | '2')}
           className="mt-1 block w-full border rounded p-2"
         >
-          {options.map(o => (
-            <option key={o} value={o}>{o}</option>
+          <option value="">
+            {matchId ? '— Choisir pronostic —' : '— Choisir un match d’abord —'}
+          </option>
+
+          {matchId && options.map(o => (
+            <option key={o} value={o}>
+              {getLabel(o)}
+            </option>
           ))}
         </select>
       </label>
@@ -526,7 +608,7 @@ const isMatchSelectable = (m:any) =>
       return (
         <>
           <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
-          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} />
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} matchId={popupMatch1}/>
         </>
       );
     }
@@ -536,8 +618,7 @@ const isMatchSelectable = (m:any) =>
       return (
         <>
           <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
-          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1', 'N', '2']}
-          />
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1', 'N', '2']} matchId={popupMatch1}/>
         </>
       );
     }
@@ -547,7 +628,7 @@ const isMatchSelectable = (m:any) =>
       return (
         <>
           <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
-          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','2']} />
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','2']} matchId={popupMatch1}/>
         </>
       );
     }
@@ -555,7 +636,7 @@ const isMatchSelectable = (m:any) =>
       return (
         <>
           <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
-          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} />
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} matchId={popupMatch1}/>
         </>
       );
     }
@@ -565,7 +646,7 @@ const isMatchSelectable = (m:any) =>
       return (
         <>
           <MatchDropdown value={popupMatch1} onChange={setPopupMatch1} allowCurrentId={currentMatchId}/>
-          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} />
+          <PickDropdown value={popupPick} onChange={setPopupPick} options={['1','N','2']} matchId={popupMatch1}/>
         </>
       );
     }
