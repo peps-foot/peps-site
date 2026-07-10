@@ -19,6 +19,7 @@ export default function CompetitionHomeCard({
   getDeadlineColor,
 }: Props) {
   const statusText = getCompetitionStatusText(comp);
+  const gameType = comp.game_type ?? "GRID";
 
   const gameTypeLabel = {
     GRID: "1N2",
@@ -66,7 +67,7 @@ export default function CompetitionHomeCard({
         </div>
 
         <div className="grid grid-cols-2 text-sm text-gray-600">
-          <span>🎮 {gameTypeLabel[comp.game_type] ?? comp.game_type}</span>
+          <span>🎮 {gameTypeLabel[gameType] ?? gameType}</span>
           <span>⚔️ {comp.mode}</span>
         </div>
 

@@ -81,25 +81,28 @@ export default function JoinCompetitionModal({
 
   const unitsLabel = comp.game_type === "TIERCE" ? "Tickets" : "Grilles";
   const unitsIcon = comp.game_type === "TIERCE" ? "🎟️" : "🎯";
-
-  const confirmButtonClass =
-  comp.game_type === "TIERCE"
-    ? "bg-orange-600 hover:bg-orange-700"
-    : comp.game_type === "SUPPORTER"
-    ? "bg-green-600 hover:bg-green-700"
-    : "bg-blue-600 hover:bg-blue-700";
+  
+  const theme =
+    comp.game_type === "TIERCE"
+      ? {
+          light: "bg-orange-100 border-orange-100",
+          button: "bg-orange-600 hover:bg-orange-700",
+        }
+      : comp.game_type === "SUPPORTER"
+      ? {
+          light: "bg-green-100 border-green-100",
+          button: "bg-green-600 hover:bg-green-700",
+        }
+      : {
+          light: "bg-blue-100 border-blue-100",
+          button: "bg-blue-600 hover:bg-blue-700",
+        };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl">
         <div
-          className={`px-5 py-5 border-b ${
-            comp.game_type === "TIERCE"
-              ? "bg-orange-100 border-orange-100"
-              : comp.game_type === "SUPPORTER"
-              ? "bg-green-100 border-green-100"
-              : "bg-blue-100 border-blue-100"
-          }`}
+          className={`px-5 py-5 border-b ${theme.light}`}
         >
           <h2 className="text-center text-2xl font-extrabold text-gray-800">
             {info.title}
@@ -111,15 +114,15 @@ export default function JoinCompetitionModal({
         </div>
 
         <div className="p-5">
-          <p className="text-center text-sm leading-relaxed text-gray-600">
+          <p className="text-center text-sm leading-relaxed text-gray-800">
             {info.text}
           </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="mt-6 grid grid-cols-2 gap-3">
             {startDate && (
-              <div className="rounded-2xl border bg-gray-50 p-3 text-center">
-                <div className="text-xl">📅</div>
-                <div className="mt-1 text-xs font-semibold uppercase text-gray-500">
+              <div className="rounded-2xl border border-gray-200 bg-white p-3 text-center shadow-sm">
+                <div className="text-2xl">📅</div>
+                <div className="mt-1 text-sm font-semibold ${theme.text}">
                   Début
                 </div>
                 <div className="mt-1 text-sm font-bold text-gray-900">
@@ -129,9 +132,9 @@ export default function JoinCompetitionModal({
             )}
 
             {endDate && (
-              <div className="rounded-2xl border bg-gray-50 p-3 text-center">
-                <div className="text-xl">🏁</div>
-                <div className="mt-1 text-xs font-semibold uppercase text-gray-500">
+              <div className="rounded-2xl border border-gray-200 bg-white p-3 text-center shadow-sm">
+                <div className="text-2xl">🏁</div>
+                <div className="mt-1 text-sm font-semibold ${theme.text}">
                   Fin
                 </div>
                 <div className="mt-1 text-sm font-bold text-gray-900">
@@ -141,9 +144,9 @@ export default function JoinCompetitionModal({
             )}
 
             {comp.game_type !== "SUPPORTER" && comp.displayUnitsCount ? (
-              <div className="col-span-2 rounded-2xl border bg-gray-50 p-3 text-center">
-                <div className="text-xl">{unitsIcon}</div>
-                <div className="mt-1 text-xs font-semibold uppercase text-gray-500">
+              <div className="col-span-2 rounded-2xl border border-gray-200 bg-white p-3 text-center shadow-sm">
+                <div className="text-2xl">{unitsIcon}</div>
+                <div className="mt-1 text-sm font-semibold ${theme.text}">
                   {unitsLabel}
                 </div>
                 <div className="mt-1 text-sm font-bold text-gray-900">
@@ -167,7 +170,7 @@ export default function JoinCompetitionModal({
               type="button"
               onClick={onConfirm}
               disabled={loading}
-              className={`flex-1 rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-md transition-colors disabled:opacity-60 ${confirmButtonClass}`}
+              className={`flex-1 rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-md transition-colors disabled:opacity-60 ${theme.button}`}
             >
               {loading ? "..." : "Rejoindre"}
             </button>
