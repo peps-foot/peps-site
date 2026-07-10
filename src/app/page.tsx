@@ -211,6 +211,9 @@ export default function Home() {
           canPlay: c.canPlay ?? null,
           userRank: c.userRank ?? null,
           playersCount: c.playersCount ?? 0,
+          displayStartDate: c.displayStartDate ?? null,
+          displayEndDate: c.displayEndDate ?? null,
+          displayUnitsCount: c.displayUnitsCount ?? null,
         }));
 
       const mineRows = rows.filter((r) => r.homeTab === "MINE");

@@ -126,4 +126,7 @@ export type Competition = {
   userRank?: number | null;
   playersCount?: number | null;
   xp_enabled?: boolean | null;
+  displayStartDate?: string | null;
+  displayEndDate?: string | null;
+  displayUnitsCount?: number | null;
 };

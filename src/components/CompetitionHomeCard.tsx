@@ -20,6 +20,12 @@ export default function CompetitionHomeCard({
 }: Props) {
   const statusText = getCompetitionStatusText(comp);
 
+  const gameTypeLabel = {
+    GRID: "1N2",
+    TIERCE: "TIERCE",
+    SUPPORTER: "SCORE",
+  };
+
   return (
     <div
       onClick={onClick}
@@ -60,7 +66,7 @@ export default function CompetitionHomeCard({
         </div>
 
         <div className="grid grid-cols-2 text-sm text-gray-600">
-          <span>🎮 {comp.game_type === "TIERCE" ? "TIERCE" : "1N2"}</span>
+          <span>🎮 {gameTypeLabel[comp.game_type] ?? comp.game_type}</span>
           <span>⚔️ {comp.mode}</span>
         </div>
 

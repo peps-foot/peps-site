@@ -1469,6 +1469,11 @@ function renderBonusRow(b: BonusDef) {
   const isBoost = b.code.startsWith('BOOST_');
   const isBielsa = b.code === 'BIELSA';
 
+  const blockedByBielsa =
+    hasBielsaOnCurrentGrid &&
+    !isBielsa &&
+    b.code !== 'BUTS';
+
   const isPlayed = gridBonuses.some(gb => gb.bonus_definition === b.id);
 
   const bonusEntry = gridBonuses.find(gb => gb.bonus_definition === b.id);
@@ -1501,12 +1506,13 @@ function renderBonusRow(b: BonusDef) {
 
   const canPlayThis =
     !isPlayed &&
+    !blockedByBielsa &&
     (!isBoost || hasStock) &&
     (isBielsa ? bielsaState.canPlay : !hasPlayedInCategory);
 
   const canOpenBonus = isBielsa
     ? bielsaState.canOpen
-    : canPlayThis || (isPlayed && !bonusLocked);
+    : !blockedByBielsa && (canPlayThis || (isPlayed && !bonusLocked));
 
   const maxPerUser = Number(b.max_per_user ?? 999);
 
@@ -1856,7 +1862,7 @@ const getGridTitle = () => {
 
 const hasBonusCroix = Object.values(byMatch).some(entry =>
   (entry?.codes ?? []).some(code =>
-    ['KANTE', 'RIBERY', 'ZLATAN'].includes(code)
+    ['KANTE', 'RIBERY', 'ZLATAN', 'BIELSA'].includes(code)
   )
 );
 
@@ -1870,6 +1876,10 @@ const hasBonusSpecial = Object.values(byMatch).some(entry =>
   (entry?.codes ?? []).some(code =>
     code.startsWith('BOOST') || code === 'BIELSA'
   )
+);
+
+const hasBielsaOnCurrentGrid = gridBonuses.some(
+  gb => bonusDefById[gb.bonus_definition]?.code === "BIELSA"
 );
 
 // Début du JSX
@@ -2740,7 +2750,9 @@ return early ? (
                       className="w-full flex items-center justify-between px-4 py-3"
                     >
                       <span className="font-semibold text-center w-full">
-                        {hasBonusSpecial
+                      {hasBielsaOnCurrentGrid
+                        ? '⛔ Bonus SPÉCIAL non jouable'
+                        : hasBonusSpecial
                           ? '✅ Bonus SPÉCIAL activé'
                           : '🎯 Joue un bonus SPÉCIAL'}
                       </span>
@@ -2862,7 +2874,9 @@ return early ? (
                 const pickN  = p.pick_n ?? (pickVal === 'N');
                 const pick2 = p.pick_2 ?? (pickVal === '2');
 
-                const bielsaShadow = !!p.has_bielsa_grid && !p.has_bonus;
+                const bielsaShadow =
+                  !!p.has_bielsa_grid &&
+                  (!p.has_bonus || p.bonus_code === 'BUTS');
 
                 const showDisabledSquares = bielsaShadow;
 

@@ -34,11 +34,11 @@ type SupporterScreenProps = {
 };
 
 type SupporterView =
-    | 'pronostics'
-    | 'rankGeneral'
-    | 'rankMonth'
-    | 'rules'
-    | 'info';
+  | 'pronostics'
+  | 'clubBattle'
+  | 'rankGeneral'
+  | 'rules'
+  | 'info';
 
 type SupporterScore = {
     user_id: string;
@@ -56,6 +56,17 @@ type SupporterLeaderboardRow = {
     avatar: string | null;
     total_points: number;
     rank: number;
+};
+
+type SupporterClubBattleRow = {
+  competition_id: string;
+  team_id: number;
+  team_name: string | null;
+  team_logo: string | null;
+  raw_points: number;
+  matches_count: number;
+  adjusted_points: number;
+  rank: number;
 };
 
 // Pour le pop-up vu des pronos des autres dans les classements
@@ -114,6 +125,8 @@ export default function SupporterScreen({
     const [publicSupporterPlayerIndex, setPublicSupporterPlayerIndex] = useState(0);
     const [publicSupporterMonthIndex, setPublicSupporterMonthIndex] = useState(0);
     const [publicSupporterMonths, setPublicSupporterMonths] = useState<PublicSupporterMonth[]>([]);
+    // pour le classement de la guerre des clubs
+    const [clubBattle, setClubBattle] = useState<SupporterClubBattleRow[]>([]);
     // Format FR pour le status des matchs
     const getMatchLabelAndColor = (status: string | null) => {
         const s = (status ?? '').toUpperCase();
@@ -222,6 +235,16 @@ export default function SupporterScreen({
                     setLeaderboardGeneral(
                         (leaderboardData || []) as SupporterLeaderboardRow[]
                     );
+                }
+
+                {/* ── Chargement de la Guerre des clubs SUPPORTER ── */}
+                const { data: clubBattleData, error: clubBattleError } =
+                await supabase.rpc('get_supporter_club_battle', {
+                    p_competition_id: competitionId,
+                });
+
+                if (!clubBattleError) {
+                setClubBattle((clubBattleData || []) as SupporterClubBattleRow[]);
                 }
             }
 
@@ -378,6 +401,8 @@ export default function SupporterScreen({
 
         loadMonthLeaderboard();
     }, [competitionId, currentMonth]);
+
+    
 
     {/* ── Sélection automatique du mois le plus pertinent ── */ }
     useEffect(() => {
@@ -915,7 +940,25 @@ export default function SupporterScreen({
                     {monthTotalPoints}
                 </div>
 
-                {/* 3) Classement général */}
+                {/* 3) Guerre des clubs */}
+                <button
+                onClick={() => setView('clubBattle')}
+                aria-pressed={view === 'clubBattle'}
+                className={`w-12 h-12 rounded-full border border-black bg-white p-[3px]
+                    flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none
+                    ${view === 'clubBattle' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
+                title="Guerre des clubs"
+                >
+                <Image
+                    src="/images/icons/podium.png"
+                    alt="Guerre des clubs"
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover"
+                />
+                </button>
+
+                {/* 4) Classement général */}
                 <button
                     onClick={() => setView('rankGeneral')}
                     aria-pressed={view === 'rankGeneral'}
@@ -925,26 +968,8 @@ export default function SupporterScreen({
                     title="Classement général"
                 >
                     <Image
-                        src="/images/icons/podium.png"
-                        alt="Général"
-                        width={40}
-                        height={40}
-                        className="rounded-full object-cover"
-                    />
-                </button>
-
-                {/* 4) Classement du mois */}
-                <button
-                    onClick={() => setView('rankMonth')}
-                    aria-pressed={view === 'rankMonth'}
-                    className={`w-12 h-12 rounded-full border border-black bg-white p-[3px]
-                        flex items-center justify-center transition hover:bg-neutral-50 focus:outline-none
-                        ${view === 'rankMonth' ? 'ring-2 ring-orange-500 bg-orange-50' : ''}`}
-                    title="Classement du mois"
-                >
-                    <Image
                         src="/images/icons/classement.png"
-                        alt="Mois"
+                        alt="Général"
                         width={40}
                         height={40}
                         className="rounded-full object-cover"
@@ -1320,6 +1345,59 @@ export default function SupporterScreen({
                 </div>
             )}
 
+            {/* ── Vue GUERRE DES CLUBS SUPPORTER ── */}
+            {view === 'clubBattle' && (
+            <div className="border rounded-lg overflow-hidden">
+
+                {/* ── Titre ── */}
+                <div className="px-4 py-3 border-b font-semibold text-center">
+                ⚔️ Guerre des clubs
+                </div>
+
+                <div className="px-4 py-2 text-center text-sm text-gray-600 border-b">
+                Chaque club est représenté par ses 11 meilleurs supporters.
+                <br />
+                Les scores sont ajustés pour comparer équitablement tous les clubs.
+                </div>
+
+                {/* ── Liste des clubs ── */}
+                <div className="divide-y">
+                {clubBattle.map((club) => (
+                    <div
+                    key={club.competition_id}
+                    className="grid grid-cols-[14%_16%_1fr_24%] items-center px-3 py-2"
+                    >
+                    {/* ── Rang ── */}
+                    <div className="text-center font-bold">
+                        {club.rank}
+                    </div>
+
+                    {/* ── Logo club ── */}
+                    <div className="flex justify-center">
+                        {club.team_logo ? (
+                        <img
+                            src={club.team_logo}
+                            alt={club.team_name ?? 'Club'}
+                            className="w-8 h-8 rounded-full object-contain border bg-white"
+                        />
+                        ) : null}
+                    </div>
+
+                    {/* ── Nom club ── */}
+                    <div className="font-medium truncate px-2">
+                        {club.team_name ?? 'Club'}
+                    </div>
+
+                    {/* ── Points ── */}
+                    <div className="text-right font-semibold">
+                        {Number(club.adjusted_points).toFixed(1)} pts
+                    </div>
+                    </div>
+                ))}
+                </div>
+            </div>
+            )}
+
             {/* ── Vue CLASSEMENT GÉNÉRAL SUPPORTER ── */}
             {view === 'rankGeneral' && (
                 <div className="border rounded-lg overflow-hidden">
@@ -1329,18 +1407,18 @@ export default function SupporterScreen({
                         🏆 Classement général
                     </div>
                     <div className="px-4 py-2 text-center text-sm text-gray-600 border-b">
-{leaderboardGeneral.find((p) => p.user_id === currentUserId) ? (
-  <>
-    Tu es {leaderboardGeneral.find((p) => p.user_id === currentUserId)?.rank}e
-    sur {leaderboardGeneral.length} joueurs.
-  </>
-) : (
-  <>
-    Tu n’es pas encore classé.
-    <br />
-    {leaderboardGeneral.length} joueurs sont classés.
-  </>
-)}
+                        {leaderboardGeneral.find((p) => p.user_id === currentUserId) ? (
+                        <>
+                            Tu es {leaderboardGeneral.find((p) => p.user_id === currentUserId)?.rank}e
+                            sur {leaderboardGeneral.length} joueurs.
+                        </>
+                        ) : (
+                        <>
+                            Tu n’es pas encore classé.
+                            <br />
+                            {leaderboardGeneral.length} joueurs sont classés.
+                        </>
+                        )}
                     <br />
                     Clique sur un joueur pour voir ses pronos.
                     </div>
@@ -1348,70 +1426,6 @@ export default function SupporterScreen({
                     {/* ── Liste des joueurs ── */}
                     <div className="divide-y">
                         {leaderboardGeneral.map((player) => (
-                            <div
-                            key={player.user_id}
-                            onClick={() => openPublicSupporterPlayer(player)}
-                            className="grid grid-cols-[14%_16%_1fr_20%] items-center px-3 py-2 cursor-pointer hover:bg-gray-50"
-                            >
-                                {/* ── Rang ── */}
-                                <div className="text-center font-bold">
-                                    {player.rank}
-                                </div>
-
-                                {/* ── Avatar ── */}
-                                <div className="flex justify-center">
-                                    {player.avatar ? (
-                                        <img
-                                            src={player.avatar}
-                                            alt={player.username ?? 'avatar'}
-                                            className="w-8 h-8 rounded-full object-cover border"
-                                        />
-                                    ) : null}
-                                </div>
-
-                                {/* ── Username ── */}
-                                <div className="font-medium truncate px-2">
-                                    {player.username ?? 'Joueur'}
-                                </div>
-
-                                {/* ── Points ── */}
-                                <div className="text-right font-semibold">
-                                    {player.total_points} pts
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* ── Vue CLASSEMENT DU MOIS ── */}
-            {view === 'rankMonth' && (
-                <div className="border rounded-lg overflow-hidden">
-
-                    {/* ── Titre ── */}
-                    <div className="px-4 py-3 border-b font-semibold text-center">
-                        📅 Classement du mois
-                    </div>
-                    <div className="px-4 py-2 text-center text-sm text-gray-600 border-b">
-{leaderboardMonth.find((p) => p.user_id === currentUserId) ? (
-  <>
-    Tu es {leaderboardMonth.find((p) => p.user_id === currentUserId)?.rank}e
-    sur {leaderboardMonth.length} joueurs ce mois-ci.
-  </>
-) : (
-  <>
-    Tu n’es pas encore classé ce mois-ci.
-    <br />
-    {leaderboardMonth.length} joueurs sont classés.
-  </>
-)}
-                    <br />
-                    Clique sur un joueur pour voir ses pronos.
-                    </div>
-
-                    {/* ── Liste des joueurs ── */}
-                    <div className="divide-y">
-                        {leaderboardMonth.map((player) => (
                             <div
                             key={player.user_id}
                             onClick={() => openPublicSupporterPlayer(player)}
@@ -1473,22 +1487,17 @@ export default function SupporterScreen({
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>
                                     Bon résultat : victoire, nul ou défaite =
-                                    <strong> 2 pts</strong>
-                                </li>
-
-                                <li>
-                                    Bon écart de buts =
-                                    <strong> +1 pt</strong>
+                                    <strong> 3 points</strong>
                                 </li>
 
                                 <li>
                                     Score exact =
-                                    <strong> +2 pts</strong>
+                                    <strong> +1 point</strong>
                                 </li>
                             </ul>
 
                             <p className="font-semibold">
-                                Score parfait : 5 points maximum.
+                                Score parfait : 4 points maximum.
                             </p>
                         </div>
                     </details>
@@ -1526,7 +1535,39 @@ export default function SupporterScreen({
                         </div>
                     </details>
 
-                    {/* ── Accordéon 3 : exemples ── */}
+                    {/* ── Accordéon 3 : Guerre des clubs ── */}
+                    <details className="group rounded-lg border bg-gray-50">
+                    <summary className="list-none cursor-pointer px-4 py-3 font-bold flex items-center justify-between">
+                        <span>⚔️ Guerre des clubs</span>
+                        <span className="transition-transform group-open:rotate-180">▼</span>
+                    </summary>
+
+                    <div className="px-4 pb-4 space-y-3">
+                        <p>
+                        Chaque club est représenté par ses
+                        <strong> 11 meilleurs supporters</strong>.
+                        </p>
+                        <ul className="list-disc pl-5 space-y-1">
+                            <li>
+                            Les points de ces supporters sont additionnés pour former le score du club.
+                            </li>
+
+                            <li>
+                            Pour que la comparaison reste juste, le score est ajusté selon le nombre
+                            de matchs pronosticables par chaque club.
+                            </li>
+                        </ul>
+
+                        <p className="text-gray-700">
+                        <strong>Exemple :</strong> Brest totalise <strong>229 pts en 11 matchs</strong>.
+                        Rennes totalise <strong>256 pts en 13 matchs</strong>.
+                        Après ajustement, Rennes obtient <strong>216,6 pts</strong>.
+                        Brest reste donc devant malgré un total brut inférieur.
+                        </p>
+                    </div>
+                    </details>
+
+                    {/* ── Accordéon 4 : exemples ── */}
                     <details className="group rounded-lg border bg-gray-50">
                         <summary className="list-none cursor-pointer px-4 py-3 font-bold flex items-center justify-between">
                             <span>🇫🇷 Exemples</span>
@@ -1541,22 +1582,16 @@ export default function SupporterScreen({
                             <ul className="space-y-2">
                                 <li>
                                     ✅ Score final <strong>2 - 0</strong> :
-                                    bon résultat = <strong>2 pts</strong>.
+                                    bon résultat = <strong>3 pts</strong>.
                                     Avec <strong>POTEAU RENTRANT</strong>,
                                     ton score est validé comme exact :
-                                    <strong> 5 pts</strong>.
-                                </li>
-
-                                <li>
-                                    ✅ Score final <strong>4 - 1</strong> :
-                                    bon résultat + bon écart =
-                                    <strong> 3 pts</strong>.
+                                    <strong> 4 pts</strong>.
                                 </li>
 
                                 <li>
                                     🎯 Score final <strong>3 - 0</strong> :
                                     score exact =
-                                    <strong> 5 pts</strong>.
+                                    <strong> 4 pts</strong>.
                                 </li>
                             </ul>
                         </div>
