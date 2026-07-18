@@ -1917,10 +1917,12 @@ export default function AdminGridsPage() {
                 { id: 2, name: 'LDC' },
                 { id: 3, name: 'Europa' },
                 { id: 61, name: 'Ligue 1' },
+                { id: 62, name: 'Ligue 2' },
+                { id: 63, name: 'Ligue 3' },
                 { id: 66, name: 'CDF' },
                 { id: 848, name: 'Conference' },
-                { id: 531, name: 'Supercoupe' },
-                { id: 526, name: 'Coupe' },
+                { id: 531, name: 'Supercoupe Europe' },
+                { id: 526, name: 'Trophée des champions' },
               ].map((league) => (
                 <label
                   key={league.id}

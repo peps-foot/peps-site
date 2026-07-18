@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react';
 import { useSupabase } from '../../components/SupabaseProvider';
 import supabaseReset from '../../lib/supabaseResetClient'
 
+const PEPS_ADMIN_EMAIL = 'admin@peps.foot';
+const COINCHE_ADMIN_EMAIL = 'admin@coinche.com';
+
 export default function ConnexionPage() {
   const supabase = useSupabase();
   const router = useRouter();
@@ -37,7 +40,19 @@ export default function ConnexionPage() {
     });
 
     if (error) {
-      setErrorMsg(error.message);
+      switch (error.message) {
+        case "Invalid login credentials":
+          setErrorMsg("Adresse e-mail ou mot de passe incorrect.");
+          break;
+
+        case "Email not confirmed":
+          setErrorMsg("Ton adresse e-mail n'a pas encore été confirmée.");
+          break;
+
+        default:
+          setErrorMsg("Une erreur est survenue. Merci de réessayer.");
+      }
+
       return;
     }
 
@@ -45,12 +60,35 @@ export default function ConnexionPage() {
     const userEmail = data.user?.email;
 
     setTimeout(() => {
-      if (userEmail === 'admin@peps.foot') {
-        router.push('/admin/grids');
+      if (userEmail === PEPS_ADMIN_EMAIL) {
+        router.replace('/admin/grids');
+      } else if (userEmail === COINCHE_ADMIN_EMAIL) {
+        router.replace('/coinche');
       } else {
-        router.push('/');
+        router.replace('/');
       }
     }, 200);
+  }
+
+  // pour se connecter avec Google
+  async function handleGoogleLogin() {
+    setErrorMsg(null)
+    setInfoMsg(null)
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: 'select_account',
+        },
+      },
+    })
+
+    if (error) {
+      console.error("Erreur connexion Google :", error)
+      setErrorMsg("Impossible de se connecter avec Google.")
+    }
   }
 
   async function handleForgotPassword() {
@@ -79,6 +117,27 @@ return (
       alt="Logo PEPS"
       className="mx-auto mb-6 w-full max-w-md"
     />
+
+    <button
+      type="button"
+      onClick={handleGoogleLogin}
+      className="w-full border border-gray-300 bg-white py-2 rounded flex items-center justify-center gap-3 hover:bg-gray-50"
+    >
+      <img
+        src="/images/connexion/google-logo.png"
+        alt="Google"
+        className="w-5 h-5"
+      />
+      <span className="font-medium text-gray-700">
+        Continuer avec Google
+      </span>
+    </button>
+
+    <div className="flex items-center gap-3">
+      <div className="h-px flex-1 bg-gray-300" />
+      <span className="text-sm text-gray-500">ou</span>
+      <div className="h-px flex-1 bg-gray-300" />
+    </div>
 
     <form onSubmit={handleLogin} className="space-y-4 text-left">
       <div>

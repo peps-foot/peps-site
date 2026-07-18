@@ -1554,7 +1554,7 @@ export default function SupporterScreen({
 
                             <li>
                             Pour que la comparaison reste juste, le score est ajusté selon le nombre
-                            de matchs pronosticables par chaque club.
+                            de matchs pronosticables par club.
                             </li>
                         </ul>
 

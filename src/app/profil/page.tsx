@@ -77,6 +77,14 @@ export default function ProfilPage() {
       })
 
       console.log("UPDATE EMAIL", { data, emailError })
+
+      if (emailError) {
+        alert("Erreur lors du changement d'adresse e-mail : " + emailError.message)
+        setIsSaving(false)
+        return
+      }
+
+      alert("Un e-mail de confirmation vient d'être envoyé à ta nouvelle adresse.")
     }
 
     // 🔎 Vérification du pseudo
@@ -114,15 +122,22 @@ export default function ProfilPage() {
       .from('profiles')
       .update({
         username: pseudo,
-        avatar: avatar,
+        avatar: avatar || null,
       })
       .eq('user_id', user.id)
 
-    if (profileError) {
-      alert("Erreur lors de la mise à jour du profil.")
-      setIsSaving(false)
-      return
-    }
+      if (profileError) {
+        console.error("Erreur mise à jour profil :", profileError)
+
+        if (profileError.code === "23505") {
+          alert("Ce pseudo est déjà utilisé. Merci d'en choisir un autre.")
+        } else {
+          alert("Erreur lors de la mise à jour du profil.")
+        }
+
+        setIsSaving(false)
+        return
+      }
 
     setSuccessMessage('Changements validés ✅')
 

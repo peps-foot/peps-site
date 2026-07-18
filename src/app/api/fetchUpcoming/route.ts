@@ -18,6 +18,8 @@ export async function GET() {
   // 3=Europa
   // 6=CAN
   // 61=L1
+  // 62=L2
+  // 63=L3
   // 66=CDF
   // 526=Trophé des champions
   // 531=Supercoupe d'Europe

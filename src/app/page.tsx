@@ -13,6 +13,12 @@ import CompetitionHomeCard from "../components/CompetitionHomeCard";
 import JoinCompetitionModal from "../components/JoinCompetitionModal";
 import PartnerPromo from '../components/PartnerPromo';
 
+type Team = {
+  id: number;
+  name: string;
+  logo: string;
+};
+
 function BannerAccordion({
   image,
   alt,
@@ -93,22 +99,55 @@ export default function Home() {
   // Pour le mode SUPPORTER
   const [supporterSearch, setSupporterSearch] = useState('');
   const [showAllSupporters, setShowAllSupporters] = useState(false);
+  // Choix du pseudo pour un nouveau compte Google
+  const [showPseudoModal, setShowPseudoModal] = useState(false);
+  const [newPseudo, setNewPseudo] = useState("");
+  const [pseudoError, setPseudoError] = useState<string | null>(null);
+  const [isSavingPseudo, setIsSavingPseudo] = useState(false);
+  const [connectedUserId, setConnectedUserId] = useState<string | null>(null);
+  // Choix facultatif de l'avatar après la création du pseudo
+  const [showGoogleAvatarModal, setShowGoogleAvatarModal] = useState(false);
+  const [googleAvatarTeams, setGoogleAvatarTeams] = useState<Team[]>([]);
+  const [googleAvatarSearch, setGoogleAvatarSearch] = useState("");
+  const [isSavingGoogleAvatar, setIsSavingGoogleAvatar] = useState(false);
 
   useEffect(() => {
     const check = async () => {
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
-      const type = params.get('type');
+      const type = params.get("type");
 
-      if (type === 'recovery') {
-        console.log('🟡 URL de réinitialisation détectée.');
+      if (type === "recovery") {
+        console.log("🟡 URL de réinitialisation détectée.");
         setSessionChecked(true);
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       setIsLoggedIn(!!session);
+
+      if (session?.user) {
+        setConnectedUserId(session.user.id);
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error("Erreur vérification du profil :", profileError);
+        }
+
+        // Aucun profil ou aucun pseudo : on ouvre la pop-up obligatoire
+        if (!profile?.username?.trim()) {
+          setShowPseudoModal(true);
+        }
+      }
+
       setSessionChecked(true);
     };
 
@@ -338,6 +377,95 @@ export default function Home() {
     router.push(`/${comp.id}`);
   }
 
+  async function handleSaveGooglePseudo() {
+    setPseudoError(null);
+
+    const cleanPseudo = newPseudo.trim();
+
+    if (cleanPseudo.length < 3 || cleanPseudo.length > 15) {
+      setPseudoError("Le pseudo doit contenir entre 3 et 15 caractères.");
+      return;
+    }
+
+    if (!connectedUserId) {
+      setPseudoError("Impossible de retrouver ton compte.");
+      return;
+    }
+
+    setIsSavingPseudo(true);
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert(
+        {
+          user_id: connectedUserId,
+          username: cleanPseudo,
+          avatar: null,
+        },
+        {
+          onConflict: "user_id",
+        }
+      );
+
+    if (error) {
+      console.error("Erreur création du profil :", error);
+
+      if (error.code === "23505") {
+        setPseudoError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
+      } else {
+        setPseudoError("Impossible d'enregistrer ton pseudo.");
+      }
+
+      setIsSavingPseudo(false);
+      return;
+    }
+
+    setShowPseudoModal(false);
+    setIsSavingPseudo(false);
+
+    // Charger les équipes pour la deuxième étape
+    const { data: teamsData, error: teamsError } = await supabase
+      .from("teams")
+      .select("id, name, logo")
+      .order("name");
+
+    if (teamsError) {
+      console.error("Erreur chargement des avatars :", teamsError);
+
+      // Le profil est quand même créé, on ne bloque pas le joueur
+      return;
+    }
+
+    setGoogleAvatarTeams(teamsData ?? []);
+    setShowGoogleAvatarModal(true);
+  }
+
+  async function handleChooseGoogleAvatar(logo: string) {
+    if (!connectedUserId) {
+      alert("Impossible de retrouver ton compte.");
+      return;
+    }
+
+    setIsSavingGoogleAvatar(true);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        avatar: logo,
+      })
+      .eq("user_id", connectedUserId);
+
+    if (error) {
+      console.error("Erreur enregistrement avatar :", error);
+      alert("Impossible d'enregistrer cet avatar.");
+      setIsSavingGoogleAvatar(false);
+      return;
+    }
+
+    setShowGoogleAvatarModal(false);
+    setIsSavingGoogleAvatar(false);
+  }
+
   // Pour afficher le status du joueur
   function getCompetitionStatusText(comp: Competition) {
     if (!comp.isMember) return "À VENIR";
@@ -418,6 +546,11 @@ export default function Home() {
 
     return aTime - bTime;
   });
+
+  // Pour choisir les avatar
+  const filteredGoogleAvatarTeams = googleAvatarTeams.filter((team) =>
+    team.name.toLowerCase().includes(googleAvatarSearch.toLowerCase())
+  );
 
   function getDeadlineColor(deadline?: string | null) {
     if (!deadline) return "text-gray-700";
@@ -667,6 +800,121 @@ export default function Home() {
 
     {/* Pub SportSympathy aléatoire */}
     <PartnerPromo />  
+
+    {/* ── POP UP CHOIX DU PSEUDO GOOGLE ── */}
+    {showPseudoModal && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+          <h2 className="text-center text-xl font-bold">
+            Bienvenue sur PEPS !
+          </h2>
+
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Choisis le pseudo qui sera affiché dans les classements.
+          </p>
+
+          <label className="mt-5 block text-sm font-semibold">
+            Ton pseudo
+          </label>
+
+          <input
+            type="text"
+            value={newPseudo}
+            onChange={(e) => {
+              setNewPseudo(e.target.value);
+              setPseudoError(null);
+            }}
+            maxLength={15}
+            placeholder="Entre 3 et 15 caractères"
+            autoFocus
+            className="mt-1 w-full rounded-lg border px-3 py-3"
+          />
+
+          {pseudoError && (
+            <p className="mt-2 text-sm text-red-600">
+              {pseudoError}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSaveGooglePseudo}
+            disabled={isSavingPseudo}
+            className={`mt-5 w-full rounded-lg px-4 py-3 font-semibold text-white ${
+              isSavingPseudo
+                ? "cursor-not-allowed bg-gray-400"
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+          >
+            {isSavingPseudo ? "Enregistrement..." : "Valider mon pseudo"}
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* ── POP UP CHOIX FACULTATIF DE L'AVATAR GOOGLE ── */}
+    {showGoogleAvatarModal && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
+        <div className="relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setShowGoogleAvatarModal(false)}
+            className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl"
+          >
+            ✕
+          </button>
+          <h2 className="text-center text-xl font-bold">
+            Profil créé ✅
+          </h2>
+
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Choisis maintenant l’équipe qui représentera ton avatar.
+          </p>
+
+          <input
+            type="text"
+            value={googleAvatarSearch}
+            onChange={(e) => setGoogleAvatarSearch(e.target.value)}
+            placeholder="Rechercher une équipe..."
+            className="mt-5 w-full rounded-lg border px-3 py-3"
+          />
+
+          <div className="mt-4 grid grid-cols-4 gap-3">
+            {filteredGoogleAvatarTeams.map((team) => (
+              <button
+                type="button"
+                key={team.id}
+                disabled={isSavingGoogleAvatar}
+                onClick={() => handleChooseGoogleAvatar(team.logo)}
+                className="flex items-center justify-center rounded-lg border p-2 hover:bg-gray-50 disabled:opacity-50"
+                title={team.name}
+              >
+                <img
+                  src={team.logo}
+                  alt={team.name}
+                  className="h-12 w-12 object-contain"
+                />
+              </button>
+            ))}
+          </div>
+
+          {filteredGoogleAvatarTeams.length === 0 && (
+            <p className="py-6 text-center text-sm text-gray-500">
+              Aucune équipe trouvée.
+            </p>
+          )}
+
+          <button
+            type="button"
+            disabled={isSavingGoogleAvatar}
+            onClick={() => setShowGoogleAvatarModal(false)}
+            className="mt-5 w-full rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Choisir plus tard
+          </button>
+        </div>
+      </div>
+    )}
 
     {/* ── POP UP si joueur pas logué ── */}
     {showAuthModal && (
