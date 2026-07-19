@@ -70,6 +70,12 @@ export default function CoinchePage() {
     const [deletingLastMatch, setDeletingLastMatch] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
+    const playersForSelect = [...players].sort((a, b) =>
+      a.username.localeCompare(b.username, "fr", {
+        sensitivity: "base",
+      })
+    );
+
 
     useEffect(() => {
       loadRanking();
@@ -204,10 +210,17 @@ export default function CoinchePage() {
 
         const result = data?.[0];
 
+        const team1Change = Math.round(Number(result?.team1_elo_change));
+        const team2Change = Math.round(Number(result?.team2_elo_change));
+
         setMatchSuccess(
-            result
-                ? `Match enregistré : équipe 1 ${result.team1_elo_change > 0 ? '+' : ''}${result.team1_elo_change} Elo, équipe 2 ${result.team2_elo_change > 0 ? '+' : ''}${result.team2_elo_change} Elo.`
-                : 'Match enregistré avec succès.'
+          result
+            ? `Match enregistré : équipe 1 ${
+                team1Change > 0 ? '+' : ''
+              }${team1Change} Elo, équipe 2 ${
+                team2Change > 0 ? '+' : ''
+              }${team2Change} Elo.`
+            : 'Match enregistré avec succès.'
         );
 
         setTeam1Player1('');
@@ -233,8 +246,12 @@ export default function CoinchePage() {
         return `${rank}.`;
     }
 
-    function formatEloChange(value: number) {
-      return value > 0 ? `+${value}` : `${value}`;
+    function formatEloChange(value: number | string) {
+      const roundedValue = Math.round(Number(value));
+
+      return roundedValue > 0
+        ? `+${roundedValue}`
+        : `${roundedValue}`;
     }
 
     function formatMatchDate(date: string) {
@@ -470,9 +487,9 @@ export default function CoinchePage() {
                                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3"
                                     >
                                         <option value="">Joueur 1</option>
-                                        {players.map((player) => (
+                                        {playersForSelect.map((player) => (
                                             <option key={player.id} value={player.id}>
-                                                {player.username} — {player.elo}
+                                                {player.username} — {Math.round(Number(player.elo))}
                                             </option>
                                         ))}
                                     </select>
@@ -483,9 +500,9 @@ export default function CoinchePage() {
                                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3"
                                     >
                                         <option value="">Joueur 2</option>
-                                        {players.map((player) => (
+                                        {playersForSelect.map((player) => (
                                             <option key={player.id} value={player.id}>
-                                                {player.username} — {player.elo}
+                                                {player.username} — {Math.round(Number(player.elo))}
                                             </option>
                                         ))}
                                     </select>
@@ -518,9 +535,9 @@ export default function CoinchePage() {
                                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3"
                                     >
                                         <option value="">Joueur 1</option>
-                                        {players.map((player) => (
+                                        {playersForSelect.map((player) => (
                                             <option key={player.id} value={player.id}>
-                                                {player.username} — {player.elo}
+                                                {player.username} — {Math.round(Number(player.elo))}
                                             </option>
                                         ))}
                                     </select>
@@ -531,9 +548,9 @@ export default function CoinchePage() {
                                         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-3"
                                     >
                                         <option value="">Joueur 2</option>
-                                        {players.map((player) => (
+                                        {playersForSelect.map((player) => (
                                             <option key={player.id} value={player.id}>
-                                                {player.username} — {player.elo}
+                                                {player.username} — {Math.round(Number(player.elo))}
                                             </option>
                                         ))}
                                     </select>
@@ -634,7 +651,7 @@ export default function CoinchePage() {
 
                                                 <div className="text-right">
                                                     <p className="text-xl font-bold text-green-700">
-                                                        {player.elo}
+                                                        {Math.round(Number(player.elo))}
                                                     </p>
                                                     <p className="text-xs text-gray-500">Elo</p>
                                                 </div>
