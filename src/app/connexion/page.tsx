@@ -19,6 +19,16 @@ export default function ConnexionPage() {
   const [isClient, setIsClient] = useState(false);
   const [remember, setRemember] = useState(false);
 
+  // pop-up mdp oublié
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordMsg, setForgotPasswordMsg] = useState<string | null>(null);
+  const [forgotPasswordError, setForgotPasswordError] = useState<string | null>(null);
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+
+  // image "comment jouer"
+  const [showHowToPlayModal, setShowHowToPlayModal] = useState(false);
+
   // Pour les lien vers les applis
   const [showIosModal, setShowIosModal] = useState(false);
   const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.peps_foot.www.twa&utm_source=emea_Med';
@@ -91,32 +101,96 @@ export default function ConnexionPage() {
     }
   }
 
+  // pour le mdp oublié
   async function handleForgotPassword() {
-    setErrorMsg(null);
-    setInfoMsg(null);
+    setForgotPasswordError(null);
+    setForgotPasswordMsg(null);
 
-    if (!email) {
-      setErrorMsg('Veuillez d’abord saisir votre email ci-dessus.');
+    const cleanEmail = forgotPasswordEmail.trim();
+
+    if (!cleanEmail) {
+      setForgotPasswordError("Veuillez saisir votre adresse e-mail.");
       return;
     }
 
-      const { error } = await supabaseReset.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://www.peps-foot.com/reset-password',
-      })
+    setForgotPasswordLoading(true);
+
+    const { error } = await supabaseReset.auth.resetPasswordForEmail(
+      cleanEmail,
+      {
+        redirectTo: "https://www.peps-foot.com/reset-password",
+      }
+    );
+
+    setForgotPasswordLoading(false);
+
     if (error) {
-      setErrorMsg(error.message);
-    } else {
-      setInfoMsg('Un email de récupération vient de vous être envoyé.');
+      setForgotPasswordError(
+        "Une erreur est survenue. Veuillez réessayer dans quelques instants."
+      );
+      return;
     }
+
+    setForgotPasswordMsg(
+      "Demande envoyée. Si cette adresse correspond à un compte PEPS, vous recevrez un e-mail de récupération."
+    );
   }
 
 return (
-  <div className="max-w-md mx-auto p-6 space-y-6 text-center">
+  <div className="max-w-md mx-auto p-6 space-y-4 text-center">
     <img
       src="/images/connexion/logo_peps_connexion.png"
       alt="Logo PEPS"
-      className="mx-auto mb-6 w-full max-w-md"
+      className="mx-auto w-full max-w-md"
     />
+
+    <form onSubmit={handleLogin} className="space-y-4 text-left">
+      <input
+        type="email"
+        placeholder="Adresse e-mail"
+        className="w-full border border-gray-300 rounded px-3 py-3"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+      />
+
+      <input
+        type="password"
+        placeholder="Mot de passe"
+        className="w-full border border-gray-300 rounded px-3 py-3"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+      />
+
+      {errorMsg && <div className="text-red-600 text-sm">{errorMsg}</div>}
+      {infoMsg && <div className="text-green-600 text-sm">{infoMsg}</div>}
+
+      <button
+        type="submit"
+        className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600"
+      >
+        Se connecter
+      </button>
+
+      <div className="flex justify-center items-center">
+        <input
+          id="remember"
+          type="checkbox"
+          className="mr-2"
+          checked={remember}
+          onChange={(e) => setRemember(e.target.checked)}
+        />
+
+        <label htmlFor="remember" className="text-gray-700">
+          Rester connecté
+        </label>
+      </div>
+    </form>
+
+    <p className="text-sm text-gray-400">
+      ou
+    </p>
 
     <button
       type="button"
@@ -128,129 +202,112 @@ return (
         alt="Google"
         className="w-5 h-5"
       />
+
       <span className="font-medium text-gray-700">
-        Continuer avec Google
+        Se connecter avec Google
       </span>
     </button>
 
-    <div className="flex items-center gap-3">
-      <div className="h-px flex-1 bg-gray-300" />
-      <span className="text-sm text-gray-500">ou</span>
-      <div className="h-px flex-1 bg-gray-300" />
-    </div>
+    <div className="my-5 border-t border-gray-200" />
 
-    <form onSubmit={handleLogin} className="space-y-4 text-left">
-      <div>
-        <label className="block mb-1">Email</label>
-        <input
-          type="email"
-          className="w-full border rounded px-2 py-1"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label className="block mb-1">Mot de passe</label>
-        <input
-          type="password"
-          className="w-full border rounded px-2 py-1"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-
-      {errorMsg && <div className="text-red-600 text-sm">{errorMsg}</div>}
-      {infoMsg && <div className="text-green-600 text-sm">{infoMsg}</div>}
+    <div className="grid grid-cols-3 gap-2">
+      <button
+        type="button"
+        onClick={() => router.push("/inscription")}
+        className="h-16 rounded-xl bg-green-500 px-1 text-white transition hover:bg-green-600"
+      >
+        <span className="block whitespace-nowrap text-sm font-bold">
+          Inscris-toi
+        </span>
+        <span className="block text-xs font-medium">
+          en 30 s
+        </span>
+      </button>
 
       <button
-        type="submit"
-        className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600"
+        type="button"
+        onClick={() => {
+          setForgotPasswordEmail("");
+          setForgotPasswordMsg(null);
+          setForgotPasswordError(null);
+          setShowForgotPasswordModal(true);
+        }}
+        className="h-16 rounded-xl bg-gray-500 px-1 text-white transition hover:bg-gray-600"
       >
-        Se connecter
+        <span className="block whitespace-nowrap text-xs font-bold">
+          Mot de passe
+        </span>
+        <span className="block text-xs font-medium">
+          oublié
+        </span>
       </button>
-      <div className="flex justify-center items-center mt-2 mb-4">
-        <input
-          id="remember"
-          type="checkbox"
-          className="mr-2"
-          checked={remember}
-          onChange={(e) => setRemember(e.target.checked)}
-        />
-        <label htmlFor="remember" className="text-gray-700">
-          Rester connecté
-        </label>
-      </div>
-    </form>
 
-    <div className="mt-6 space-y-3 max-w-md mx-auto text-sm">
-      {/* LIGNE 1 */}
-      <div className="grid grid-cols-2 items-center gap-2 text-center">
-        <span>Tu veux jouer ?</span>
-        <button
-          onClick={() => router.push('/inscription')}
-          className="bg-green-500 text-white font-semibold py-1 px-2 rounded w-full whitespace-nowrap text-sm"
-        >
-          Inscription en 30s
-        </button>
-      </div>
-
-      {/* LIGNE 2 */}
-      <div className="grid grid-cols-2 items-center gap-2 text-center">
-        <span>Mot de passe oublié ?</span>
-        <button
-          onClick={handleForgotPassword}
-          className="bg-gray-500 text-white font-semibold py-1 px-2 rounded w-full"
-        >
-          Clique ici !
-        </button>
-      </div>
-
-      {/* LIGNE 3 */}
-      <div className="grid grid-cols-2 items-center gap-2 text-center">
-        <span>Les règles du jeu ?</span>
-        <button
-          onClick={() => router.push('/regles_connexion')}
-          className="bg-blue-700 text-white font-semibold py-1 px-2 rounded w-full"
-        >
-          Bonne lecture
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setShowHowToPlayModal(true)}
+        className="h-16 rounded-xl bg-blue-600 px-1 text-white transition hover:bg-blue-700"
+      >
+        <span className="block text-sm font-bold">
+          Comment
+        </span>
+        <span className="block text-sm font-bold">
+          jouer ?
+        </span>
+      </button>
     </div>
+    
+    <div className="my-5 border-t border-gray-200" />
 
     {/* INSTALLATION MOBILE */}
-    <div className="mt-6 flex justify-center items-center gap-6">
-      
-      {/* ANDROID */}
-      <button
-        onClick={() => window.open(PLAY_STORE_URL, '_blank')}
-        className="hover:scale-105 transition"
-        aria-label="Télécharger PEPS sur Android"
-      >
-        <img
-          src="/images/connexion/android.png"
-          alt="Android"
-          className="w-16 h-16 object-contain"
-        />
-      </button>
+    <div className="text-center">
+      <p className="mb-3 text-sm font-semibold text-gray-700">
+        📱 Télécharger l'application PEPS
+      </p>
 
-      {/* IOS */}
-      <button
-        onClick={() => setShowIosModal(true)}
-        className="hover:scale-105 transition"
-        aria-label="Installer PEPS sur iPhone"
-      >
-        <img
-          src="/images/connexion/ios.png"
-          alt="iPhone"
-          className="w-16 h-16 object-contain"
-        />
-      </button>
+      <div className="flex justify-center items-start gap-8">
+        {/* ANDROID */}
+        <div className="flex flex-col items-center">
+          <button
+            type="button"
+            onClick={() => window.open(PLAY_STORE_URL, "_blank")}
+            className="hover:scale-105 transition"
+            aria-label="Télécharger PEPS sur Android"
+          >
+            <img
+              src="/images/connexion/android.png"
+              alt="Android"
+              className="w-16 h-16 object-contain"
+            />
+          </button>
 
+          <span className="mt-1 text-sm font-medium text-gray-600">
+            Android
+          </span>
+        </div>
+
+        {/* IOS */}
+        <div className="flex flex-col items-center">
+          <button
+            type="button"
+            onClick={() => setShowIosModal(true)}
+            className="hover:scale-105 transition"
+            aria-label="Installer PEPS sur iPhone"
+          >
+            <img
+              src="/images/connexion/ios.png"
+              alt="iPhone"
+              className="w-16 h-16 object-contain"
+            />
+          </button>
+
+          <span className="mt-1 text-sm font-medium text-gray-600">
+            iPhone
+          </span>
+        </div>
+      </div>
     </div>
 
-    <p className="mt-6 text-sm text-gray-600">
+    <p className="text-sm text-gray-600">
       Pour nous contacter :{" "} <a href="mailto:hello@peps-foot.com" 
         className="underline text-blue-600 hover:text-blue-800">
         hello@peps-foot.com
@@ -261,7 +318,7 @@ return (
     {showIosModal && (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
         <div className="bg-white rounded-xl p-5 max-w-sm w-full text-center shadow-lg">
-          <h2 className="text-lg font-bold mb-3">Installer PEPS sur iPhone</h2>
+          <h2 className="text-lg font-bold mb-3">Installer l'application web sur iPhone</h2>
 
           <div className="text-sm text-left space-y-2 text-gray-700">
             <p>1. Ouvre PEPS avec <strong>Safari</strong>.</p>
@@ -271,7 +328,7 @@ return (
           </div>
 
           <p className="text-sm mt-4 text-orange-600 font-semibold">
-            L’application iOS officielle arrive bientôt 🚀
+            L’application iOS officielle arrivera plus tard 🚀
           </p>
 
           <button
@@ -280,6 +337,99 @@ return (
           >
             J’ai compris
           </button>
+        </div>
+      </div>
+    )}
+
+    {/* POP-UP récup mot de passe */}
+    {showForgotPasswordModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+        <div className="relative w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setShowForgotPasswordModal(false)}
+            className="absolute right-4 top-3 text-2xl leading-none text-gray-500 hover:text-gray-800"
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+
+          <h2 className="mb-2 pr-8 text-center text-xl font-bold text-gray-800">
+            Mot de passe oublié
+          </h2>
+
+          <p className="mb-4 text-center text-sm text-gray-600">
+            Saisissez l’adresse e-mail utilisée pour votre compte PEPS.
+          </p>
+
+          <input
+            type="email"
+            value={forgotPasswordEmail}
+            onChange={(e) => {
+              setForgotPasswordEmail(e.target.value);
+              setForgotPasswordError(null);
+              setForgotPasswordMsg(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleForgotPassword();
+              }
+            }}
+            placeholder="Adresse e-mail"
+            className="w-full rounded-lg border border-gray-300 px-3 py-3 outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
+            autoFocus
+          />
+
+          {forgotPasswordError && (
+            <p className="mt-3 text-center text-sm text-red-600">
+              {forgotPasswordError}
+            </p>
+          )}
+
+          {forgotPasswordMsg && (
+            <p className="mt-3 text-center text-sm text-green-600">
+              {forgotPasswordMsg}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleForgotPassword}
+            disabled={forgotPasswordLoading || Boolean(forgotPasswordMsg)}
+            className="mt-4 w-full rounded-lg bg-orange-500 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-gray-400"
+          >
+            {forgotPasswordLoading ? "Envoi en cours..." : "Envoyer"}
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* POP-UP Comment jouer */}
+    {showHowToPlayModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+        onClick={() => setShowHowToPlayModal(false)}
+      >
+        <div
+          className="relative w-full max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Croix */}
+          <button
+            type="button"
+            onClick={() => setShowHowToPlayModal(false)}
+            className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white text-2xl text-gray-700 shadow hover:bg-gray-100"
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+
+          {/* Image */}
+          <img
+            src="/images/bannieres/presentation.png"
+            alt="Comment jouer à PEPS"
+            className="w-full rounded-2xl shadow-2xl"
+          />
         </div>
       </div>
     )}

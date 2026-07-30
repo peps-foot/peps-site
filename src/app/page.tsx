@@ -591,7 +591,7 @@ export default function Home() {
     >
       <div className="-mx-4 -my-2">
         <img
-          src="/images/bannieres/cdm.png"
+          src="/images/bannieres/presentation.png"
           alt="Coupe du Monde"
           className="w-full block"
         />

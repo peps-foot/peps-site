@@ -6,6 +6,7 @@ import AdminXpPanel from '../../../components/AdminXpPanel';
 import AdminEliminationsPanel from '../../../components/AdminEliminationsPanel';
 import AdminBoostPanel from '../../../components/AdminBoostPanel';
 import AdminAttendancePanel from '../../../components/AdminAttendancePanel';
+import Link from 'next/link';
 
 import {
   addGridToCompetition,
@@ -937,6 +938,23 @@ export default function AdminGridsPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      {/* Navigation entre les zones admin */}
+      <div className="mb-6 flex justify-center gap-3">
+        <Link
+          href="/admin/grids"
+          className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white"
+        >
+          Gestion PEPS
+        </Link>
+
+        <Link
+          href="/admin/communication"
+          className="rounded-lg border border-blue-600 px-4 py-2 font-semibold text-blue-600 hover:bg-blue-50"
+        >
+          Communication
+        </Link>
+      </div>
+
       {/* Onglets */}
       <div className="flex flex-wrap justify-center border-b mb-6 gap-x-2">
         <button className={`px-4 py-2 -mb-px ${tab==='create'?'border-b-2 border-blue-600 font-semibold':'text-gray-600'}`} onClick={()=>setTab('create')}>

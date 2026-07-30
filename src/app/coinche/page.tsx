@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useSupabase } from '../../components/SupabaseProvider';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 type Tab = 'matches' | 'ranking' | 'add';
 
@@ -43,6 +52,35 @@ type CoincheMatch = {
   } | null;
 };
 
+type CoinchePlayerStats = {
+  other_player_id: string;
+  other_player_username: string;
+
+  with_matches: number;
+  with_wins: number;
+  with_losses: number;
+  with_elo_points: number;
+
+  against_matches: number;
+  against_wins: number;
+  against_losses: number;
+  against_elo_points: number;
+
+  total_matches: number;
+  total_elo_points: number;
+};
+
+type PlayerStatsSort =
+  | "alphabetical"
+  | "matches"
+  | "elo";
+
+type EloHistoryPoint = {
+  match: number;
+  elo: number;
+  date: string;
+};
+
 export default function CoinchePage() {
     const supabase = useSupabase();
 
@@ -70,11 +108,24 @@ export default function CoinchePage() {
     const [deletingLastMatch, setDeletingLastMatch] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
+    const [matchesCount, setMatchesCount] = useState(0);
+
+    const [selectedPlayer, setSelectedPlayer] =   useState<CoincheProfile | null>(null);
+    const [playerStatsOpen, setPlayerStatsOpen] = useState(false);
+
+    const [playerStats, setPlayerStats] = useState<CoinchePlayerStats[]>([]);
+    const [loadingPlayerStats, setLoadingPlayerStats] = useState(false);
+    const [playerStatsError, setPlayerStatsError] = useState("");
+    const [playerStatsSort, setPlayerStatsSort] =   useState<PlayerStatsSort>("alphabetical");
+
     const playersForSelect = [...players].sort((a, b) =>
       a.username.localeCompare(b.username, "fr", {
         sensitivity: "base",
       })
     );
+
+    const [eloHistory, setEloHistory] = useState<EloHistoryPoint[]>([]);
+    const [loadingEloHistory, setLoadingEloHistory] = useState(false);
 
 
     useEffect(() => {
@@ -144,6 +195,7 @@ export default function CoinchePage() {
         setMatches([]);
       } else {
         setMatches((data ?? []) as unknown as CoincheMatch[]);
+        setMatchesCount(data?.length ?? 0);
       }
 
       setLoadingMatches(false);
@@ -298,13 +350,144 @@ export default function CoinchePage() {
       setDeletingLastMatch(false);
     }
 
+    async function loadPlayerStats(playerId: string) {
+      setLoadingPlayerStats(true);
+      setPlayerStatsError("");
+      setPlayerStats([]);
+
+      const { data, error } = await supabase.rpc(
+        "get_coinche_player_stats",
+        {
+          p_player_id: playerId,
+        }
+      );
+
+      if (error) {
+        console.error("Erreur chargement statistiques joueur :", error);
+        setPlayerStatsError(
+          "Impossible de charger les statistiques de ce joueur."
+        );
+        setLoadingPlayerStats(false);
+        return;
+      }
+
+      setPlayerStats((data ?? []) as CoinchePlayerStats[]);
+      setLoadingPlayerStats(false);
+    }
+
+    const sortedPlayerStats = [...playerStats].sort((a, b) => {
+      if (playerStatsSort === "matches") {
+        return (
+          Number(b.total_matches) - Number(a.total_matches) ||
+          a.other_player_username.localeCompare(
+            b.other_player_username,
+            "fr",
+            { sensitivity: "base" }
+          )
+        );
+      }
+
+      if (playerStatsSort === "elo") {
+        return (
+          Number(b.total_elo_points) - Number(a.total_elo_points) ||
+          a.other_player_username.localeCompare(
+            b.other_player_username,
+            "fr",
+            { sensitivity: "base" }
+          )
+        );
+      }
+
+      return a.other_player_username.localeCompare(
+        b.other_player_username,
+        "fr",
+        { sensitivity: "base" }
+      );
+    });
+
+    async function loadPlayerEloHistory(playerId: string) {
+      setLoadingEloHistory(true);
+      setEloHistory([]);
+
+      const { data, error } = await supabase
+        .from("coinche_matches")
+        .select(`
+          id,
+          played_at,
+
+          team1_player1_id,
+          team1_player2_id,
+          team2_player1_id,
+          team2_player2_id,
+
+          team1_player1_elo_before,
+          team1_player2_elo_before,
+          team2_player1_elo_before,
+          team2_player2_elo_before,
+
+          team1_player1_elo_change,
+          team1_player2_elo_change,
+          team2_player1_elo_change,
+          team2_player2_elo_change
+        `)
+        .or(
+          `team1_player1_id.eq.${playerId},team1_player2_id.eq.${playerId},team2_player1_id.eq.${playerId},team2_player2_id.eq.${playerId}`
+        )
+        .order("played_at", { ascending: true })
+        .order("id", { ascending: true });
+
+      if (error) {
+        console.error("Erreur historique Elo :", error);
+        setLoadingEloHistory(false);
+        return;
+      }
+
+      const history: EloHistoryPoint[] = [
+        {
+          match: 0,
+          elo: 1000,
+          date: "Départ",
+        },
+      ];
+
+      (data ?? []).forEach((coincheMatch, index) => {
+        let eloBefore = 1000;
+        let eloChange = 0;
+
+        if (coincheMatch.team1_player1_id === playerId) {
+          eloBefore = Number(coincheMatch.team1_player1_elo_before);
+          eloChange = Number(coincheMatch.team1_player1_elo_change);
+        } else if (coincheMatch.team1_player2_id === playerId) {
+          eloBefore = Number(coincheMatch.team1_player2_elo_before);
+          eloChange = Number(coincheMatch.team1_player2_elo_change);
+        } else if (coincheMatch.team2_player1_id === playerId) {
+          eloBefore = Number(coincheMatch.team2_player1_elo_before);
+          eloChange = Number(coincheMatch.team2_player1_elo_change);
+        } else if (coincheMatch.team2_player2_id === playerId) {
+          eloBefore = Number(coincheMatch.team2_player2_elo_before);
+          eloChange = Number(coincheMatch.team2_player2_elo_change);
+        }
+
+        history.push({
+          match: index + 1,
+          elo: Math.round(eloBefore + eloChange),
+          date: new Date(coincheMatch.played_at).toLocaleDateString("fr-FR"),
+        });
+      });
+
+      console.log("Historique Elo :", history);
+
+      setEloHistory(history);
+      setLoadingEloHistory(false);
+    }
+
     return (
         <main className="min-h-screen bg-gray-100 px-3 py-4">
             <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl bg-white shadow-md">
                 <header className="bg-green-700 px-4 py-5 text-center text-white">
                     <h1 className="text-2xl font-bold">Tournoi de coinche</h1>
                     <p className="mt-1 text-sm text-green-100">
-                        Classement Elo individuel
+                        Points Elo
                     </p>
                 </header>
 
@@ -348,7 +531,7 @@ export default function CoinchePage() {
                       <div>
                         <div className="mb-4 flex items-center justify-between gap-2">
                           <h2 className="text-xl font-bold text-gray-900">
-                            Matchs joués
+                            Matchs joués ({matchesCount})
                           </h2>
 
                           <div className="flex gap-2">
@@ -625,45 +808,321 @@ export default function CoinchePage() {
 
                             {!loading && !errorMsg && players.length > 0 && (
                                 <div className="space-y-2">
-                                    {players.map((player, index) => {
-                                        const rank = index + 1;
+                                  {players.map((player, index) => {
+                                    const rank = index + 1;
 
-                                        return (
-                                            <div
-                                                key={player.id}
-                                                className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-3"
-                                            >
-                                                <div className="w-10 shrink-0 text-center text-lg font-bold">
-                                                    {getMedal(rank)}
-                                                </div>
+                                    return (
+                                      <button
+                                        key={player.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedPlayer(player);
+                                          setPlayerStatsOpen(true);
+                                          loadPlayerStats(player.id);
+                                          loadPlayerEloHistory(player.id);
+                                        }}
+                                        className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-3 text-left transition hover:border-gray-300 hover:bg-gray-50"
+                                      >
+                                        <div className="w-10 shrink-0 text-center text-lg font-bold">
+                                          {getMedal(rank)}
+                                        </div>
 
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="truncate font-bold text-gray-900">
-                                                        {player.username}
-                                                    </p>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="truncate font-bold text-gray-900">
+                                            {player.username}
+                                          </p>
 
-                                                    <p className="text-xs text-gray-500">
-                                                        {player.matches_played} partie
-                                                        {player.matches_played > 1 ? 's' : ''} ·{' '}
-                                                        {player.wins} V · {player.losses} D
-                                                    </p>
-                                                </div>
+                                          <p className="text-xs text-gray-500">
+                                            {player.matches_played} partie
+                                            {player.matches_played > 1 ? 's' : ''} ·{' '}
+                                            {player.wins} V · {player.losses} D
+                                          </p>
+                                        </div>
 
-                                                <div className="text-right">
-                                                    <p className="text-xl font-bold text-green-700">
-                                                        {Math.round(Number(player.elo))}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">Elo</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                        <div className="text-right">
+                                          <p className="text-xl font-bold text-green-700">
+                                            {Math.round(Number(player.elo))}
+                                          </p>
+                                          <p className="text-xs text-gray-500">Elo</p>
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
                                 </div>
                             )}
                         </div>
                     )}
                 </section>
             </div>
+
+            {/* POP UP Stats */}
+            {playerStatsOpen && selectedPlayer && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                  
+                  {/* En-tête toujours visible */}
+                  <div className="relative shrink-0 border-b border-gray-200 px-5 py-4">
+                    <button
+                      type="button"
+                        onClick={() => {
+                          setPlayerStatsOpen(false);
+                          setSelectedPlayer(null);
+
+                          setPlayerStats([]);
+                          setPlayerStatsError("");
+
+                          setEloHistory([]);
+                          setLoadingEloHistory(false);
+                        }}
+                      className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-2xl font-bold leading-none text-gray-700 hover:bg-gray-200"
+                      aria-label="Fermer"
+                    >
+                      ×
+                    </button>
+
+                    <h2 className="pr-12 text-2xl font-bold text-gray-900">
+                      Statistiques de {selectedPlayer.username}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-gray-500">
+                      Elo actuel : {Math.round(Number(selectedPlayer.elo))}
+                    </p>
+                  </div>
+
+                  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
+                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                      Trier par
+
+                      <select
+                        value={playerStatsSort}
+                        onChange={(e) =>
+                          setPlayerStatsSort(e.target.value as PlayerStatsSort)
+                        }
+                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 outline-none focus:border-green-500"
+                      >
+                        <option value="alphabetical">Ordre alphabétique</option>
+                        <option value="matches">Nombre de matchs</option>
+                        <option value="elo">Points Elo</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  {/* Contenu défilable */}
+                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+
+                    {/* Graphique */}
+                    <div className="mb-6 rounded-xl border border-gray-200 bg-white p-3">
+                      <h3 className="mb-3 text-center text-base font-bold text-gray-900">
+                        Évolution des points Elo
+                      </h3>
+
+                      {loadingEloHistory && (
+                        <p className="py-8 text-center text-sm text-gray-500">
+                          Chargement du graphique...
+                        </p>
+                      )}
+
+                      {!loadingEloHistory && eloHistory.length > 1 && (
+                        <div className="h-64 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart
+                              data={eloHistory}
+                              margin={{
+                                top: 10,
+                                right: 15,
+                                left: 0,
+                                bottom: 5,
+                              }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" />
+
+                              <XAxis
+                                dataKey="match"
+                                tick={{ fontSize: 12 }}
+                                label={{
+                                  value: "Match",
+                                  position: "insideBottom",
+                                  offset: -2,
+                                }}
+                              />
+
+                              <YAxis
+                                domain={["dataMin - 20", "dataMax + 20"]}
+                                tick={{ fontSize: 12 }}
+                                width={45}
+                              />
+
+                              <Tooltip
+                                formatter={(value) => [
+                                  `${Math.round(Number(value))} Elo`,
+                                  "Points Elo",
+                                ]}
+                                labelFormatter={(matchNumber) => {
+                                  const point = eloHistory.find(
+                                    (item) => item.match === Number(matchNumber)
+                                  );
+
+                                  if (Number(matchNumber) === 0) {
+                                    return "Départ";
+                                  }
+
+                                  return `Match ${matchNumber} · ${point?.date ?? ""}`;
+                                }}
+                              />
+
+                              <Line
+                                type="monotone"
+                                dataKey="elo"
+                                stroke="#15803d"
+                                strokeWidth={3}
+                                dot={{ r: 3 }}
+                                activeDot={{ r: 6 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
+
+                      {!loadingEloHistory && eloHistory.length <= 1 && (
+                        <p className="py-8 text-center text-sm text-gray-500">
+                          Pas encore assez de matchs pour afficher une évolution.
+                        </p>
+                      )}
+                    </div>
+                    
+                    {loadingPlayerStats && (
+                      <p className="py-8 text-center text-gray-500">
+                        Chargement des statistiques...
+                      </p>
+                    )}
+
+                    {!loadingPlayerStats && playerStatsError && (
+                      <p className="rounded-lg bg-red-50 px-3 py-3 text-center text-sm text-red-700">
+                        {playerStatsError}
+                      </p>
+                    )}
+
+                    {!loadingPlayerStats &&
+                      !playerStatsError &&
+                      playerStats.length === 0 && (
+                        <p className="py-8 text-center text-gray-500">
+                          Aucune statistique disponible.
+                        </p>
+                      )}
+
+                    {!loadingPlayerStats &&
+                      !playerStatsError &&
+                      playerStats.length > 0 && (
+                      <div className="space-y-2">
+                        {/* En-tête du tableau */}
+                        <div className="grid grid-cols-[1fr_110px_1fr] items-center gap-2 px-2 text-center text-xs font-bold uppercase tracking-wide text-gray-500">
+                          <div>Avec</div>
+                          <div>Joueur</div>
+                          <div>Contre</div>
+                        </div>
+
+                        {sortedPlayerStats.map((stat) => {
+                          const withElo = Math.round(Number(stat.with_elo_points));
+                          const againstElo = Math.round(Number(stat.against_elo_points));
+
+                          return (
+                            <div
+                              key={stat.other_player_id}
+                              className="grid grid-cols-[1fr_110px_1fr] items-stretch gap-2 rounded-xl border border-gray-200 bg-white p-2"
+                            >
+                              {/* Avec */}
+                              <div className="flex min-w-0 flex-col justify-center rounded-lg bg-green-50 px-2 py-3 text-center">
+                                <p className="text-lg font-bold text-gray-900">
+                                  {stat.with_matches}
+                                </p>
+
+                                <p className="text-xs text-gray-500">
+                                  match{stat.with_matches > 1 ? "s" : ""}
+                                </p>
+
+                                <p className="mt-1 text-sm font-semibold text-gray-700">
+                                  {stat.with_wins} V · {stat.with_losses} D
+                                </p>
+
+                                <p
+                                  className={`mt-1 text-sm font-bold ${
+                                    withElo > 0
+                                      ? "text-green-700"
+                                      : withElo < 0
+                                      ? "text-red-600"
+                                      : "text-gray-500"
+                                  }`}
+                                >
+                                  {withElo > 0 ? "+" : ""}
+                                  {withElo} Elo
+                                </p>
+                              </div>
+
+                              {/* Joueur central */}
+                              <div className="flex min-w-0 flex-col items-center justify-center text-center">
+                                <p className="w-full truncate text-sm font-bold text-gray-900">
+                                  {stat.other_player_username}
+                                </p>
+
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {stat.total_matches} match
+                                  {stat.total_matches > 1 ? "s" : ""}
+                                </p>
+
+                                <p
+                                  className={`mt-1 text-xs font-bold ${
+                                    Number(stat.total_elo_points) > 0
+                                      ? "text-green-700"
+                                      : Number(stat.total_elo_points) < 0
+                                      ? "text-red-600"
+                                      : "text-gray-500"
+                                  }`}
+                                >
+                                  {Math.round(Number(stat.total_elo_points)) > 0
+                                    ? "+"
+                                    : ""}
+                                  {Math.round(Number(stat.total_elo_points))} Elo
+                                </p>
+                              </div>
+
+                              {/* Contre */}
+                              <div className="flex min-w-0 flex-col justify-center rounded-lg bg-orange-50 px-2 py-3 text-center">
+                                <p className="text-lg font-bold text-gray-900">
+                                  {stat.against_matches}
+                                </p>
+
+                                <p className="text-xs text-gray-500">
+                                  match{stat.against_matches > 1 ? "s" : ""}
+                                </p>
+
+                                <p className="mt-1 text-sm font-semibold text-gray-700">
+                                  {stat.against_wins} V · {stat.against_losses} D
+                                </p>
+
+                                <p
+                                  className={`mt-1 text-sm font-bold ${
+                                    againstElo > 0
+                                      ? "text-green-700"
+                                      : againstElo < 0
+                                      ? "text-red-600"
+                                      : "text-gray-500"
+                                  }`}
+                                >
+                                  {againstElo > 0 ? "+" : ""}
+                                  {againstElo} Elo
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      )}
+                  </div>
+
+                </div>
+              </div>
+            )}
         </main>
     );
 }
