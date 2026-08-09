@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getRecipients, AudienceType } from '../../../../../lib/admin/getRecipients';
+import {
+  getRecipients,
+  AudienceType,
+} from '../../../../../lib/admin/getRecipients';
 
 const PEPS_ADMIN_EMAIL = 'admin@peps.foot';
 
@@ -22,10 +25,10 @@ export async function POST(request: NextRequest) {
     const message = body.message?.trim();
 
     if (!subject || !message) {
-    return NextResponse.json(
+      return NextResponse.json(
         { error: 'L’objet et le message sont obligatoires.' },
         { status: 400 }
-    );
+      );
     }
 
     if (!authorization?.startsWith('Bearer ')) {
@@ -48,6 +51,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    // Vérifier que c'est bien l'admin PEPS
     const {
       data: { user },
       error: authError,
@@ -72,72 +76,104 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Récupération des vrais destinataires
     const recipients = await getRecipients({
-    supabaseAdmin,
-    audience: body.audience,
-    competitionId: body.competitionId,
-    userId: body.userId,
+      supabaseAdmin,
+      audience: body.audience,
+      competitionId: body.competitionId,
+      userId: body.userId,
     });
 
     if (recipients.length === 0) {
-    return NextResponse.json(
+      return NextResponse.json(
         { error: 'Aucun destinataire trouvé.' },
         { status: 400 }
-    );
+      );
     }
 
-    const brevoResponse = await fetch(
-      'https://api.brevo.com/v3/smtp/email',
-      {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-          'api-key': apiKey,
-        },
-        body: JSON.stringify({
-        sender: {
-            name: 'PEPS',
-            email: 'hello@peps-foot.com',
-        },
-        subject,
-        textContent: message,
-        messageVersions: recipients.map((recipient) => ({
-            to: [
-            {
-                email: recipient.email,
+    let sentCount = 0;
+    let failedCount = 0;
+
+    const failedEmails: string[] = [];
+
+    // Envoi individuel d'un mail
+    async function sendOneEmail(email: string) {
+      try {
+        const response = await fetch(
+          'https://api.brevo.com/v3/smtp/email',
+          {
+            method: 'POST',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+              'api-key': apiKey!,
             },
-            ],
-        })),
-        }),
+            body: JSON.stringify({
+              sender: {
+                name: 'PEPS',
+                email: 'hello@peps-foot.com',
+              },
+              to: [
+                {
+                  email,
+                },
+              ],
+              subject,
+              textContent: message,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          sentCount += 1;
+          return;
+        }
+
+        const result = await response.json().catch(() => null);
+
+        console.error(
+          `Erreur Brevo pour ${email} :`,
+          result
+        );
+
+        failedCount += 1;
+        failedEmails.push(email);
+      } catch (error) {
+        console.error(
+          `Erreur pendant l'envoi à ${email} :`,
+          error
+        );
+
+        failedCount += 1;
+        failedEmails.push(email);
       }
-    );
+    }
 
-    const result = await brevoResponse.json();
+    // Lots de 10 pour ne pas lancer 236 appels simultanément
+    const BATCH_SIZE = 10;
 
-    if (!brevoResponse.ok) {
-      console.error('Erreur Brevo :', result);
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+      const batch = recipients.slice(i, i + BATCH_SIZE);
 
-      return NextResponse.json(
-        {
-          error:
-            result?.message ||
-            'Brevo a refusé l’envoi du mail.',
-        },
-        { status: brevoResponse.status }
+      await Promise.all(
+        batch.map((recipient) =>
+          sendOneEmail(recipient.email)
+        )
       );
     }
 
     return NextResponse.json({
-    success: true,
-    sentCount: recipients.length,
-    messageIds: result.messageIds,
+      success: true,
+      totalCount: recipients.length,
+      sentCount,
+      failedCount,
+      failedEmails,
     });
   } catch (error) {
     console.error('Erreur envoi Brevo :', error);
 
     return NextResponse.json(
-      { error: 'Impossible d’envoyer le mail de test.' },
+      { error: 'Impossible d’envoyer les mails.' },
       { status: 500 }
     );
   }

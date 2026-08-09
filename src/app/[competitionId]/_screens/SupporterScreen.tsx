@@ -158,6 +158,16 @@ export default function SupporterScreen({
         // Fallback
         return { label: s, color: 'text-gray-400' };
     };
+    // pour afficher le nombre de bonus restant
+    const openedBonusUsedCount = openedBonus
+        ? supporterBonuses.filter(
+            (b) => b.bonus_definition === openedBonus.id
+        ).length
+        : 0;
+
+    const openedBonusRemaining = openedBonus
+        ? openedBonus.max_per_user - openedBonusUsedCount
+        : 0;
 
     // Pour charger les matchs de la compétition
     useEffect(() => {
@@ -1222,7 +1232,7 @@ export default function SupporterScreen({
                     <div className="w-full lg:w-1/3 space-y-2">
 
                     {/* ── Accordéon BONUS ── */}
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-hidden bg-gray-200">
                         
                         {/* ── Header accordéon ── */}
                         <button
@@ -1355,9 +1365,9 @@ export default function SupporterScreen({
                 </div>
 
                 <div className="px-4 py-2 text-center text-sm text-gray-600 border-b">
-                Chaque club est représenté par ses 11 meilleurs supporters.
+                Chaque club est représenté par ses 3 meilleurs supporters.
                 <br />
-                Les scores sont ajustés pour comparer équitablement tous les clubs.
+                {/* Les scores sont ajustés pour comparer équitablement tous les clubs. */}
                 </div>
 
                 {/* ── Liste des clubs ── */}
@@ -1390,7 +1400,7 @@ export default function SupporterScreen({
 
                     {/* ── Points ── */}
                     <div className="text-right font-semibold">
-                        {Number(club.adjusted_points).toFixed(1)} pts
+                        {Math.round(Number(club.adjusted_points))} pts
                     </div>
                     </div>
                 ))}
@@ -1416,7 +1426,11 @@ export default function SupporterScreen({
                         <>
                             Tu n’es pas encore classé.
                             <br />
-                            {leaderboardGeneral.length} joueurs sont classés.
+                            {leaderboardGeneral.length === 0
+                                ? "Il n’y a pas encore de joueur classé."
+                                : leaderboardGeneral.length === 1
+                                ? "1 joueur est classé."
+                                : `${leaderboardGeneral.length} joueurs sont classés.`}
                         </>
                         )}
                     <br />
@@ -1630,6 +1644,12 @@ export default function SupporterScreen({
                     <p className="text-sm text-gray-600">
                     {openedBonus.description}
                     </p>
+                    <p className="text-sm text-green-700 font-medium mt-2">
+                        {openedBonus.max_per_user >= 999
+                            ? 'Bonus illimité pour toute la compétition'
+                            : `Reste ${openedBonusRemaining} pour toute la compétition`
+                        }
+                    </p>
                 </div>
 
                 {/* ── Emplacements bonus ── */}
@@ -1649,7 +1669,7 @@ export default function SupporterScreen({
                         : false;
 
                     const availableMatches =
-                        currentMonth?.matches.filter((match) => {
+                        matches.filter((match) => {
                         const status = String(match.status ?? '').toUpperCase();
                         const matchStarted =
                             new Date(match.match_date).getTime() <= Date.now();
@@ -1702,19 +1722,24 @@ export default function SupporterScreen({
                                 className="w-full border rounded px-3 py-2 text-sm bg-white"
                             >
                                 <option value="">
-                                Choisir un match du mois
+                                Choisir un match
                                 </option>
 
-                                {availableMatches.map((match) => (
+                            {availableMatches.map((match) => (
                                 <option
                                     key={match.match_id}
                                     value={match.match_id}
                                 >
+                                    {new Date(match.match_date).toLocaleDateString('fr-FR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                    })}
+                                    {' — '}
                                     {match.short_name_home ?? match.home_team}
                                     {' - '}
                                     {match.short_name_away ?? match.away_team}
                                 </option>
-                                ))}
+                            ))}
                             </select>
 
                             {/* ── Boutons ── */}
