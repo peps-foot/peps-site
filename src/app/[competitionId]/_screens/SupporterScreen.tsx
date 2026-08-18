@@ -127,6 +127,8 @@ export default function SupporterScreen({
     const [publicSupporterMonths, setPublicSupporterMonths] = useState<PublicSupporterMonth[]>([]);
     // pour le classement de la guerre des clubs
     const [clubBattle, setClubBattle] = useState<SupporterClubBattleRow[]>([]);
+    // Capitaines du club de cette compétition
+    const [captainUserIds, setCaptainUserIds] = useState<Set<string>>(new Set());
     // Format FR pour le status des matchs
     const getMatchLabelAndColor = (status: string | null) => {
         const s = (status ?? '').toUpperCase();
@@ -188,6 +190,35 @@ export default function SupporterScreen({
             const { data: userData } = await supabase.auth.getUser();
             const userId = userData.user?.id;
             setCurrentUserId(userId ?? null);
+
+            {/* ── Chargement des capitaines du club ── */}
+            const { data: competitionData, error: competitionError } = await supabase
+                .from('competitions')
+                .select('supporter_team_id')
+                .eq('id', competitionId)
+                .single();
+
+            if (competitionError) {
+                console.error('Erreur chargement club compétition :', competitionError);
+                setCaptainUserIds(new Set());
+            } else if (competitionData?.supporter_team_id) {
+                const { data: captainsData, error: captainsError } = await supabase
+                    .from('supporter_captains')
+                    .select('user_id')
+                    .eq('team_id', competitionData.supporter_team_id);
+
+                console.log('CAPTAINS DATA =', captainsData);
+                console.log('CAPTAINS ERROR =', captainsError);
+
+                if (captainsError) {
+                    console.error('Erreur chargement capitaines :', captainsError);
+                    setCaptainUserIds(new Set());
+                } else {
+                    setCaptainUserIds(
+                        new Set((captainsData ?? []).map((captain) => captain.user_id))
+                    );
+                }
+            }
 
             if (userId) {
                 {/* ── Chargement des pronostics déjà validés ── */ }
@@ -1439,39 +1470,62 @@ export default function SupporterScreen({
 
                     {/* ── Liste des joueurs ── */}
                     <div className="divide-y">
-                        {leaderboardGeneral.map((player) => (
-                            <div
-                            key={player.user_id}
-                            onClick={() => openPublicSupporterPlayer(player)}
-                            className="grid grid-cols-[14%_16%_1fr_20%] items-center px-3 py-2 cursor-pointer hover:bg-gray-50"
-                            >
-                                {/* ── Rang ── */}
-                                <div className="text-center font-bold">
-                                    {player.rank}
-                                </div>
+                        {leaderboardGeneral.map((player) => {
+                            const isMe = player.user_id === currentUserId;
+                            const isCaptain = captainUserIds.has(player.user_id);
 
-                                {/* ── Avatar ── */}
-                                <div className="flex justify-center">
-                                    {player.avatar ? (
-                                        <img
-                                            src={player.avatar}
-                                            alt={player.username ?? 'avatar'}
-                                            className="w-8 h-8 rounded-full object-cover border"
-                                        />
-                                    ) : null}
-                                </div>
+                            return (
+                                <div
+                                    key={player.user_id}
+                                    onClick={() => openPublicSupporterPlayer(player)}
+                                    className={`grid grid-cols-[12%_8%_14%_1fr_20%] items-center px-3 py-2 cursor-pointer
+                                        ${
+                                            isMe
+                                                ? 'bg-orange-100 hover:bg-orange-100'
+                                                : 'hover:bg-gray-50'
+                                        }
+                                    `}
+                                >
+                                    {/* ── Rang ── */}
+                                    <div className="text-center font-bold">
+                                        {player.rank}
+                                    </div>
 
-                                {/* ── Username ── */}
-                                <div className="font-medium truncate px-2">
-                                    {player.username ?? 'Joueur'}
-                                </div>
+                                    {/* ── Capitaine ── */}
+                                    <div className="flex justify-center items-center">
+                                        {isCaptain && (
+                                            <span
+                                                title="Capitaine"
+                                                className="w-5 h-5 rounded-full border-2 border-orange-500 text-orange-500 font-bold text-xs flex items-center justify-center"
+                                            >
+                                                C
+                                            </span>
+                                        )}
+                                    </div>
 
-                                {/* ── Points ── */}
-                                <div className="text-right font-semibold">
-                                    {player.total_points} pts
+                                    {/* ── Avatar ── */}
+                                    <div className="flex justify-center">
+                                        {player.avatar ? (
+                                            <img
+                                                src={player.avatar}
+                                                alt={player.username ?? 'avatar'}
+                                                className="w-8 h-8 rounded-full object-cover border"
+                                            />
+                                        ) : null}
+                                    </div>
+
+                                    {/* ── Username ── */}
+                                    <div className={`font-medium truncate px-2 ${isMe ? 'font-bold' : ''}`}>
+                                        {player.username ?? 'Joueur'}
+                                    </div>
+
+                                    {/* ── Points ── */}
+                                    <div className="text-right font-semibold">
+                                        {player.total_points} pts
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}
