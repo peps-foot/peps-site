@@ -395,7 +395,8 @@ export default function Home() {
 
     setIsSavingPseudo(true);
 
-    const { error } = await supabase
+    // 1) Création / mise à jour du profil
+    const { error: profileError } = await supabase
       .from("profiles")
       .upsert(
         {
@@ -408,10 +409,10 @@ export default function Home() {
         }
       );
 
-    if (error) {
-      console.error("Erreur création du profil :", error);
+    if (profileError) {
+      console.error("Erreur création du profil :", profileError);
 
-      if (error.code === "23505") {
+      if (profileError.code === "23505") {
         setPseudoError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
       } else {
         setPseudoError("Impossible d'enregistrer ton pseudo.");
@@ -421,10 +422,35 @@ export default function Home() {
       return;
     }
 
+    // 2) Création des préférences de notifications
+    // Les notifications sont activées par défaut,
+    // mais aucune demande d'autorisation n'est faite ici.
+    const { error: pushPrefsError } = await supabase
+      .from("push_prefs")
+      .upsert(
+        {
+          user_id: connectedUserId,
+          allow_admin_broadcast: true,
+          allow_grid_done: true,
+          allow_match_reminder_24h: true,
+          allow_match_reminder_1h: true,
+        },
+        {
+          onConflict: "user_id",
+        }
+      );
+
+    if (pushPrefsError) {
+      console.error(
+        "Erreur création des préférences notifications :",
+        pushPrefsError
+      );
+    }
+
     setShowPseudoModal(false);
     setIsSavingPseudo(false);
 
-    // Charger les équipes pour la deuxième étape
+    // 3) Charger les équipes pour la deuxième étape
     const { data: teamsData, error: teamsError } = await supabase
       .from("teams")
       .select("id, name, logo")
@@ -433,7 +459,7 @@ export default function Home() {
     if (teamsError) {
       console.error("Erreur chargement des avatars :", teamsError);
 
-      // Le profil est quand même créé, on ne bloque pas le joueur
+      // Le profil et les préférences sont quand même créés
       return;
     }
 
