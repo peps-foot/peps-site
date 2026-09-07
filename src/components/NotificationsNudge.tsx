@@ -1,159 +1,164 @@
-// pop up pour demander à l'utilisateur d'aller valider les notifs
 'use client';
 
 import { useEffect, useState } from 'react';
-import { isFcmSupported } from '../lib/firebaseClient';
-import { usePathname, useRouter } from 'next/navigation';
 import supabase from '../lib/supabaseBrowser';
+import {
+  ensurePushToken,
+  requestPushPermission,
+} from '../lib/pushClient';
 
 const PROMPT_KEY = 'peps_notif_prompt_last';
-const DELAY_MS = 15 * 24 * 60 * 60 * 1000; // 15 jours
-
-/** Détecte si on est sur un appareil Apple (iPhone, iPad) */
-function isIosDevice(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-/** iOS 16.4+ supporte les Web Push si la PWA est installée sur l'écran d'accueil */
-function isIosPushCapable(): boolean {
-  if (!isIosDevice()) return false;
-  // On est dans une PWA installée si window.navigator.standalone === true
-  return (navigator as any).standalone === true;
-}
-
-/** Vérifie si les notifs Web Push natives sont dispo (iOS 16.4+ installé OU Android/desktop) */
-async function isPushAvailable(): Promise<{ available: boolean; platform: 'ios' | 'android' | 'other' | 'none' }> {
-  const ios = isIosDevice();
-
-  if (ios) {
-    // Sur iOS, FCM ne marche pas — on utilise l'API Web Push native
-    // Elle n'est dispo que si la PWA est installée (standalone) ET iOS >= 16.4
-    const standalone = isIosPushCapable();
-    if (!standalone) return { available: false, platform: 'none' }; // pas installée → on ne peut rien faire
-    if (typeof Notification === 'undefined') return { available: false, platform: 'none' };
-    return { available: true, platform: 'ios' };
-  }
-
-  // Android / desktop : on utilise FCM
-  const fcmOk = await isFcmSupported();
-  if (!fcmOk) return { available: false, platform: 'none' };
-  if (typeof Notification === 'undefined') return { available: false, platform: 'none' };
-  return { available: true, platform: 'android' };
-}
+const RETRY_DELAY_MS = 10 * 24 * 60 * 60 * 1000;
+const HOME_DELAY_MS = 5 * 1000;
 
 export default function NotificationsNudge() {
   const [open, setOpen] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [platform, setPlatform] = useState<'ios' | 'android' | 'other' | 'none'>('none');
-  const router = useRouter();
-  const pathname = usePathname();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      if (typeof window === 'undefined') return;
+    let cancelled = false;
 
-      // 1) Ne jamais afficher sur ces pages
-      if (
-        pathname === '/connexion' ||
-        pathname === '/inscription' ||
-        pathname === '/reset-password'
-      ) {
-        setChecking(false);
-        return;
-      }
+    const checkNotifications = async () => {
+      try {
+        // On vérifie uniquement après être arrivé sur l'accueil
+        await new Promise((resolve) => setTimeout(resolve, HOME_DELAY_MS));
 
-      // 2) Vérifier que l'utilisateur est connecté
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        if (cancelled) return;
 
-      if (!user) {
-        setChecking(false);
-        return;
-      }
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      // 3) Vérifier s'il a déjà un token
-      const { data: existingToken } = await supabase
-        .from('push_tokens')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
+        // Pas connecté → aucune popup
+        if (!user) return;
 
-      if (existingToken) {
-        setChecking(false);
-        return;
-      }
-
-      // 4) Vérifier si les notifs sont possibles techniquement
-      const { available, platform: plat } = await isPushAvailable();
-      if (!available) {
-        setChecking(false);
-        return;
-      }
-
-      // 5) Si l'utilisateur a déjà refusé ou accepté au niveau navigateur, inutile
-      if (Notification.permission !== 'default') {
-        setChecking(false);
-        return;
-      }
-
-      // 6) Vérifier le délai de rappel
-      const lastStr = localStorage.getItem(PROMPT_KEY);
-      if (lastStr) {
-        const last = Number(lastStr);
-        if (!Number.isNaN(last) && Date.now() - last < DELAY_MS) {
-          setChecking(false);
+        // --------------------------------------------------
+        // 1. Si les notifications sont déjà autorisées,
+        //    on essaie silencieusement d'enregistrer le token.
+        // --------------------------------------------------
+        if (
+          typeof window !== 'undefined' &&
+          'Notification' in window &&
+          Notification.permission === 'granted'
+        ) {
+          await ensurePushToken(user.id);
           return;
+        }
+
+        // --------------------------------------------------
+        // 2. Si le navigateur a déjà refusé les notifications,
+        //    on ne peut pas afficher à nouveau la demande native.
+        // --------------------------------------------------
+        if (
+          typeof window !== 'undefined' &&
+          'Notification' in window &&
+          Notification.permission === 'denied'
+        ) {
+          return;
+        }
+
+        // --------------------------------------------------
+        // 3. L'utilisateur n'a pas encore choisi.
+        //    Vérifier notre délai de rappel de 10 jours.
+        // --------------------------------------------------
+        const lastPrompt = localStorage.getItem(PROMPT_KEY);
+
+        if (lastPrompt) {
+          const elapsed = Date.now() - Number(lastPrompt);
+
+          if (elapsed < RETRY_DELAY_MS) {
+            return;
+          }
+        }
+
+        if (!cancelled) {
+          setOpen(true);
+        }
+
+      } catch (error) {
+        console.error(
+          '[PEPS][Push] Erreur vérification notifications :',
+          error
+        );
+      }
+    };
+
+    checkNotifications();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleAccept() {
+    if (loading) return;
+
+    setLoading(true);
+
+    try {
+      const permission = await requestPushPermission();
+
+      if (permission === 'granted') {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          await ensurePushToken(user.id);
         }
       }
 
-      setPlatform(plat);
-      setOpen(true);
-      setChecking(false);
-    })();
-  }, [pathname]);
+      localStorage.setItem(PROMPT_KEY, String(Date.now()));
+      setOpen(false);
 
-  const closeAndRemember = () => {
+    } catch (error) {
+      console.error(
+        '[PEPS][Push] Erreur activation notifications :',
+        error
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDecline() {
     localStorage.setItem(PROMPT_KEY, String(Date.now()));
     setOpen(false);
-  };
+  }
 
-  const goToNotifications = () => {
-    localStorage.setItem(PROMPT_KEY, String(Date.now()));
-    setOpen(false);
-    router.push('/notifications');
-  };
-
-  if (checking || !open) return null;
-
-  const label = platform === 'ios'
-    ? 'Activer mes notifications (iPhone)'
-    : 'Activer mes notifications';
+  if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative mx-4 max-w-sm rounded-2xl bg-white p-5 shadow-lg flex flex-col items-center">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+
+        <h2 className="text-center text-xl font-bold text-gray-900">
+          🔔 Active les notifications PEPS
+        </h2>
+
+        <p className="mt-3 text-center text-sm leading-6 text-gray-600">
+          Reçois directement tes rappels pour ne pas rater tes
+          pronostics et suivre tes compétitions.
+        </p>
+
         <button
-          onClick={closeAndRemember}
-          className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-          aria-label="Fermer la fenêtre"
+          type="button"
+          onClick={handleAccept}
+          disabled={loading}
+          className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
         >
-          ✕
-        </button>
-        <button
-          onClick={goToNotifications}
-          className="mb-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white"
-        >
-          {label}
+          {loading ? 'Activation...' : 'Activer les notifications'}
         </button>
 
-        <img
-          src="/images/popup_notifs.png"
-          alt="Explication des notifications PEPS"
-          className="max-w-full h-auto"
-        />
+        <button
+          type="button"
+          onClick={handleDecline}
+          disabled={loading}
+          className="mt-3 w-full rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          Pas maintenant
+        </button>
+
       </div>
     </div>
   );

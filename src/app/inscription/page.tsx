@@ -52,6 +52,13 @@ export default function Inscription() {
     setMessage('');
 
     // 1) validations basiques
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    if (!emailRegex.test(email.trim())) {
+      setMessage("Veuillez entrer une adresse email valide (ex : nom@gmail.com).");
+      return;
+    }
+
     if (email !== confirmEmail) {
       setMessage("Les adresses email ne correspondent pas.");
       return;
@@ -75,10 +82,16 @@ export default function Inscription() {
       password,
     });
 
-    if (signUpError) {
-      console.error(signUpError);
-      setMessage("Erreur d'inscription : " + signUpError.message);
-      return;
+    if (signUpError) { 
+      console.error(signUpError); 
+
+      if (signUpError.message === "User already registered") {
+        setMessage("Cette adresse email est déjà utilisée.");
+      } else {
+        setMessage("Erreur d'inscription : " + signUpError.message);
+      }
+
+      return; 
     }
 
     // 3) une fois inscrit, on crée le profil public
@@ -94,7 +107,29 @@ export default function Inscription() {
       console.error(profileError);
       setMessage("Inscrit, mais impossible de sauvegarder le pseudo.");
     } else {
-      setMessage("Compte créé ✅ Pense à activer les notifications dans l’onglet NOTIFS pour recevoir les rappels.");
+
+      // 4) Création des préférences de notifications
+      // Les notifications sont activées par défaut,
+      // mais aucune demande d'autorisation n'est faite ici.
+      const { error: pushPrefsError } = await supabase
+        .from('push_prefs')
+        .insert([{
+          user_id: signUpData.user!.id,
+          allow_admin_broadcast: true,
+          allow_grid_done: true,
+          allow_match_reminder_24h: true,
+          allow_match_reminder_1h: true,
+        }]);
+
+      if (pushPrefsError) {
+        console.error(
+          "Erreur création des préférences notifications :",
+          pushPrefsError
+        );
+      }
+
+      setMessage("Compte créé ✅");
+
       // réinitialisation des champs
       setEmail('');
       setConfirmEmail('');

@@ -12,6 +12,7 @@ import { splitCompetitions, CompetitionWithFlags } from "../lib/competitionsGrou
 import CompetitionHomeCard from "../components/CompetitionHomeCard";
 import JoinCompetitionModal from "../components/JoinCompetitionModal";
 import PartnerPromo from '../components/PartnerPromo';
+import NotificationsNudge from '../components/NotificationsNudge';
 
 type Team = {
   id: number;
@@ -956,6 +957,9 @@ export default function Home() {
       onConfirm={confirmJoinCompetition}
       loading={isJoining}
     />
+
+    {/* POP UP ENREGISTREMENT TOKEN POUR NOTIFS */}
+    <NotificationsNudge />
 
     </div>
     </main>
