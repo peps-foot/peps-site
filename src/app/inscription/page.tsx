@@ -128,6 +128,27 @@ export default function Inscription() {
         );
       }
 
+    // 5) Envoi du mail de bienvenue
+    try {
+      const welcomeResponse = await fetch('/api/send-welcome-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          username: username.trim(),
+        }),
+      });
+
+      if (!welcomeResponse.ok) {
+        const result = await welcomeResponse.json().catch(() => null);
+        console.error('Erreur envoi mail de bienvenue :', result);
+      }
+    } catch (error) {
+      console.error('Erreur appel mail de bienvenue :', error);
+    }
+
       setMessage("Compte créé ✅");
 
       // réinitialisation des champs
