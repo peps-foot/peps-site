@@ -137,9 +137,10 @@ export default function NotificationsNudge() {
         </h2>
 
         <p className="mt-3 text-center text-sm leading-6 text-gray-600">
-          Reçois directement tes rappels pour ne pas rater tes
-          pronostics et suivre tes compétitions.
+          Ne rate aucun prono de tes compétitions.<br />
+          Tu peux les désactiver quand tu veux.
         </p>
+
 
         <button
           type="button"
