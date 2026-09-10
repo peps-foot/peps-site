@@ -31,6 +31,8 @@ Ton compte est créé !
 
 Tu peux maintenant représenter ton club ou défier d'autres joueurs.
 
+Objectif : s'amuser et profiter des matchs différemment ! ⚽
+
 📱 Les applications sont disponibles en bas de la page de connexion.
 
 🎯 Les 3 façons de jouer
@@ -38,7 +40,6 @@ Tu peux maintenant représenter ton club ou défier d'autres joueurs.
 🟢 1N2 — Le mode classique
 
 Fais tes pronos sur la Ligue 1 et joue bien tes bonus pour viser le haut du classement.
-Objectif : s'amuser et profiter des matchs différemment ! ⚽
 
 🔵 SUPPORTER — La Guerre des Clubs
 
@@ -61,7 +62,7 @@ Pronos Entre Potes & Supporters`;
   <title>Bienvenue sur PEPS</title>
 </head>
 
-<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:Arial, Helvetica, sans-serif; color:#1f2937;">
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:Arial, Helvetica,sans-serif; color:#1f2937;">
 
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6; padding:25px 8px;">
     <tr>
@@ -103,13 +104,35 @@ Pronos Entre Potes & Supporters`;
               </p>
 
               <p style="font-size:16px; line-height:1.6; text-align:justify; margin:0 0 18px;">
-              Tu peux maintenant représenter ton club ou défier d'autres joueurs.<br>
-              <strong>Objectif : s'amuser et profiter des matchs différemment ! ⚽</strong>
+                Tu peux maintenant représenter ton club ou défier d'autres joueurs.<br>
+                <strong>Objectif : s'amuser et profiter des matchs différemment ! ⚽</strong>
               </p>
 
-              <p style="font-size:15px; line-height:1.6; text-align:center; margin:0 0 25px; padding:12px; background-color:#f9fafb; border-radius:8px;">
-                📱 <strong>Les applications sont disponibles en bas de la page de connexion.</strong>
-              </p>
+                <!-- Accès aux applications -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+                <tr>
+                    <td align="center">
+
+                    <p style="font-size:16px; line-height:1.5; margin:0 0 12px;">
+                        📱 <strong>Tu veux jouer sur ton téléphone ?</strong>
+                    </p>
+
+                    <table cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                        <td align="center" style="background-color:#2563eb; border-radius:8px;">
+                            <a
+                            href="https://www.peps-foot.com/connexion"
+                            style="display:block; padding:13px 24px; color:#ffffff; text-decoration:none; font-size:15px; font-weight:bold;"
+                            >
+                            TÉLÉCHARGER LES APPLICATIONS
+                            </a>
+                        </td>
+                        </tr>
+                    </table>
+
+                    </td>
+                </tr>
+                </table>
 
             </td>
           </tr>
