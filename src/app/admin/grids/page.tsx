@@ -170,13 +170,13 @@ export default function AdminGridsPage() {
       setLoadingDefs(false);
 
       // Distinct competitions
-      const { data: comps2 } = await supabase
-        .from('matches')
-        .select('league_name');
+      const { data: comps2, error: compsErr } = await supabase
+        .rpc('get_match_league_names');
 
-      if (comps2) {
-        const unique = [...new Set(comps2.map(c => c.league_name))];
-        setCompetitions(unique);
+      if (compsErr) {
+        console.error('Erreur chargement compétitions :', compsErr);
+      } else if (comps2) {
+        setCompetitions(comps2.map(c => c.league_name));
       }
 
       // Grids

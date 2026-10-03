@@ -4,225 +4,804 @@
 import { useEffect, useState } from 'react';
 import { getFcmToken, onForegroundMessage } from '../lib/firebaseClient';
 
+type Platform = 'all' | 'web' | 'twa' | 'ios' | 'android';
+
+type RecipientType = 'all' | 'competition' | 'user';
+
+type Competition = {
+  id: string;
+  name: string;
+  game_type: 'GRID' | 'SUPPORTER' | 'TIERCE';
+  mode: 'CLASSIC' | 'TOURNOI';
+
+  members_count: number;
+  eligible_count: number;
+  push_count: number;
+  eliminated_count: number;
+};
+
 export default function AdminPushPanel() {
   const [title, setTitle] = useState('Info PEPS');
   const [body, setBody] = useState('Message aux joueurs');
   const [url, setUrl] = useState('https://www.peps-foot.com/');
-  const [platform, setPlatform] = useState<'all' | 'web' | 'twa' | 'ios' | 'android'>('all');
+  const [platform, setPlatform] = useState<Platform>('all');
+
+  const [recipientType, setRecipientType] =
+    useState<RecipientType>('all');
+
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [selectedCompetition, setSelectedCompetition] = useState('');
+
+  const [userId, setUserId] = useState('');
+
+  const [loadingCompetitions, setLoadingCompetitions] = useState(false);
   const [log, setLog] = useState('');
 
   const appendLog = (line: string) =>
     setLog((prev) => (prev ? prev + '\n' + line : line));
 
-  // 1) Enregistrer mon propre token (au clic)
+  // ------------------------------------------------------------
+  // Chargement des compétitions
+  // ------------------------------------------------------------
+
+  useEffect(() => {
+    const loadCompetitions = async () => {
+      try {
+        setLoadingCompetitions(true);
+
+        const res = await fetch('/api/push/competitions');
+
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+
+        const data = await res.json();
+
+        setCompetitions(data.competitions || []);
+      } catch (e: any) {
+        appendLog(
+          'Erreur chargement compétitions : ' +
+            (e?.message || String(e))
+        );
+      } finally {
+        setLoadingCompetitions(false);
+      }
+    };
+
+    loadCompetitions();
+  }, []);
+
+  // ------------------------------------------------------------
+  // Enregistrer mon propre token
+  // ------------------------------------------------------------
+
   const subscribe = async () => {
     try {
-      if (typeof window === 'undefined' || !('Notification' in window)) {
+      if (
+        typeof window === 'undefined' ||
+        !('Notification' in window)
+      ) {
         appendLog('Notifications non supportées sur cet appareil.');
         return;
       }
+
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') { appendLog('Permission refusée.'); return; }
+
+      if (perm !== 'granted') {
+        appendLog('Permission refusée.');
+        return;
+      }
 
       const token = await getFcmToken();
-      if (!token) { appendLog('Impossible de récupérer un token FCM.'); return; }
+
+      if (!token) {
+        appendLog('Impossible de récupérer un token FCM.');
+        return;
+      }
 
       const res = await fetch('/api/push/subscribe', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token, platform: 'web' }),
+        body: JSON.stringify({
+          token,
+          platform: 'web',
+        }),
       });
+
       appendLog('subscribe → ' + (await res.text()));
     } catch (e: any) {
-      appendLog('subscribe error: ' + (e?.message || String(e)));
+      appendLog(
+        'subscribe error: ' +
+          (e?.message || String(e))
+      );
     }
   };
 
+  // ------------------------------------------------------------
+  // Envoi
+  // ------------------------------------------------------------
 
-  // 2) Broadcast immédiat
   const send = async () => {
-    const res = await fetch('/api/push/broadcast', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ title, body, url, platform }),
-    });
-    const txt = await res.text();
-    setLog(txt);
+    const selected = competitions.find(
+      (c) => c.id === selectedCompetition
+    );
+
+    if (
+      recipientType === 'competition' &&
+      !selected
+    ) {
+      setLog('Sélectionne une compétition.');
+      return;
+    }
+
+    if (
+      recipientType === 'user' &&
+      !userId.trim()
+    ) {
+      setLog('Renseigne un user_id.');
+      return;
+    }
+
+    setLog('Envoi en cours…');
+
+    try {
+      const res = await fetch(
+        '/api/push/broadcast',
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            title,
+            body,
+            url,
+            platform,
+
+            recipientType,
+
+            competitionId:
+              recipientType === 'competition'
+                ? selectedCompetition
+                : undefined,
+
+            userId:
+              recipientType === 'user'
+                ? userId.trim()
+                : undefined,
+          }),
+        }
+      );
+
+      const txt = await res.text();
+
+      setLog(txt);
+    } catch (e: any) {
+      setLog(
+        'Erreur envoi : ' +
+          (e?.message || String(e))
+      );
+    }
   };
 
-  // 3) Broadcast dans 5s
+  // ------------------------------------------------------------
+  // Envoi différé
+  // ------------------------------------------------------------
+
   const sendDelayed = async () => {
     setLog('Envoi dans 5s…');
+
     setTimeout(async () => {
-      const res = await fetch('/api/push/broadcast', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title, body, url, platform }),
-      });
-      const txt = await res.text();
-      setLog(txt);
+      await send();
     }, 5000);
   };
 
-  // 4) Debug foreground (affiche une notif si l’onglet est visible)
-    useEffect(() => {
-      let unsub: (() => void) | undefined;
-      try {
-        if (typeof window === 'undefined') return;
-        if (!('Notification' in window)) return; // 🧱 Garde iOS
-        if (!('serviceWorker' in navigator)) return;
+  // ------------------------------------------------------------
+  // Debug foreground
+  // ------------------------------------------------------------
 
-        (async () => {
-          unsub = await onForegroundMessage(async (p) => {
-            try {
-              const d = (p && p.data) || {};
-              const reg = await navigator.serviceWorker.ready;
-              const toAbs = (u: string) => {
-                try { return new URL(u, location.origin).href; } catch { return u; }
-              };
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
 
-              const title = d.title || 'PEPS';
-              const body  = d.body  || '';
-              const icon  = toAbs(d.icon || '/icon-512x512.png');
-              const url   = d.url   || '/';
-              const tag   = (d.tag ? String(d.tag) : 'peps-broadcast') + '-' + Date.now();
+    try {
+      if (typeof window === 'undefined') return;
+      if (!('Notification' in window)) return;
+      if (!('serviceWorker' in navigator)) return;
 
-              // 🧱 iOS: showNotification souvent absent en foreground
-              if (typeof (reg as any).showNotification !== 'function') {
-                appendLog?.('[FG] showNotification non disponible (iOS ?).');
-                return;
+      (async () => {
+        unsub = await onForegroundMessage(async (p) => {
+          try {
+            const d = (p && p.data) || {};
+
+            const reg =
+              await navigator.serviceWorker.ready;
+
+            const toAbs = (u: string) => {
+              try {
+                return new URL(u, location.origin).href;
+              } catch {
+                return u;
               }
+            };
 
-              (reg as any).showNotification(title, {
-                body,
+            const notifTitle = d.title || 'PEPS';
+            const notifBody = d.body || '';
+
+            const icon = toAbs(
+              d.icon ||
+                '/images/notifications/peps-notif-icon-192.png'
+            );
+
+            const notifUrl = d.url || '/';
+
+            const tag =
+              (d.tag
+                ? String(d.tag)
+                : 'peps-broadcast') +
+              '-' +
+              Date.now();
+
+            if (
+              typeof (reg as any).showNotification !==
+              'function'
+            ) {
+              appendLog(
+                '[FG] showNotification non disponible (iOS ?).'
+              );
+              return;
+            }
+
+            (reg as any).showNotification(
+              notifTitle,
+              {
+                body: notifBody,
                 icon,
                 badge: toAbs('/icon-192x192.png'),
-                data: { url },
+                data: { url: notifUrl },
                 tag,
-                requireInteraction: true, // 👁️ reste visible jusqu’à clic
-              });
-            } catch (e) {
-              appendLog?.('[FG] error: ' + String(e));
-            }
-          });
-        })();
-      } catch {
-        // Pas de crash en cas d’erreur d’environnement
-      }
+                requireInteraction: true,
+              }
+            );
+          } catch (e) {
+            appendLog('[FG] error: ' + String(e));
+          }
+        });
+      })();
+    } catch {
+      // Pas de crash en cas d'erreur d'environnement
+    }
 
-      return () => { if (unsub) unsub(); };
-    }, []);
+    return () => {
+      if (unsub) unsub();
+    };
+  }, []);
+
+  // ------------------------------------------------------------
+  // Compétition sélectionnée
+  // ------------------------------------------------------------
+
+  const selectedCompetitionData =
+    competitions.find(
+      (c) => c.id === selectedCompetition
+    );
 
   return (
-    <section style={{ maxWidth: 720, margin: '24px auto', fontFamily: 'system-ui, sans-serif' }}>
-      <h2 style={{ fontSize: 20, marginBottom: 12 }}>Notifications · Envoi manuel</h2>
+    <section
+      style={{
+        maxWidth: 720,
+        margin: '24px auto',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
+      <h2
+        style={{
+          fontSize: 20,
+          marginBottom: 12,
+        }}
+      >
+        Notifications · Envoi manuel
+      </h2>
+
+      {/* -------------------------------------------------- */}
+      {/* Token */}
+      {/* -------------------------------------------------- */}
 
       <div style={{ marginBottom: 16 }}>
         <button
           onClick={subscribe}
-          style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: 10,
+            border: '1px solid #ddd',
+            borderRadius: 8,
+            background: '#fff',
+            cursor: 'pointer',
+          }}
         >
           Activer les notifications (enregistrer mon token)
         </button>
       </div>
 
-      <label style={{ display: 'block', fontWeight: 600 }}>Titre</label>
+      {/* -------------------------------------------------- */}
+      {/* DESTINATAIRES */}
+      {/* -------------------------------------------------- */}
+
+      <div
+        style={{
+          border: '1px solid #ddd',
+          borderRadius: 10,
+          padding: 14,
+          marginBottom: 20,
+          background: '#fafafa',
+        }}
+      >
+        <div
+          style={{
+            fontWeight: 700,
+            marginBottom: 10,
+          }}
+        >
+          Destinataires
+        </div>
+
+        <select
+          value={recipientType}
+          onChange={(e) =>
+            setRecipientType(
+              e.target.value as RecipientType
+            )
+          }
+          style={{
+            width: '100%',
+            padding: 9,
+            border: '1px solid #ddd',
+            borderRadius: 8,
+            marginBottom: 12,
+          }}
+        >
+          <option value="all">
+            Tous les utilisateurs
+          </option>
+
+          <option value="competition">
+            Joueurs d'une compétition
+          </option>
+
+          <option value="user">
+            Utilisateur précis
+          </option>
+        </select>
+
+        {/* COMPETITION */}
+
+        {recipientType === 'competition' && (
+          <>
+            <label
+              style={{
+                display: 'block',
+                fontWeight: 600,
+                marginBottom: 5,
+              }}
+            >
+              Compétition
+            </label>
+
+            <select
+              value={selectedCompetition}
+              onChange={(e) =>
+                setSelectedCompetition(e.target.value)
+              }
+              style={{
+                width: '100%',
+                padding: 9,
+                border: '1px solid #ddd',
+                borderRadius: 8,
+              }}
+            >
+              <option value="">
+                {loadingCompetitions
+                  ? 'Chargement…'
+                  : 'Sélectionner une compétition'}
+              </option>
+
+              {competitions.map((competition) => (
+                <option
+                  key={competition.id}
+                  value={competition.id}
+                >
+                  {competition.name} ·{' '}
+                  {competition.game_type} ·{' '}
+                  {competition.mode}
+                </option>
+              ))}
+            </select>
+
+            {selectedCompetitionData && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 10,
+                  background: '#fff',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: 8,
+                  fontSize: 14,
+                }}
+              >
+                <div>
+                  <strong>
+                    {selectedCompetitionData.name}
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    display: 'flex',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span>
+                    👥{' '}
+                    {selectedCompetitionData.members_count}{' '}
+                    membres
+                  </span>
+
+                  <span>
+                    🟢{' '}
+                    {selectedCompetitionData.eligible_count}{' '}
+                    éligibles
+                  </span>
+
+                  <span>
+                    🔔{' '}
+                    {selectedCompetitionData.push_count}{' '}
+                    avec notification
+                  </span>
+
+                  {selectedCompetitionData.game_type ===
+                    'GRID' &&
+                    selectedCompetitionData.mode ===
+                      'TOURNOI' && (
+                      <span>
+                        🔴{' '}
+                        {
+                          selectedCompetitionData.eliminated_count
+                        }{' '}
+                        éliminés
+                      </span>
+                    )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* USER PRECIS */}
+
+        {recipientType === 'user' && (
+          <>
+            <label
+              style={{
+                display: 'block',
+                fontWeight: 600,
+                marginBottom: 5,
+              }}
+            >
+              User ID
+            </label>
+
+            <input
+              value={userId}
+              onChange={(e) =>
+                setUserId(e.target.value)
+              }
+              placeholder="619cda3f-26c0-4ef5-aace-26770f977942"
+              style={{
+                width: '100%',
+                padding: 9,
+                border: '1px solid #ddd',
+                borderRadius: 8,
+              }}
+            />
+          </>
+        )}
+      </div>
+
+      {/* -------------------------------------------------- */}
+      {/* MESSAGE */}
+      {/* -------------------------------------------------- */}
+
+      <label
+        style={{
+          display: 'block',
+          fontWeight: 600,
+        }}
+      >
+        Titre
+      </label>
+
       <input
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        style={{ width: '100%', padding: 8, margin: '6px 0 12px', border: '1px solid #ddd', borderRadius: 8 }}
+        onChange={(e) =>
+          setTitle(e.target.value)
+        }
+        style={{
+          width: '100%',
+          padding: 8,
+          margin: '6px 0 12px',
+          border: '1px solid #ddd',
+          borderRadius: 8,
+        }}
       />
 
-      <label style={{ display: 'block', fontWeight: 600 }}>Texte</label>
+      <label
+        style={{
+          display: 'block',
+          fontWeight: 600,
+        }}
+      >
+        Texte
+      </label>
+
       <textarea
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) =>
+          setBody(e.target.value)
+        }
         rows={3}
-        style={{ width: '100%', padding: 8, margin: '6px 0 12px', border: '1px solid #ddd', borderRadius: 8 }}
+        style={{
+          width: '100%',
+          padding: 8,
+          margin: '6px 0 12px',
+          border: '1px solid #ddd',
+          borderRadius: 8,
+        }}
       />
 
-      <label style={{ display: 'block', fontWeight: 600 }}>URL (au clic)</label>
+      <label
+        style={{
+          display: 'block',
+          fontWeight: 600,
+        }}
+      >
+        URL (au clic)
+      </label>
+
       <input
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        style={{ width: '100%', padding: 8, margin: '6px 0 12px', border: '1px solid #ddd', borderRadius: 8 }}
+        onChange={(e) =>
+          setUrl(e.target.value)
+        }
+        style={{
+          width: '100%',
+          padding: 8,
+          margin: '6px 0 12px',
+          border: '1px solid #ddd',
+          borderRadius: 8,
+        }}
       />
 
-      <label style={{ display: 'block', fontWeight: 600 }}>Plateforme</label>
+      <label
+        style={{
+          display: 'block',
+          fontWeight: 600,
+        }}
+      >
+        Plateforme
+      </label>
+
       <select
         value={platform}
-        onChange={(e) => setPlatform(e.target.value as any)}
-        style={{ padding: 8, margin: '6px 0 16px', border: '1px solid #ddd', borderRadius: 8 }}
+        onChange={(e) =>
+          setPlatform(
+            e.target.value as Platform
+          )
+        }
+        style={{
+          padding: 8,
+          margin: '6px 0 16px',
+          border: '1px solid #ddd',
+          borderRadius: 8,
+        }}
       >
         <option value="all">Tous</option>
         <option value="web">Web</option>
         <option value="twa">TWA</option>
-        <option value="android">Android (natif)</option>
+        <option value="android">
+          Android (natif)
+        </option>
         <option value="ios">iOS</option>
       </select>
+
+      {/* -------------------------------------------------- */}
+      {/* ENVOI */}
+      {/* -------------------------------------------------- */}
 
       <div>
         <button
           onClick={send}
-          style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
+          style={{
+            padding: 10,
+            border: '1px solid #ddd',
+            borderRadius: 8,
+            background: '#fff',
+            cursor: 'pointer',
+          }}
         >
           Envoyer maintenant
         </button>
+
         <button
           onClick={sendDelayed}
-          style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer', marginLeft: 8 }}
+          style={{
+            padding: 10,
+            border: '1px solid #ddd',
+            borderRadius: 8,
+            background: '#fff',
+            cursor: 'pointer',
+            marginLeft: 8,
+          }}
         >
           Envoyer dans 5s
         </button>
       </div>
 
-<div style={{ marginTop: 16, display: 'grid', gap: 8 }}>
-  <div style={{ fontWeight: 600 }}>Tâches “cron” manuelles</div>
-  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-    <button
-      onClick={async () => setLog(await (await fetch('/api/push/cron?type=H24')).text())}
-      style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
-    >
-      Lancer rappel H-24
-    </button>
-    <button
-      onClick={async () => setLog(await (await fetch('/api/push/cron?type=H1')).text())}
-      style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
-    >
-      Lancer rappel H-1
-    </button>
-    <button
-      onClick={async () => setLog(await (await fetch('/api/push/cron?type=GRID_DONE')).text())}
-      style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
-    >
-      Lancer “grille terminée”
-    </button>
-  </div>
+      {/* -------------------------------------------------- */}
+      {/* CRONS */}
+      {/* -------------------------------------------------- */}
 
-  <div style={{ marginTop: 8 }}>
-    <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>
-      Test ciblé (user_id UUID)
-    </label>
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-      <input
-        placeholder="619cda3f-26c0-4ef5-aace-26770f977942"
-        onChange={(e) => (window as any).__ONLY_UID = e.target.value}
-        style={{ flex: 1, minWidth: 260, padding: 8, border: '1px solid #ddd', borderRadius: 8 }}
-      />
-      <button
-        onClick={async () => {
-          const uid = (window as any).__ONLY_UID;
-          if (!uid) { setLog('Renseigne un user_id'); return; }
-          setLog(await (await fetch(`/api/push/test-user?only=${uid}`)).text());
+      <div
+        style={{
+          marginTop: 16,
+          display: 'grid',
+          gap: 8,
         }}
-        style={{ padding: 10, border: '1px solid #ddd', borderRadius: 8, background: '#fff', cursor: 'pointer' }}
       >
-        Tester cet utilisateur
-      </button>
-    </div>
-  </div>
-</div>
+        <div style={{ fontWeight: 600 }}>
+          Tâches “cron” manuelles
+        </div>
 
+        <div
+          style={{
+            display: 'flex',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
+          <button
+            onClick={async () =>
+              setLog(
+                await (
+                  await fetch(
+                    '/api/push/cron?type=H24'
+                  )
+                ).text()
+              )
+            }
+            style={{
+              padding: 10,
+              border: '1px solid #ddd',
+              borderRadius: 8,
+              background: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            Lancer rappel H-24
+          </button>
+
+          <button
+            onClick={async () =>
+              setLog(
+                await (
+                  await fetch(
+                    '/api/push/cron?type=H1'
+                  )
+                ).text()
+              )
+            }
+            style={{
+              padding: 10,
+              border: '1px solid #ddd',
+              borderRadius: 8,
+              background: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            Lancer rappel H-1
+          </button>
+
+          <button
+            onClick={async () =>
+              setLog(
+                await (
+                  await fetch(
+                    '/api/push/cron?type=GRID_DONE'
+                  )
+                ).text()
+              )
+            }
+            style={{
+              padding: 10,
+              border: '1px solid #ddd',
+              borderRadius: 8,
+              background: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            Lancer “grille terminée”
+          </button>
+        </div>
+
+        <div style={{ marginTop: 8 }}>
+          <label
+            style={{
+              display: 'block',
+              fontWeight: 600,
+              marginBottom: 4,
+            }}
+          >
+            Test ciblé (user_id UUID)
+          </label>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              flexWrap: 'wrap',
+            }}
+          >
+            <input
+              placeholder="619cda3f-26c0-4ef5-aace-26770f977942"
+              onChange={(e) =>
+                (window as any).__ONLY_UID =
+                  e.target.value
+              }
+              style={{
+                flex: 1,
+                minWidth: 260,
+                padding: 8,
+                border: '1px solid #ddd',
+                borderRadius: 8,
+              }}
+            />
+
+            <button
+              onClick={async () => {
+                const uid =
+                  (window as any).__ONLY_UID;
+
+                if (!uid) {
+                  setLog(
+                    'Renseigne un user_id'
+                  );
+                  return;
+                }
+
+                setLog(
+                  await (
+                    await fetch(
+                      `/api/push/test-user?only=${uid}`
+                    )
+                  ).text()
+                );
+              }}
+              style={{
+                padding: 10,
+                border: '1px solid #ddd',
+                borderRadius: 8,
+                background: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              Tester cet utilisateur
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* -------------------------------------------------- */}
+      {/* LOG */}
+      {/* -------------------------------------------------- */}
 
       <pre
         style={{
