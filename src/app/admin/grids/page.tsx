@@ -176,7 +176,9 @@ export default function AdminGridsPage() {
       if (compsErr) {
         console.error('Erreur chargement compétitions :', compsErr);
       } else if (comps2) {
-        setCompetitions(comps2.map(c => c.league_name));
+        setCompetitions(
+          (comps2 as { league_name: string }[]).map(c => c.league_name)
+        );
       }
 
       // Grids
