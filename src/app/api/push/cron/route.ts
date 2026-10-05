@@ -324,6 +324,12 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
       .select('token, user_id, platform')
       .then(r => { if (r.error) throw new Error('push_tokens: ' + r.error.message); return r.data || []; }),
   ]);
+  log('DEBUG eliminated', {
+  size: eliminatedSet.size,
+  target: eliminatedSet.has(
+    'bc96d017-e05c-4225-94fa-b7566734f2e7|d4c25f91-cb66-4b3e-9da1-75f7f2f774cb'
+  ),
+});
 
   const prefOffSet = new Set(
     prefsRaw
