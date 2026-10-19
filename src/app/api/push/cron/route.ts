@@ -1,7 +1,6 @@
 // src/app/api/push/cron/route.ts
 // Rappels H-1 / J-1 et notification "grille terminée"
 export const runtime = 'nodejs';
-import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 import { messaging } from '../../../../lib/firebaseAdmin';
 
@@ -16,13 +15,12 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 });
 
 const VAPID_PUBLIC_KEY  = 'BIIjmxt6CvJjd8EiHDtyBWgIvoDKO7eUjNJ_7FuN7vonLqolOVeWeilCoE2jIpeyN6Y02PZJ87B5MPRuywucWZE';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'aDNoUdMC-E95kgkI4qI-HL76jvvybdFU7vBDxTgoW-0';
+const VAPID_PRIVATE_KEY = 'aDNoUdMC-E95kgkI4qI-HL76jvvybdFU7vBDxTgoW-0';
 
 webpush.setVapidDetails('mailto:hello@peps-foot.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const WINDOW_MINUTES          = 10;
-const BIELSA_ID               = 'cee1eccc-28bf-4cbf-9968-2e7479d3b19f';
 const PLATFORM_PRIORITY       = ['twa', 'android', 'web', 'ios'] as const;
 const FINISHED_STATUSES       = new Set(['ET', 'BT', 'P', 'FT', 'AET', 'PEN']);
 
@@ -212,175 +210,37 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
   log('matches in window', matchIds.length);
 
   // ===========================================================================
-  // 2) GRID : logique basée sur les grilles actives + membres de compétition
+  // 2) GRID : la fonction SQL est la source de vérité pour H1 / H24.
+  // Elle filtre déjà : compétitions GRID, grilles actives, membres PLAYER/CREATOR,
+  // éliminés, préférences, picks, bonus sur le match et BIELSA sur la grille.
   // ===========================================================================
-  // On ne part PAS de grid_matches pour déterminer qui doit être notifié :
-  // un joueur peut avoir une ligne grid_matches même s'il est éliminé.
   const { data: gridComps, error: gcErr } = await supabase
     .from('competitions')
-    .select('id, game_type')
+    .select('id')
     .eq('game_type', 'GRID');
   if (gcErr) throw new Error('grid competitions: ' + gcErr.message);
 
-  const gridCompetitionIds: string[] = (gridComps || []).map(c => String(c.id));
+  // On conserve la liste des compétitions GRID pour les vérifications communes
+  // et pour ne pas modifier le traitement SUPPORTER / TIERCE.
+  const gridCompIds: string[] = (gridComps || []).map(c => String(c.id));
 
-  const { data: gridCompetitionLinks, error: cgeErr } = gridCompetitionIds.length
-    ? await supabase
-        .from('competition_grids')
-        .select('competition_id, grid_id')
-        .in('competition_id', gridCompetitionIds)
-    : { data: [], error: null };
-  if (cgeErr) throw new Error('competition_grids: ' + cgeErr.message);
-
-  const gridToComp = new Map<string, string>();
-  for (const row of gridCompetitionLinks || []) {
-    gridToComp.set(String(row.grid_id), String(row.competition_id));
-  }
-
-  const gridIdsLinked = Array.from(gridToComp.keys());
-
-  const { data: activeGridRows, error: agrErr } = gridIdsLinked.length
-    ? await supabase
-        .from('grids')
-        .select('id, competition_id')
-        .in('id', gridIdsLinked)
-        .eq('grid_done', false)
-    : { data: [], error: null };
-  if (agrErr) throw new Error('active grids: ' + agrErr.message);
-
-  const activeGridIds = (activeGridRows || []).map(g => String(g.id));
-  const activeGridSet = new Set(activeGridIds);
-
-  // La compétition associée à une grille vient de competition_grids.
-  // On ne garde que les grilles réellement reliées à une compétition GRID.
-  const activeGridCompIds = Array.from(new Set(
-    activeGridIds
-      .map(gid => gridToComp.get(gid))
-      .filter((id): id is string => Boolean(id))
-  ));
-  const gridCompIds: string[] = activeGridCompIds;
-
-  // Membres GRID : uniquement PLAYER / CREATOR.
-  const gridMembersSet = new Set<string>();
-  if (gridCompIds.length) {
-    const { data: gridMembers, error: gmemErr } = await supabase
-      .from('competition_members')
-      .select('user_id, competition_id')
-      .in('competition_id', gridCompIds)
-      .in('role', ['PLAYER', 'CREATOR']);
-    if (gmemErr) throw new Error('GRID competition_members: ' + gmemErr.message);
-    for (const r of gridMembers || []) {
-      gridMembersSet.add(`${String(r.user_id)}|${String(r.competition_id)}`);
-    }
-  }
-
-  // Les matchs de chaque grille active.
-  const { data: gridItems, error: giErr } = activeGridIds.length
-    ? await supabase
-        .from('grid_items')
-        .select('grid_id, match_id')
-        .in('grid_id', activeGridIds)
-        .in('match_id', matchIds)
-    : { data: [], error: null };
-  if (giErr) throw new Error('grid_items: ' + giErr.message);
-
-  const gridMatchIds = Array.from(new Set(
-    (gridItems || []).map(r => String(r.match_id))
-  ));
-
-  // Toutes les grilles des compétitions concernées sont chargées pour les bonus :
-  // un BIELSA placé sur une autre grille de la même compétition bloque le rappel.
-  const { data: allGridsInComps, error: agErr } = gridCompIds.length
-    ? await supabase
-        .from('grids')
-        .select('id')
-        .in('competition_id', gridCompIds)
-    : { data: [], error: null };
-  if (agErr) throw new Error('grids for comps: ' + agErr.message);
-
-  const allGridIds = (allGridsInComps || []).map(g => String(g.id));
-
-  // Picks GRID sur les grilles actives et les matchs de la fenêtre.
-  const { data: gms, error: gmErr } = activeGridIds.length && gridMatchIds.length
-    ? await supabase
-        .from('grid_matches')
-        .select('user_id, match_id, grid_id, competition_id, pick')
-        .in('grid_id', activeGridIds)
-        .in('match_id', gridMatchIds)
-    : { data: [], error: null };
-  if (gmErr) throw new Error('grid_matches: ' + gmErr.message);
-
-  const gridPickSet = new Set<string>();
-  for (const r of gms || []) {
-    if (r.pick != null) {
-      gridPickSet.add(`${String(r.user_id)}|${String(r.grid_id)}|${String(r.match_id)}`);
-    }
-  }
-
-  // Bonus GRID : bonus sur le match OU BIELSA sur la grille.
-  const gridBonusRows = allGridIds.length
-    ? await supabase
-        .from('grid_bonus')
-        .select('user_id, grid_id, match_id, bonus_definition, parameters')
-        .in('grid_id', allGridIds)
-        .then(r => {
-          if (r.error) throw new Error('grid_bonus: ' + r.error.message);
-          return r.data || [];
-        })
-    : [];
-
-  const bonusOnMatch = new Set<string>();
-  const bielsaOnGrid = new Set<string>();
-
-  for (const b of gridBonusRows) {
-    const uid = String(b.user_id);
-    const gid = String(b.grid_id);
-
-    if (b.bonus_definition === BIELSA_ID) {
-      bielsaOnGrid.add(`${uid}|${gid}`);
-    }
-
-    if (b.match_id) {
-      bonusOnMatch.add(`${uid}|${String(b.match_id)}`);
-    }
-
-    if (b.parameters && typeof b.parameters === 'object') {
-      const params = b.parameters as any;
-      for (const key of ['match_zero', 'match_win']) {
-        if (params[key] != null) {
-          bonusOnMatch.add(`${uid}|${String(params[key])}`);
-        }
-      }
-    }
+  const { data: gridCandidates, error: gridCandidatesErr } = await supabase.rpc(
+    'get_grid_reminder_candidates',
+    { p_kind: kind }
+  );
+  if (gridCandidatesErr) {
+    throw new Error('get_grid_reminder_candidates: ' + gridCandidatesErr.message);
   }
 
   type GridTodo = { uid: string; matchId: string; gridId: string; compId: string };
-  let gridTodos: GridTodo[] = [];
+  let gridTodos: GridTodo[] = (gridCandidates || []).map((row: any) => ({
+    uid: String(row.user_id),
+    matchId: String(row.match_id),
+    gridId: String(row.grid_id),
+    compId: String(row.competition_id),
+  }));
 
-  // On teste chaque match de chaque grille active contre les joueurs
-  // réellement membres de cette compétition.
-  for (const item of gridItems || []) {
-    const gridId = String(item.grid_id);
-    const matchId = String(item.match_id);
-    const compId = gridToComp.get(gridId);
-    if (!compId || !activeGridSet.has(gridId)) continue;
-
-    for (const memberKey of gridMembersSet) {
-      const [uid, memberCompId] = memberKey.split('|');
-      if (memberCompId !== compId) continue;
-
-      // Un prono sur CE match / CETTE grille suffit.
-      if (gridPickSet.has(`${uid}|${gridId}|${matchId}`)) continue;
-
-      // Un bonus posé sur CE match suffit également.
-      if (bonusOnMatch.has(`${uid}|${matchId}`)) continue;
-
-      // BIELSA sur la grille = grille considérée comme remplie.
-      if (bielsaOnGrid.has(`${uid}|${gridId}`)) continue;
-
-      gridTodos.push({ uid, matchId, gridId, compId });
-    }
-  }
+  log('GRID candidates from SQL', gridTodos.length);
 
   // ===========================================================================
   // 3) SUPPORTER : déterminer les compétitions SUPPORTER concernées
@@ -646,6 +506,13 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
   const toDelete = new Set<string>();
 
   for (const { uid, compId, gridId, matchIds } of groupMap.values()) {
+    // Sans token, on n'envoie rien et on n'écrit rien dans push_log.
+    const tokens = pickTokens(tokensRows as any, uid);
+    if (!tokens.length) {
+      log('skip no token (no push_log written)', { uid });
+      continue;
+    }
+
     const alreadyAll = await Promise.all(
       matchIds.map(mid => alreadyLogged(uid, kind, mid, null))
     );
@@ -662,12 +529,6 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
     }
     if (!anyLogged) {
       log('skip all log conflicts', { uid, gridId });
-      continue;
-    }
-
-    const tokens = pickTokens(tokensRows as any, uid);
-    if (!tokens.length) {
-      log('skip no token', { uid });
       continue;
     }
 
