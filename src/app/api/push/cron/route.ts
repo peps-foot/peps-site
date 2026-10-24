@@ -247,7 +247,7 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
   // ===========================================================================
   const { data: supporterComps, error: scErr } = await supabase
     .from('competitions')
-    .select('id, game_type, supporter_team_id')
+    .select('id, game_type, supporter_team_id, supporter_date_start, supporter_date_end')
     .eq('game_type', 'SUPPORTER')
     .not('supporter_team_id', 'is', null);
   if (scErr) throw new Error('supporter competitions: ' + scErr.message);
@@ -257,7 +257,21 @@ async function handleMatchReminder(kind: 'H24' | 'H1', only: string | null): Pro
     const teamId = Number(comp.supporter_team_id);
     if (!Number.isFinite(teamId)) continue;
 
+    // Une compétition SUPPORTER ne concerne que les matchs compris
+    // dans sa période de validité, bornes incluses. Sans les deux dates,
+    // on ne peut pas considérer la compétition comme active.
+    const dateStart = comp.supporter_date_start
+      ? String(comp.supporter_date_start).slice(0, 10)
+      : null;
+    const dateEnd = comp.supporter_date_end
+      ? String(comp.supporter_date_end).slice(0, 10)
+      : null;
+    if (!dateStart || !dateEnd) continue;
+
     for (const m of matches) {
+      const matchDate = String(m.date).slice(0, 10);
+      if (matchDate < dateStart || matchDate > dateEnd) continue;
+
       if (Number(m.team_home_id) === teamId || Number(m.team_away_id) === teamId) {
         const mid = String(m.id);
         if (!supporterMatchComps.has(mid)) supporterMatchComps.set(mid, []);
