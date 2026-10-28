@@ -726,7 +726,7 @@ async function handleGridDone(only: string | null): Promise<number> {
         const result = await sendPush(
           token,
           '🎉 Grille terminée',
-          'Les résultats sont là. Viens voir ton score !',
+          'Les résultats sont là. Top ou flop ?',
           'https://www.peps-foot.com/',
           'peps-grid-done'
         );

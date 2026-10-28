@@ -1936,6 +1936,7 @@ export default function AdminGridsPage() {
                 { id: 1, name: 'CDM' },
                 { id: 2, name: 'LDC' },
                 { id: 3, name: 'Europa' },
+                { id: 5, name: 'Ligue des Nations' },
                 { id: 61, name: 'Ligue 1' },
                 { id: 62, name: 'Ligue 2' },
                 { id: 63, name: 'Ligue 3' },
