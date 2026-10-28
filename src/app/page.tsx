@@ -218,12 +218,16 @@ export default function Home() {
         return;
       }
 
-      const { data, error } = await supabase.rpc("get_home_competitions", {
-        p_user_id: user.id,
-      });
+      // Chargement rapide des compétitions
+      const { data, error } = await supabase.rpc(
+        "get_home_competitions_basic",
+        {
+          p_user_id: user.id,
+        }
+      );
 
       if (error) {
-        console.error("Erreur RPC get_home_competitions", error);
+        console.error("Erreur RPC get_home_competitions_basic", error);
         setGroups({ mine: [], toJoin: [], history: [] });
         setReady(true);
         return;
@@ -268,7 +272,105 @@ export default function Home() {
         history: toCompetitionArray(historyRows),
       });
 
+      // L'affichage ne dépend pas des chargements en arrière-plan
       setReady(true);
+
+      // Récupération des échéances en arrière-plan
+      const {
+        data: deadlineRows,
+        error: deadlineError,
+      } = await supabase.rpc("get_home_competitions_with_deadlines", {
+        p_user_id: user.id,
+      });
+
+      if (deadlineError) {
+        console.error("Erreur chargement des échéances", deadlineError);
+      } else {
+        const deadlinesById = new Map<string, string | null>(
+          (deadlineRows ?? []).map((c: any) => [
+            c.id as string,
+            (c.nextPredictionDeadline as string | null) ?? null,
+          ])
+        );
+
+        setCompetitions((previous) =>
+          previous.map((c) => ({
+            ...c,
+            nextPredictionDeadline: deadlinesById.has(c.id)
+              ? deadlinesById.get(c.id)
+              : c.nextPredictionDeadline,
+          }))
+        );
+
+        setGroups((previous) => ({
+          mine: previous.mine.map((c) => ({
+            ...c,
+            nextPredictionDeadline: deadlinesById.has(c.id)
+              ? deadlinesById.get(c.id)
+              : c.nextPredictionDeadline,
+          })),
+          toJoin: previous.toJoin.map((c) => ({
+            ...c,
+            nextPredictionDeadline: deadlinesById.has(c.id)
+              ? deadlinesById.get(c.id)
+              : c.nextPredictionDeadline,
+          })),
+          history: previous.history.map((c) => ({
+            ...c,
+            nextPredictionDeadline: deadlinesById.has(c.id)
+              ? deadlinesById.get(c.id)
+              : c.nextPredictionDeadline,
+          })),
+        }));
+      }
+
+      // Récupération des classements en arrière-plan
+      const {
+        data: rankingRows,
+        error: rankingError,
+      } = await supabase.rpc("get_home_competition_rankings", {
+        p_user_id: user.id,
+      });
+
+      if (rankingError) {
+        console.error("Erreur chargement des classements", rankingError);
+        return;
+      }
+
+      const rankingsById = new Map<
+        string,
+        { userRank: number | null; playersCount: number | null }
+      >(
+        (rankingRows ?? []).map((r: any) => [
+          r.id as string,
+          {
+            userRank: r.userRank == null ? null : Number(r.userRank),
+            playersCount:
+              r.playersCount == null ? null : Number(r.playersCount),
+          },
+        ])
+      );
+
+      const applyRankings = (items: Competition[]): Competition[] =>
+        items.map((c) => {
+          const ranking = rankingsById.get(c.id);
+
+          return ranking
+            ? {
+                ...c,
+                userRank: ranking.userRank,
+                playersCount: ranking.playersCount ?? c.playersCount,
+              }
+            : c;
+        });
+
+      setCompetitions((previous) => applyRankings(previous));
+
+      setGroups((previous) => ({
+        mine: applyRankings(previous.mine),
+        toJoin: applyRankings(previous.toJoin),
+        history: applyRankings(previous.history),
+      }));
     };
 
     loadHomeCompetitions();
@@ -826,7 +928,7 @@ export default function Home() {
     </BannerAccordion>
 
     {/* Pub SportSympathy aléatoire */}
-    <PartnerPromo />  
+    {/*<PartnerPromo /> */}
 
     {/* ── POP UP CHOIX DU PSEUDO GOOGLE ── */}
     {showPseudoModal && (

@@ -92,22 +92,32 @@ export function NavBar() {
     fetchAvatar()
   }, [])
 
-  // Remplir le burger menu de gauche (uniquement les compétitions où l'utilisateur est PLAYER/CREATOR)
+
+  // Remplir le burger menu de gauche
+  // (uniquement les compétitions où l'utilisateur est PLAYER/CREATOR)
   useEffect(() => {
     const run = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         setLeftMenuItems([]);
         return;
       }
 
-      const { data, error } = await supabase.rpc("get_home_competitions", {
-        p_user_id: user.id,
-      });
+      const { data, error } = await supabase.rpc(
+        "get_home_competitions_basic",
+        {
+          p_user_id: user.id,
+        }
+      );
 
       if (error) {
-        console.error("Erreur Navbar get_home_competitions :", error);
+        console.error(
+          "Erreur Navbar get_home_competitions_basic :",
+          error
+        );
         setLeftMenuItems([]);
         return;
       }
@@ -121,8 +131,10 @@ export function NavBar() {
       const mine = (data ?? [])
         .filter((c: CompetitionFull) => c.homeTab === "MINE")
         .sort((a: CompetitionFull, b: CompetitionFull) => {
-          const ta = typeOrder[a.game_type as keyof typeof typeOrder] ?? 99;
-          const tb = typeOrder[b.game_type as keyof typeof typeOrder] ?? 99;
+          const ta =
+            typeOrder[a.game_type as keyof typeof typeOrder] ?? 99;
+          const tb =
+            typeOrder[b.game_type as keyof typeof typeOrder] ?? 99;
 
           if (ta !== tb) return ta - tb;
 
@@ -134,6 +146,7 @@ export function NavBar() {
 
     run();
   }, []);
+
 
   // Remplir le burger menu de droite
   const rightMenu: MenuItem[] = [
