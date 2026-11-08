@@ -106,6 +106,7 @@ export default function Home() {
   const [pseudoError, setPseudoError] = useState<string | null>(null);
   const [isSavingPseudo, setIsSavingPseudo] = useState(false);
   const [connectedUserId, setConnectedUserId] = useState<string | null>(null);
+  const [profileSetupMessage, setProfileSetupMessage] = useState<string | null>(null);
   // Choix facultatif de l'avatar après la création du pseudo
   const [showGoogleAvatarModal, setShowGoogleAvatarModal] = useState(false);
   const [googleAvatarTeams, setGoogleAvatarTeams] = useState<Team[]>([]);
@@ -141,10 +142,16 @@ export default function Home() {
 
         if (profileError) {
           console.error("Erreur vérification du profil :", profileError);
-        }
-
-        // Aucun profil ou aucun pseudo : on ouvre la pop-up obligatoire
-        if (!profile?.username?.trim()) {
+          setProfileSetupMessage(
+            "Impossible de vérifier ton profil PEPS. Actualise la page ; si le problème persiste, contacte le support."
+          );
+        } else if (!profile) {
+          // Ne jamais créer de profil depuis l'accueil : notamment pour les comptes admin historiques.
+          setProfileSetupMessage(
+            "Ton profil PEPS est introuvable. Aucun profil n'a été créé automatiquement. Réessaie de te connecter ; si le problème persiste, contacte le support."
+          );
+        } else if (profile.username === null || profile.username.trim() === "") {
+          // Un profil existe déjà, mais son pseudo Google reste à choisir.
           setShowPseudoModal(true);
         }
       }
@@ -497,60 +504,41 @@ export default function Home() {
 
     setIsSavingPseudo(true);
 
-    // 1) Création / mise à jour du profil
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          user_id: connectedUserId,
-          username: cleanPseudo,
-          avatar: null,
-        },
-        {
-          onConflict: "user_id",
+    let saved = false;
+    try {
+      // Met à jour uniquement le profil existant, si son pseudo est vide ou NULL.
+      const { data: savedProfile, error: profileError } = await supabase
+        .from("profiles")
+        .update({ username: cleanPseudo })
+        .eq("user_id", connectedUserId)
+        .or("username.is.null,username.eq.")
+        .select("user_id")
+        .maybeSingle();
+
+      if (profileError || !savedProfile) {
+        console.error("Erreur mise à jour du pseudo :", profileError);
+
+        if (profileError?.code === "23505") {
+          setPseudoError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
+        } else if (!profileError) {
+          setPseudoError("Ton profil est introuvable ou son pseudo a déjà été défini. Actualise la page.");
+        } else {
+          setPseudoError("Impossible d'enregistrer ton pseudo. Réessaie.");
         }
-      );
-
-    if (profileError) {
-      console.error("Erreur création du profil :", profileError);
-
-      if (profileError.code === "23505") {
-        setPseudoError("Ce pseudo est déjà utilisé. Choisis-en un autre.");
-      } else {
-        setPseudoError("Impossible d'enregistrer ton pseudo.");
+        return;
       }
 
-      setIsSavingPseudo(false);
+      saved = true;
+      setShowPseudoModal(false);
+    } catch (error) {
+      console.error("Erreur inattendue lors de l'enregistrement du pseudo :", error);
+      setPseudoError("Une erreur réseau empêche l'enregistrement. Vérifie ta connexion et réessaie.");
       return;
+    } finally {
+      setIsSavingPseudo(false);
     }
 
-    // 2) Création des préférences de notifications
-    // Les notifications sont activées par défaut,
-    // mais aucune demande d'autorisation n'est faite ici.
-    const { error: pushPrefsError } = await supabase
-      .from("push_prefs")
-      .upsert(
-        {
-          user_id: connectedUserId,
-          allow_admin_broadcast: true,
-          allow_grid_done: true,
-          allow_match_reminder_24h: true,
-          allow_match_reminder_1h: true,
-        },
-        {
-          onConflict: "user_id",
-        }
-      );
-
-    if (pushPrefsError) {
-      console.error(
-        "Erreur création des préférences notifications :",
-        pushPrefsError
-      );
-    }
-
-    setShowPseudoModal(false);
-    setIsSavingPseudo(false);
+    if (!saved) return;
 
     // 3) Charger les équipes pour la deuxième étape
     const { data: teamsData, error: teamsError } = await supabase
@@ -567,6 +555,31 @@ export default function Home() {
 
     setGoogleAvatarTeams(teamsData ?? []);
     setShowGoogleAvatarModal(true);
+  }
+
+  async function handleAssignProvisionalPseudo() {
+    if (isSavingPseudo) return;
+
+    setPseudoError(null);
+    setIsSavingPseudo(true);
+
+    try {
+      const { data, error } = await supabase.rpc("peps_assign_provisional_username");
+
+      if (error || !data) {
+        console.error("Erreur attribution du pseudo provisoire :", error);
+        setPseudoError("Impossible d'attribuer un pseudo provisoire. Réessaie.");
+        return;
+      }
+
+      setNewPseudo(data);
+      setShowPseudoModal(false);
+    } catch (error) {
+      console.error("Erreur inattendue lors de l'attribution du pseudo provisoire :", error);
+      setPseudoError("Une erreur réseau empêche l'attribution du pseudo. Vérifie ta connexion et réessaie.");
+    } finally {
+      setIsSavingPseudo(false);
+    }
   }
 
   async function handleChooseGoogleAvatar(logo: string) {
@@ -707,6 +720,12 @@ export default function Home() {
   return (
   <main className="px-4 py-2 max-w-3xl mx-auto">
     <div className="space-y-2">
+
+    {profileSetupMessage && (
+      <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        {profileSetupMessage}
+      </div>
+    )}
 
     {/* Pub PEPS aléatoire */}
     {/*<RandomPromo /> */}
@@ -933,7 +952,18 @@ export default function Home() {
     {/* ── POP UP CHOIX DU PSEUDO GOOGLE ── */}
     {showPseudoModal && (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+        <div className="relative w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+          <button
+            type="button"
+            onClick={handleAssignProvisionalPseudo}
+            disabled={isSavingPseudo}
+            aria-label="Fermer et choisir un pseudo provisoire"
+            title="Fermer avec un pseudo provisoire"
+            className="absolute right-3 top-2 flex h-8 w-8 items-center justify-center rounded-full text-2xl leading-none text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            ×
+          </button>
+
           <h2 className="text-center text-xl font-bold">
             Bienvenue sur PEPS !
           </h2>
